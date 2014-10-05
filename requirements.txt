@@ -1,0 +1,15 @@
+psutil
+blinker
+mongoengine
+flask
+flask-script
+WTForms==1.0.5
+flask_mongoengine
+flask-security
+flup
+flask-admin
+flask-bcrypt
+python-dateutil
+python-memcached
+pytz
+pillow

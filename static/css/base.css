@@ -1,0 +1,127 @@
+/* http://meyerweb.com/eric/tools/css/reset/
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+ u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure,
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+
+b {font-weight:bold;}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+/* END CSS RESET */
+
+body {
+    background: #e0edf6 /*url(../img/footerbg.jpg)*/ bottom repeat-x;
+    min-width: 700px;
+}
+
+.print-content-outer {
+    text-align: center;
+    max-width: 800px;
+}
+
+.print-content {
+    display: inline-block;
+}
+
+.segment_table {
+    border: 1px;
+    border-color: navy;
+    padding: 10px;
+    border-spacing: 10px;
+    text-spacing: 10px;
+}
+
+.main-content-outer {
+    text-align: center;
+}
+
+.main-content {
+    background-color: rgba(255, 255, 255, 1.0);
+    border: 1px solid rgba(200, 200, 120, 1.0);
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 1.0);
+    display: inline-block;
+    margin: 10px;
+    padding: 10px;
+    text-align: left;
+}
+
+.main-content textarea {
+    height: 150px;
+    margin: 5px 0;
+    padding: 5px;
+    width: 310px;
+}
+
+.main-content form p {
+    text-align: center;
+}
+
+.main-content form p .submit-input {
+    width: 100px;
+}
+
+.login-form p {
+    text-align: left !important;
+}
+
+.login-form p label {
+    display: inline-block;
+    width: 150px;
+}
+
+.login-form p input {
+    width: 250px;
+}
+
+.login-form .submit-input {
+    width: 100px;
+}
+.btn-cancel {
+    color:lightcoral;
+}
+.btn-submit {
+    color:darkgreen;
+}

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>{% block page_title %}Base title{% endblock %}</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+	<!-- Styles follow -->
+    <link rel="stylesheet" href="/static/css/base.css" type="text/css" />
+{#    <link rel="stylesheet" href="/static/css/config.css" type="text/css" />#}
+{#    <link rel="stylesheet" href="/static/css/header.css" type="text/css" />#}
+{#	<link rel="stylesheet" href="/static/jqwidgets/styles/jqx.base.css" type="text/css" />#}
+{#	<link rel="stylesheet" href="/static/jqwidgets/styles/jqx.energyblue.css" type="text/css" />#}
+
+	{% block page_styles %}
+    {% endblock %}
+
+{#    {% include "base/jqwidgets.html" %}#}
+	{% block page_scripts %}
+    {%  endblock %}
+
+</head>
+<body class="default">
+    {% block page_header %}
+    <div class="header">
+        <div class="header-logo-outer">
+            <div class="header-logo">
+                {# <img src="{{ STATIC_URL }}images/carflowLogo.png" title="version: {{ ver }}" alt="version: {{ ver }}" /> #}
+            </div>
+        </div>
+{#        {% include "base/menu.html" %}#}
+    </div>
+	{% endblock %}
+
+    {% block page_content %}
+    {% endblock %}
+
+    <script type="text/javascript">
+    $(document).ready(function () {
+{#        $("#jqxMenu").jqxMenu({});#}
+{#        $("#jqxMenu").css('visibility', 'visible');#}
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,261 @@
+{% extends 'index.html' %}
+{% block page_title %}Observer Home{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="{{ STATIC_URL }}css/base.css" type="text/css" />
+{% endblock %}
+
+{% block page_scripts %}
+<script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyDY0kkJiTPVd2U7aTOAwhc9ySH6oHxOIYM&sensor=false"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}scripts/oms.min.js"></script>
+{% endblock %}
+
+{% block page_content %}
+<div style="width:98%; height:90%; margin: 0 auto; box-shadow: 0 0 1em #000000; border: 1px solid #000000; border-radius: 0.2em; overflow: hidden;">
+	<div id="google-map" style="width:100%; height:300px;"></div>
+    <div id="plot-data" style="width:100%; height:300px;">
+{#        <img src="{{ plot }}" alt="" width="100%" height="100%"/>#}
+        <iframe id="igraph" style='border:none' src="{{ plot }}" width = "100%" height="100%" ></iframe>
+    </div>
+</div>
+
+<!-- Scripts follow -->
+<script type="text/javascript">
+var token = '{{ csrf_token }}',
+	map,
+	oms,
+	placemarks = [],
+	lines = [];
+
+$('#google-map').ready(function() {
+	// Setup the map itself
+//    debugger;
+	var mapProp = {
+	//	width:600,
+    //    height:400,
+        {% if selected_lat and selected_long %}
+		center: new google.maps.LatLng({{ selected_lat }}, {{ selected_long }}),
+		zoom: 9,
+		{% else %}	
+		center: new google.maps.LatLng(20, -90),
+		zoom: 4,
+		{% endif %}
+        streetViewControl: false,
+		mapTypeId: google.maps.MapTypeId.HYBRID
+	};
+	map = new google.maps.Map(document.getElementById('google-map'), mapProp);
+	oms = new OverlappingMarkerSpiderfier(map);
+
+	loadPlacemarks();
+
+	oms.addListener('click', function(marker, event) {
+
+        window.open(marker.myurl, '_blank');
+        //window.location.href = marker.myurl;
+		
+	});
+
+	// Update placemarks every 30 seconds
+	setInterval(function() {
+		loadPlacemarks();
+	}, (15 * 1000));
+});
+
+function loadPlacemarks()
+{
+	var url = '{{ devices_url }}';
+	var rqdata = {
+		'csrfmiddlewaretoken': token // Must be present in document
+	}
+
+	$.post(url, rqdata, function(data) {
+		if (data) {
+
+            clearPlacemarksAndLines(); // Remove old placemarks
+
+{#            debugger;#}
+			var length = data.items.length;
+			var noDevicePosition = true;
+			for (var i=0; i<length; i++) {
+				var device = data.items[i];
+				var lat = device.lat;
+				var lng = device.long;
+
+				if (lat && lng) {
+					noDevicePosition = false;
+					addPlacemark(device, lat, lng);
+                    if (device.bts_lat && device.bts_long)
+						addConnectionLine(lat, lng, device.bts_lat, device.bts_long);
+				}
+			}
+			if (length && noDevicePosition) {
+				alert('Could not optain position for any device!');
+			}
+		}
+	});
+}
+
+
+function addPlacemark(device, lat, lng)
+{
+	if (!map) return;
+    //clearPlacemarksAndLines(); // Remove old placemarks
+	var title = device.device_name;
+	
+	if (device.device_status == 'online'){
+	
+		if (device.device_type != 'BTS'){
+			title = title + ' '+device.speed+' knots, ';
+			title = title + ' '+device.distance+" miles, ";
+            title = title + ' Capacity:'+device.capacity+" Mbps ";
+            title = title + ' Traffic:'+device.traffic+" Mbps ";
+            title = title + ' Connected to:'+device.connected_to;
+		}
+        else {
+            title = title + ' #clients:'+device.num_active;
+{#			title = title + ' ping:'+device.ping_response;#}
+        }
+	}
+	else{ // the device is not online
+		title = title + ' offline';
+		
+	}
+
+    var pcolors = {online:'green',error:'pink',offline:'red'};
+
+	var status = device.device_status;
+	var latlng = new google.maps.LatLng(lat,lng);
+    //debugger;
+    var path;
+
+    stationary_ship_path = 'M20 0 L24 0 L24 6 L32 6 L30 16 L8 16 L0 6 L20 6 Z';//'M0 0 L24 0  L24 16 L0 16 Z';
+    moving_ship_path = 'M20 0 L24 0 L24 6 L32 6 L30 16 L8 16 L0 6 L20 6 Z'//'M0 0 L24 0 L32 8 L24 16 L0 16 Z';
+
+    if (status == "offline" || status == "error" ){
+        path = stationary_ship_path;
+        rotation = 0;
+    }
+    else {
+
+        if (device.speed == 0 ){
+            path = stationary_ship_path;
+            rotation = 0;
+        }
+        else {
+            path = moving_ship_path;
+            rotation = device.heading - 90 - 180;
+        }
+    }
+
+
+
+    if (device.device_type != 'BTS') {
+        var cpe_marker = new google.maps.Marker({
+	    position: latlng,
+	    title: title,
+	    icon: {
+	    	path: path,
+            fillColor: pcolors[status],
+            fillOpacity: 0.5,
+            strokeColor:"white",
+            strokeWeight: 2,
+            scale:0.75,
+	    	//url: '/static/img/icon_'+device.device_class+'_'+status+'.png',
+            rotation: rotation
+	    },
+	    desc: 'Some description',
+	    //desc: getInfoWindowContent(device),
+	    myurl: '/observer/cpe_monitor/'+device.mac,
+        map: map
+	    });
+
+        placemarks.push(cpe_marker);
+        oms.addMarker(cpe_marker);
+    }
+    else {
+        var bts_triangle = {
+        path: 'M0 0 L-12 56 L12 56 Z',
+        fillColor: pcolors[status],
+        fillOpacity: 0.5,
+        scale: 0.3,
+        strokeColor: "white",
+        strokeWeight: 1
+        };
+        var bts_triangle_marker = new google.maps.Marker({
+	    position: latlng,
+	    title: title,
+        icon:bts_triangle,
+        map: map
+	    });
+
+        var bts_outer_circle = {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: pcolors[status],
+            fillOpacity: 0.0,
+            strokeColor: "white",
+            strokeWeight: 1,
+            scale: 4
+        };
+        var bts_outer_circle_marker = new google.maps.Marker({
+	        position: latlng,
+            icon:bts_outer_circle,
+            map: map
+	    });
+        var bts_inner_circle = {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: pcolors[status],
+            fillOpacity: 0.0,
+            strokeColor: "white",
+            strokeWeight: 1,
+            scale: 2
+        };
+        var bts_inner_circle_marker = new google.maps.Marker({
+	        position: latlng,
+            icon:bts_inner_circle,
+            map: map
+	    });
+        placemarks.push(bts_triangle_marker);
+        placemarks.push(bts_inner_circle_marker);
+        placemarks.push(bts_outer_circle_marker);
+
+    }
+}
+
+
+
+
+function clearPlacemarksAndLines()
+{
+	var len = placemarks.length;
+	for (var i=0; i<len; i++) {
+		var marker = placemarks[i];
+		marker.setMap(null);
+	}
+	placemarks = [];
+	
+	len = lines.length;
+	for (var i=0; i<len; i++) {
+		var line = lines[i];
+		line.setMap(null);
+	}
+	lines = [];
+}
+
+function addConnectionLine(lat1, long1, lat2, long2)
+{
+	  var connectionCoordinates = [
+	        new google.maps.LatLng(lat1, long1),
+			new google.maps.LatLng(lat2, long2) ];
+
+	  var connectionPath = new google.maps.Polyline({
+	                             path: connectionCoordinates,
+	                             strokeColor: '#009933',
+	                             strokeOpacity: 0.9,
+	                             strokeWeight: 3
+	                           });
+
+	  connectionPath.setMap(map);
+	  lines.push(connectionPath);
+}
+</script>
+{% endblock %}
