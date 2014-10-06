@@ -2,7 +2,7 @@ from flask import Flask
 from flask.ext.mongoengine import MongoEngine
 from flask.ext.security import Security, MongoEngineUserDatastore, UserMixin, RoleMixin
 from flask_mail import Mail
-import getpass, logging, memcache, datetime
+import getpass, logging, memcache, datetime, requests
 
 # Create mongo database settings based on live, development, and local machine
 rootUser = getpass.getuser()
