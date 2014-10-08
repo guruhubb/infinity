@@ -36,7 +36,7 @@ app.config['MAIL_PASSWORD'] = 'infinity1234'
 # Set up debug logger
 file_handler = logging.FileHandler("/opt/log/infinity.log")
 file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s ''[in %(pathname)s:%(lineno)d]'))
-file_handler.setLevel(logging.DEBUG)
+file_handler.setLevel(logging.DEBUG)  #change to ERROR in production?
 app.logger.addHandler(file_handler)
 
 # Create mail connection object
@@ -71,6 +71,13 @@ class User(db.Document, UserMixin):
 
     def __unicode__(self):
         return self.name
+
+    # meta = {
+    #     'indexes': [
+    #         {'fields': ['-confirmed_at'], 'unique': True,
+    #           'sparse': True, 'types': False },
+    #     ],
+    # }
 
 # Setup Flask-Security
 userDatastore = MongoEngineUserDatastore(db, User, Role)

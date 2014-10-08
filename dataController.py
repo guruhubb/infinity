@@ -6,18 +6,90 @@ import pytz
 import math
 import time
 from tools import timeit
+import  json
 
 import flask
 from mongoengine import Q
 #from collections import OrderedDict
 
 from flask.ext.mail import Message
-from infinity import mail, app, cache
+from infinity import mail, app, cache,User,db
 from collections import defaultdict
+# import json
 
+import pymongo
+db = pymongo.MongoClient().infinity
+
+# db = MongoClient('mongodb://localhost:27017/')
 CUTOFF_CAPACITY = 2
 CUTOFF_SNR = 5
 session = FuturesSession(max_workers=10)
+import requests
+# from flask import jsonify
+# from pprint import pprint
+
+url = 'http://127.0.0.1:5002/api/person'
+url1 = 'http://127.0.0.1:5002/api/person/4'
+
+headers = {'Content-Type': 'application/json'}
+filters = [dict(name='id', op='ge', val='0')]
+params = dict(q=json.dumps(dict(filters=filters)))
+payload = {'first_name':'Sean','last_name':'Basu'}
+# response = requests.get(url, params=params, headers=headers)
+
+def bg_cb(sess, resp):
+    # parse the json storing the result on the response object
+    resp.data = resp.json()
+
+
+
+@app.route('/test')
+# def test():
+#     response = requests.get('http://127.0.0.1:5002/v2/person')
+#     # future = session.get('http://127.0.0.1:5002/v2/person',timeout=2, background_callback=bg_cb)
+#     # response = future.result()
+#     # response = session.get(url, params=params, headers=headers,timeout=2)
+#     # content = response.content
+#     # status = response.status_code
+#     # # json_content = jsonify(content)
+#     # json_content = response.data
+#     # lines = json_content.splitlines(False)
+#     return response.content
+def test():
+    # userData = db.User()
+    # response = requests.get('http://127.0.0.1:5002/v2/person')
+    # future = session.get('http://127.0.0.1:5002/api/person',timeout=2, background_callback=bg_cb)
+    # postRequest = requests.post(url, data=json.dumps(payload), headers=headers)
+    # postRequest = requests.post(url, data=payload) //doesn't work with repeated posts, seems payload is not updated
+
+    # deleteRequest = requests.delete(url1) #working
+    # putRequest = requests.put(url1, data=json.dumps(payload), headers=headers) #working
+
+    # postRequest = session.post(url, data=payload, headers=headers,timeout=2, background_callback=bg_cb).result()
+    response = session.get(url, params=params, headers=headers,timeout=2, background_callback=bg_cb).result()
+
+    # response = future.result()
+    # content = response.content
+    # status = response.status_code
+    # json_content = jsonify(content)
+    # json_content = response.data
+    # list = json_content["objects"]
+
+    documents=[]
+    for obj in response.data["objects"]:
+        first_name = obj["first_name"]
+        last_name = obj["last_name"]
+        Id = obj["id"]
+        documents.append({"name":first_name + " " + last_name})
+    # for document in documents:
+    #     userData.name=document
+    db.user.insert(documents)
+    # lines = json_content.splitlines(False)
+    return str(documents)
+
+# assert response.status_code == 200
+# print(response.json())
+
 
 @timeit
 def getDeviceData():
