@@ -1,4 +1,6 @@
 from requests_futures.sessions import FuturesSession
+from flask.ext.security import login_required
+
 import logging
 import models
 import datetime
@@ -6,19 +8,19 @@ import pytz
 import math
 import time
 from tools import timeit
-import  json
+import json
 
 import flask
 from mongoengine import Q
 #from collections import OrderedDict
 
 from flask.ext.mail import Message
-from infinity import mail, app, cache,User,db
+from infinity import mail, app, cache,User,db, Device,Data
 from collections import defaultdict
 # import json
 
 import pymongo
-db = pymongo.MongoClient().infinity
+dbmongo = pymongo.MongoClient().infinity
 
 # db = MongoClient('mongodb://localhost:27017/')
 CUTOFF_CAPACITY = 2
@@ -27,23 +29,56 @@ session = FuturesSession(max_workers=10)
 import requests
 # from flask import jsonify
 # from pprint import pprint
+url1 = 'http://127.0.0.1:5002/api/device'
+url2 = 'http://127.0.0.1:5003/api/device'
+# urlList = [url1,url2]
+# url1 = 'http://127.0.0.1:5002/api/device/4'
 
-url = 'http://127.0.0.1:5002/api/person'
-url1 = 'http://127.0.0.1:5002/api/person/4'
-
+counter = 1
 headers = {'Content-Type': 'application/json'}
-filters = [dict(name='id', op='ge', val='0')]
+filters = [dict(name='time', op='ge', val='0')]
 params = dict(q=json.dumps(dict(filters=filters)))
-payload = {'first_name':'Sean','last_name':'Basu'}
+# payload = {'first_name':'Sean','last_name':'Basu'}
 # response = requests.get(url, params=params, headers=headers)
 
 def bg_cb(sess, resp):
     # parse the json storing the result on the response object
     resp.data = resp.json()
 
+# def latestTimeStamp (macList):
+#     timeList = []
+#     for mac in macList:
+#         time = models.Data.objects(mac = mac).order_by('-time').only ('time').first()
+#         timeList.append(time.time)
+#     return timeList
+
+def run_once(f):
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            wrapper.has_run = True
+            return f(*args, **kwargs)
+        else:
+            return "Already collecting data"
+    wrapper.has_run = False
+    return wrapper
 
 
-@app.route('/test')
+# @run_once
+# def my_function(foo, bar):
+#     return foo+bar
+
+
+# @timeit
+@app.route('/startdata')
+@login_required
+@run_once
+def startdata():
+    try:
+        while True:
+            getData()
+            time.sleep(1)
+    except Exception, msg:
+            app.logger.error('error message is: %s, ' % msg)
 # def test():
 #     response = requests.get('http://127.0.0.1:5002/v2/person')
 #     # future = session.get('http://127.0.0.1:5002/v2/person',timeout=2, background_callback=bg_cb)
@@ -55,72 +90,121 @@ def bg_cb(sess, resp):
 #     # json_content = response.data
 #     # lines = json_content.splitlines(False)
 #     return response.content
-def test():
+
+def getData():
+    urlList = []
+    macList = []
+    timeList = []
+    totaldocuments = []
+    msg = ""
+
+    for object in Device.objects(active = True):
+        urlList.append(object.url)
+        macList.append(object.mac)
+        timeStamp = Data.objects(mac = object.mac).order_by('-time').only ('time').first()
+        # timeStamp = timeStamp.time.strftime("%Y-%m-%d %H:%M:%S.%f")
+
+        if timeStamp:
+            timeStamp = datetime.datetime.strptime(timeStamp.time, '%Y-%m-%dT%H:%M:%S.%f')
+            timeStamp = timeStamp.strftime('%Y-%m-%d %H:%M:%S.%f')
+            timeList.append(timeStamp)
+        else:
+            timeList.append(str(datetime.datetime.now()-datetime.timedelta(hours=1)))
+
+    # or
+
+    # urlList = models.Device.objects.only('url')
+    # timeList = latestTimeStamp(macList)
     # userData = db.User()
     # response = requests.get('http://127.0.0.1:5002/v2/person')
     # future = session.get('http://127.0.0.1:5002/api/person',timeout=2, background_callback=bg_cb)
     # postRequest = requests.post(url, data=json.dumps(payload), headers=headers)
     # postRequest = requests.post(url, data=payload) //doesn't work with repeated posts, seems payload is not updated
-
     # deleteRequest = requests.delete(url1) #working
     # putRequest = requests.put(url1, data=json.dumps(payload), headers=headers) #working
-
     # postRequest = session.post(url, data=payload, headers=headers,timeout=2, background_callback=bg_cb).result()
-    response = session.get(url, params=params, headers=headers,timeout=2, background_callback=bg_cb).result()
-
+    for url, time in zip(urlList,timeList):
+        filters = [dict(name='time', op='gt', val=time)]
+        params = dict(q=json.dumps(dict(filters=filters)))
+        try:
+            response = session.get(url,params=params, headers=headers,timeout=5,background_callback=bg_cb).result()
+    # response = session.get(url, params=params, headers=headers,timeout=2, background_callback=bg_cb).result()
     # response = future.result()
     # content = response.content
     # status = response.status_code
     # json_content = jsonify(content)
     # json_content = response.data
     # list = json_content["objects"]
+            documents=[]
+            for obj in response.data["objects"]:
+                mac = obj["mac"]
+                connId = obj["connId"]
+                time = obj["time"]
+                lat = obj["lat"]
+                long = obj["long"]
+                freqA = obj["freqA"]
+                freqB = obj["freqB"]
+                snr = obj["snr"]
+                tx = obj["tx"]
+                rx = obj["rx"]
+                cap = obj["cap"]
+                documents.append({"mac":mac,"connId":connId,"time":time, "geo":(lat,long),"freqA":freqA,
+                                  "freqB":freqB,"snr":snr, "tx":tx,"rx":rx,"cap":cap})
+            # for document in documents:
+            #     userData.name=document
+            if documents:
+                totaldocuments.append(documents)
+                dbmongo.data.insert(documents) # BE CAREFUL! pymongo client accesses database with whatever name the database is
+                                        # set up by mongoengine.  It seems that mongoengine converts caps to lowercase and
+                                        # multiple caps to underscored lowercase names
+            # lines = json_content.splitlines(False)
 
-    documents=[]
-    for obj in response.data["objects"]:
-        first_name = obj["first_name"]
-        last_name = obj["last_name"]
-        Id = obj["id"]
-        documents.append({"name":first_name + " " + last_name})
-    # for document in documents:
-    #     userData.name=document
-    db.user.insert(documents)
-    # lines = json_content.splitlines(False)
-    return str(documents)
+        except Exception, msg:
+            app.logger.error('error message is: %s, ' % msg)
+            pass
+    if totaldocuments:
+        return str(totaldocuments)
+    else:
+        if msg:
+            return "Some or all devices are down"
+        else:
+            return "No data from devices"
+        # return "Done"
 
 # assert response.status_code == 200
 # print(response.json())
 
+# @timeit
 
-@timeit
-def getDeviceData():
-    newDeviceData = models.DeviceData()
-    while True:
-        for device in models.Device:
-            # r = requests.get(device.url, timeout=1)
-            # r = requests.delete(device.url, timeout=2)
-            r = session.get(device.url, timeout=2)
-            lines = []
-            try:
-                lines = r.splitlines(False)
-                for line in lines:
-                    # mline = line.replace('  ', ' ')
-                    elements = line.split(' ')
-                    newDeviceData.mac = elements[0]
-                    newDeviceData.geo = [elements[1],elements[2]]  #geo has lat, long values
-                    newDeviceData.time = elements[3]
-                    newDeviceData.freqA = elements[4]
-                    newDeviceData.freqB = elements[5]
-                    newDeviceData.snr = elements[6]
-                    newDeviceData.tx = elements[7]
-                    newDeviceData.rx = elements[8]
-                    newDeviceData.cap = elements[9]
-                    newDeviceData.connId =elements[10]
-                    newDeviceData.data = tx + rx
-                    newDeviceData.distance = distance_in_miles(newDeviceData.connId,newDeviceData.geo,newDeviceData.mac)
-            except AttributeError, msg:
-                logger.error('Error while splitting the lines of an upload file: %s' % msg)
-            return False
-            logger.debug("Processing "+newDeviceData.mac+" upload of "+str(len(lines)))
+# def getDeviceData():
+#     newDeviceData = models.DeviceData()
+#     while True:
+#         for device in models.Device:
+#             # r = requests.get(device.url, timeout=1)
+#             # r = requests.delete(device.url, timeout=2)
+#             r = session.get(device.url, timeout=2)
+#             lines = []
+#             try:
+#                 lines = r.splitlines(False)
+#                 for line in lines:
+#                     # mline = line.replace('  ', ' ')
+#                     elements = line.split(' ')
+#                     newDeviceData.mac = elements[0]
+#                     newDeviceData.geo = [elements[1],elements[2]]  #geo has lat, long values
+#                     newDeviceData.time = elements[3]
+#                     newDeviceData.freqA = elements[4]
+#                     newDeviceData.freqB = elements[5]
+#                     newDeviceData.snr = elements[6]
+#                     newDeviceData.tx = elements[7]
+#                     newDeviceData.rx = elements[8]
+#                     newDeviceData.cap = elements[9]
+#                     newDeviceData.connId =elements[10]
+#                     newDeviceData.data = tx + rx
+#                     newDeviceData.distance = distance_in_miles(newDeviceData.connId,newDeviceData.geo,newDeviceData.mac)
+#             except AttributeError, msg:
+#                 logger.error('Error while splitting the lines of an upload file: %s' % msg)
+#             return False
+#             logger.debug("Processing "+newDeviceData.mac+" upload of "+str(len(lines)))
 
 def beacon_process_file(file_content, mac_addr, archived=False):
     logger = app.logger

@@ -13,7 +13,7 @@ def timeit(method):
         result = method(*args, **kw)
         te = datetime.datetime.now()
 
-        app.logger.debug('Timer got: %s for %r (%r, %r)' % (te-ts, method.__name__, args, kw))
+        app.logger.info('Timer got: %s for %r (%r, %r)' % (te-ts, method.__name__, args, kw))
         return result
 
     return timed

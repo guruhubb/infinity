@@ -56,18 +56,19 @@ def adminViews(app):
         # Add admin views
     admin.add_view(UserView(infinity.User))
     admin.add_view(RoleView(infinity.Role))
-    admin.add_view(ModelView(models.Company))
-    admin.add_view(ModelView(models.Tag))
-    admin.add_view(ModelView(models.Device))
-    # admin.add_view(ModelView(models.DeviceData))
-    admin.add_view(ModelView(models.ConfigPackage))
-    admin.add_view(ModelView(models.FirmwarePackage))
-    admin.add_view(ModelView(models.JobSchedule))
-    admin.add_view(ModelView(models.EventRecord))
-    admin.add_view(ModelView(models.AuditRecord))
+    admin.add_view(ModelView(infinity.Company))
+    admin.add_view(ModelView(infinity.Tag))
+    admin.add_view(ModelView(infinity.Device))
+    admin.add_view(ModelView(infinity.Data))
+    admin.add_view(ModelView(infinity.Config))
+    admin.add_view(ModelView(infinity.Firmware))
+    admin.add_view(ModelView(infinity.Job))
+    admin.add_view(ModelView(infinity.Event))
+    admin.add_view(ModelView(infinity.Audit))
 
 # Setup Admin Views
 adminViews(app)
+
 
 # Route main page
 @app.route('/')
