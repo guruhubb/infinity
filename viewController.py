@@ -60,7 +60,7 @@ def adminViews(app):
     admin.add_view(ModelView(infinity.Tag))
     admin.add_view(ModelView(infinity.Device))
     admin.add_view(ModelView(infinity.Data))
-    admin.add_view(ModelView(infinity.Aggr_Data))
+    admin.add_view(ModelView(infinity.Aggr_data))
     admin.add_view(ModelView(infinity.Config))
     admin.add_view(ModelView(infinity.Firmware))
     admin.add_view(ModelView(infinity.Freq))

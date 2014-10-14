@@ -15,23 +15,21 @@ import sys
 from mongoengine import Q
 #from collections import OrderedDict
 from flask.ext.mail import Message
-from infinity import mail, app, cache, Device, Data, Event, Site, Aggr_Data, Freq, Ssid
+from infinity import mail, app, cache, Device, Data, Event, Site, Aggr_data, Freq, Ssid
 from collections import defaultdict
 
 import pymongo
 dbmongo = pymongo.MongoClient().infinity
+
 DISTANCE_MAX = 40
 DISTANCE_MIN = 10
 CUTOFF_CAPACITY = 2
-CUTOFF_SNR = 4
-LOW_SNR = 4
+CUTOFF_SNR = 3
+LOW_SNR = 4.5
 NUM_OF_EVENTS = 1
 EVENT_TIME_INTERVAL = 5
 session = FuturesSession(max_workers=10)
 headers = {'Content-Type': 'application/json'}
-# ssid_event_counter = 0
-# freq_event_counter = 0
-# start = time.time()
 
 def bg_cb(sess, resp):
     # parse the json storing the result on the response object
@@ -80,54 +78,31 @@ def getData(ssid_event_counter=0, freq_event_counter=0, start=time.time()):
         # validate if timestamp is null and format it for the device timestamp if necessary
 
         if timeStamp:
-            # timeStamp = str(timeStamp.time)
-            # timeStamp = datetime.datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S+00:00')
-            timeStamp = timeStamp.time.strftime('%Y-%m-%d %H:%M:%S.%f')
+            timeStamp = timeStamp.time
+            # timeStamp = datetime.datetime.strptime(timeStamp,"%Y-%m-%dT%H:%M:%S.%f")
+            timeStamp = timeStamp.strftime('%Y-%m-%d %H:%M:%S.%f')
             timeList.append(timeStamp)
         else:
-            timeList.append(str(datetime.datetime.now()-datetime.timedelta(hours=1)))
+            timeList.append(datetime.datetime.now()-datetime.timedelta(hours=1))
 
     # do REST calls and get new data
 
     for url, timeItem in zip(urlList,timeList):
-        filters = [dict(name='time', op='lt', val=timeItem)]    # get new data gt (time.now - 1 hr)
+
+        # get new data gt (time.now - 1 hr), make sure time is in string format
+
+        filters = [dict(name='time', op='lt', val=str(timeItem))]
         params = dict(q=json.dumps(dict(filters=filters)))
         try:
-            # response = requests.get('http://127.0.0.1:5003')
-            # response = requests.get(url,params=params, headers=headers,timeout=5).json()  #working
-            # response = session.get(url,background_callback=bg_cb).result()  #working
-            # response = session.get(url).result()   #working
-
             response = session.get(url,params=params, headers=headers,timeout=5,background_callback=bg_cb).result()
             if len(response.data["objects"]) is 0:
                 continue
-            # size_of_content = len(response.content)
-            # size_of_object = sys.getsizeof(response)
-            # size_of_data = sys.getsizeof(response.data)
-            # elementlist = response.content.split()
             documents=[]
             aggr_documents=[]
             for obj in response.data["objects"]:
-            # for elements in elementlist:
-            #     mac = elements[0]
-            #     connId = elements[1]
-            #     timeEntry = elements[2]
-            #     lat = elements[3]
-            #     long = elements[4]
-            #     freqA = elements[5]
-            #     freqB = elements[6]
-            #     snrA = elements[7]
-            #     snrB = elements[8]
-            #     tx = elements[9]
-            #     rx = elements[10]
-            #     cap = elements[11]
-            #     freqList = elements[12].split()  # ordered list of available clear channels separated by whitespace
-            #     ssidList = elements[13].split()  # ordered list of available ssids channels separated by whitespace
-
                 mac = obj["mac"]
                 connId = obj["connId"]
-                # timeEntry = datetime.datetime.strptime(obj["time"],"%Y-%m-%dT%H:%M:%S.%f").replace(microsecond=0)
-                timeEntry = obj["time"]
+                timeEntry = datetime.datetime.strptime(obj["time"],"%Y-%m-%dT%H:%M:%S.%f")
                 lat = obj["lat"]
                 long = obj["long"]
                 freqA = obj["freqA"]
@@ -142,142 +117,146 @@ def getData(ssid_event_counter=0, freq_event_counter=0, start=time.time()):
 
                 geo = (lat,long)
 
-            # get the other device records on the ptp link to calculate total capacity and distance
-            # ptp_device = Data.objects(Q(connId=connId) & Q(mac__ne=mac) & Q(time__lt = time+datetime.timedelta(seconds=5))).first()
-            time_s = datetime.datetime.strptime(timeEntry,"%Y-%m-%dT%H:%M:%S.%f").replace(microsecond=0)
-            ptp_device = Data.objects(connId=connId, mac__ne=mac, time__lt = time_s+datetime.timedelta(seconds=5),
+                # get the other device records on the ptp link to calculate total capacity and distance
+                time_s = timeEntry.replace(microsecond=0)
+                ptp_device = Data.objects(connId=connId, mac__ne=mac, time__lt = time_s+datetime.timedelta(seconds=5),
                             time__gt= time_s-datetime.timedelta(seconds=5)).first()  # find a bts match within 10s of data
 
-            if ptp_device:
-                cap_ptp_device = ptp_device.cap
-                total_cap = cap + cap_ptp_device
-                distance = distance_in_miles(ptp_device,geo)
-            else:
-                # ptp_device = Device.objects(connId__contains=connId).first().mac
-                total_cap = 0
-                distance = 0
+                if ptp_device:
+                    cap_ptp_device = ptp_device.cap
+                    total_cap = cap + cap_ptp_device
+                    distance = distance_in_miles(ptp_device,geo)
+                else:
+                    # ptp_device = Device.objects(connId__contains=connId).first().mac
+                    total_cap = cap
+                    distance = random.uniform(1,10)
 
-            device = Device.objects(mac = mac).first()
+                device = Device.objects(mac = mac).first()
 
-            # get the site name for the device
+                # get the site name for the device
 
-            site = device.site
+                site = device.site
 
-            if device.type == 'CPE':
+                if device.type == 'CPE':
 
-                # get aggr_data of CPE if there is no record
+                    # get aggr_data of CPE if there is no record
 
-                if Aggr_Data.objects(time=timeEntry, site = site).first() is None:
+                    if Aggr_data.objects(time=timeEntry, site = site).first() is None:
 
-                    # get the other device for the site
+                        # get the other device for the site
 
-                    second_device = Device.objects(site=site, mac__ne=mac).first()  #WORKS
-                    # second_device = Device.objects(Q(site=site) & Q(mac__ne=mac)).first() #WORKS
-                    # second_device = Device.objects(Q(site=site) and Q(mac__ne=mac)).first()  #DOES NOT WORK
+                        second_device = Device.objects(site=site, mac__ne=mac).first()
 
-                    # get the data from the other device with 3 second margin of error
-                    if second_device:
-                        second_device_data = Data.objects(mac=second_device.mac,
-                                time__lt= timeEntry+datetime.timedelta(seconds=5),
-                                time__gt= timeEntry-datetime.timedelta(seconds=5)).first()
+                        # get the data from the other device with 3 second margin of error
+                        if second_device:
+                            second_device_data = Data.objects(mac=second_device.mac,
+                                    time__lt= timeEntry+datetime.timedelta(seconds=5),
+                                    time__gt= timeEntry-datetime.timedelta(seconds=5)).first()
 
-                    # add tx, rx, total_cap; take minimum distance; if total_cap > cutoff_capacity then cov = YES
+                        # add tx, rx, total_cap; take minimum distance; if total_cap > cutoff_capacity then cov = YES
+                            if second_device_data:
+                                total_tx = second_device_data.tx + tx
+                                total_rx = second_device_data.rx + rx
+                                total_total_cap = second_device_data.total_cap + total_cap
+                                if second_device_data.distance > distance:
+                                    min_distance = distance
+                                else :
+                                    min_distance = second_device_data.distance
+                                if total_total_cap > CUTOFF_CAPACITY:
+                                    coverage = 1
+                                else:
+                                    coverage = 0
 
-                        total_tx = second_device_data.tx + tx
-                        total_rx = second_device_data.rx + rx
-                        total_total_cap = second_device_data.total_cap + total_cap
-                        if second_device_data.distance > distance:
-                            min_distance = distance
-                        else :
-                            min_distance = second_device_data.distance
-                        if total_total_cap > CUTOFF_CAPACITY:
-                            coverage = True
-                        else:
-                            coverage = False
+                                # prepare for bulk insert
 
-                        # prepare for bulk insert
+                                aggr_documents.append({"site":site,"time":timeEntry, "tx":total_tx,"rx":total_rx,
+                                     "cap":total_total_cap,"data":total_rx+total_tx,"coverage":coverage,
+                                     "distance":min_distance, "geo":geo})
 
-                        aggr_documents.append({"site":site,"time":timeEntry, "tx":total_tx,"rx":total_rx,"cap":total_total_cap,
-                                  "data":total_rx+total_tx,"cov":coverage,"distance":min_distance, "geo":geo})
+                documents.append({"mac":mac,"connId":connId,"time":timeEntry, "geo":geo,"freqA":freqA,
+                    "freqB":freqB,"snrA":snrA,"snrB":snrB, "tx":tx,"rx":rx,"cap":cap,
+                    "total_cap":total_cap,"distance":distance})
 
-            documents.append({"mac":mac,"connId":connId,"time":timeEntry, "geo":geo,"freqA":freqA,
-            "freqB":freqB,"snrA":snrA,"snrB":snrB, "tx":tx,"rx":rx,"cap":cap,"total_cap":total_cap,"distance":distance})
+                # generate events for CPE devices only
 
-            # generate events for CPE devices only
+                if device.type == 'CPE':
+                    snr = min(snrA,snrB)
+                    if snr < CUTOFF_SNR and distance < DISTANCE_MAX:
+                        if ssid_event_counter == 0:
+                            start = time.time()
+                        ssid_event_counter += 1
+                        stop = time.time()
+                        delta = stop-start
+                        if ssid_event_counter >= NUM_OF_EVENTS and delta <= EVENT_TIME_INTERVAL:
+                            event=Event(device=mac, parameter='SNR='+ str(snr), message='Change SSID')
+                            event.save()
+                            url = device.url+'/api/device'
 
-            if device.type == 'CPE':
-                snr = min(snrA,snrB)
-                if snr < CUTOFF_SNR and distance < DISTANCE_MAX:
-                    if ssid_event_counter == 0:
-                        start = time.time()
-                    ssid_event_counter += 1
-                    stop = time.time()
-                    delta = stop-start
-                    if ssid_event_counter >= NUM_OF_EVENTS and delta <= EVENT_TIME_INTERVAL:
-                        event=Event(device=mac, parameter='SNR='+ str(snr), message='Change SSID')
-                        event.save()
-                        # Event.save({"device":object.mac, "parameter":snr,"message":'Change SSID'})
-                        url = device.url
+                            # remove ssid of 2nd device from ssidlist choices
 
-                        # get the site name of the bts device
+                            if second_device:
+                                if second_device.connId in ssidList:
+                                    ssidList.remove(second_device.connId)
 
-                        site = Device.objects(mac=ptp_device.mac).first()
-                        ssidList=[]
-                        if site:
-                            site=site.site
+                                # remove all ssids of bts_site devices that 2nd device is connected to
 
-                        # get all ssids for that site
+                                bts_site = Device.objects(connId=second_device.connId, type='BTS').first()
+                                if bts_site:
+                                    bts_site_ssids = Site.objects(name=bts_site.site).first().ssidList
+                                    ssidList=[x for x in ssidList if x not in bts_site_ssids]
 
-                            ssids = Site.objects(site=site).first()
-                            if ssids:
-                                ssids = ssids.ssidList
+                            if ssidList:
+                                new_ssid = ssidList[0]
+                                payload = {'connId': new_ssid}
+                                putRequest = requests.put(url, data=json.dumps(payload), headers=headers)
 
-                            for item in ssidList:
-                                if item in ssids:
-                                     continue
-                                new_ssid = item
-                                break
+                                # update Device info
 
-                            payload = {'ssid': new_ssid}
-                            putRequest = requests.put(url, data=json.dumps(payload), headers=headers)
-                        ssid_event_counter = 0
-                        start = time.time()
+                                device.connId = new_ssid
+                                device.save()
 
-                elif snr < LOW_SNR and distance < DISTANCE_MIN:
-                    if freq_event_counter == 0:
-                        start = time.time()
-                    freq_event_counter += 1
-                    stop = time.time()
-                    delta = stop-start
-                    if freq_event_counter >= NUM_OF_EVENTS and delta <= EVENT_TIME_INTERVAL:
-                        event=Event(device=mac, parameter='SNR='+ str(snr), message='Change Frequency')
-                        event.save()
-                        url = Device.objects(mac = ptp_device.mac).first().url
-                        for item in freqList:
-                            if item == freqA or item == freqB:
-                                continue
-                            new_freq = item
-                            break
-                        # freqObjects = Freq.objects(Q(channel__ne=freqA) & Q(channel__ne=freqB))
-                        # for freq in freqObjects:
-                        #     freqList.append(freq.channel)
-                        # freq = random.choice(freqList)
-                        if snrA < snrB:
-                            payload = {'freqA': new_freq}
-                        else:
-                            payload = {'freqB': new_freq}
-                        putRequest = requests.put(url, data=json.dumps(payload), headers=headers)
-                        freq_event_counter = 0
-                        start = time.time()
+                            ssid_event_counter = 0
+                            start = time.time()
 
-            if documents:
+                    elif snr < LOW_SNR and distance < DISTANCE_MIN:
+                        if freq_event_counter == 0:
+                            start = time.time()
+                        freq_event_counter += 1
+                        stop = time.time()
+                        delta = stop-start
+                        if freq_event_counter >= NUM_OF_EVENTS and delta <= EVENT_TIME_INTERVAL:
+                            event=Event(device=mac, parameter='SNR='+ str(snr), message='Change Frequency')
+                            event.save()
+                            if ptp_device:
+                                url = Device.objects(mac = ptp_device.mac).first().url + '/api/device'
+
+                                # remove freqA and freqB from freqlist choices
+
+                            # if str(freqA) in freqList: freqList.remove(str(freqA))
+                            # if str(freqB) in freqList: freqList.remove(str(freqA))
+                            current_freq = [str(freqA),str(freqB)]
+                            freqList=[x for x in freqList if x not in current_freq]
+
+
+                            if freqList:
+                                new_freq = freqList[0]
+                                if snrA < snrB:
+                                    payload = {'freqA': new_freq}
+                                else:
+                                    payload = {'freqB': new_freq}
+                                putRequest = requests.put(url, data=json.dumps(payload), headers=headers)
+                            freq_event_counter = 0
+                            start = time.time()
+
+            if documents:   # bulk insert
                 totaldocuments.append(documents)
                 dbmongo.data.insert(documents)
+            if aggr_documents:
                 dbmongo.aggr_data.insert(aggr_documents)
 
-                    # BE CAREFUL! pymongo client accesses database with whatever name the database is
-                    # set up by mongoengine.  It seems that mongoengine converts caps to lowercase and
-                    # multiple caps to underscored lowercase names
+                # BE CAREFUL! pymongo client accesses database with whatever name the database is
+                # set up by mongoengine.  It seems that mongoengine converts caps to lowercase and
+                # multiple caps to underscored lowercase names
 
         except Exception, msg:
             app.logger.error('error message is: %s, ' % msg)
@@ -290,32 +269,26 @@ def getData(ssid_event_counter=0, freq_event_counter=0, start=time.time()):
         else:
             return "No data from devices"
 
-def generate_histogram(site, distance,fromTimeStamp=None,toTimeStamp=None):
+@app.route('/histogram/<site>')
+@login_required
+def generate_histogram(site,fromTimeStamp=None,toTimeStamp=None):
 
     if toTimeStamp is None:
         toTimeStamp = datetime.datetime.now()
     if fromTimeStamp is None:
-        fromTimeStamp=datetime.timedelta(days=1)
-    records_less = Aggr_Data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site )
-    total_records = len(records_less)
-    records_5 = len(records_less.objects(distance_lt = 5))
-    average_cap_5 = records_less.objects(distance_lt = 5).average('cap')
+        fromTimeStamp=toTimeStamp-datetime.timedelta(days=2)
+    dict=[]
+    total_records = len(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
 
-    # records_5 = len(Aggr_Data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site , distance_lt = 5)
-    # records_10 = len(Aggr_Data.objects(Q(time > fromTimeStamp) & Q(time < toTimeStamp) & Q(site = site) & Q(distance < 5)))
-    # records_20 = len(Aggr_Data.objects(Q(time > fromTimeStamp) & Q(time < toTimeStamp) & Q(site = site) & Q(distance < 5)))
-    # records_30 = len(Aggr_Data.objects(Q(time > fromTimeStamp) & Q(time < toTimeStamp) & Q(site = site) & Q(distance < 5)))
-    # records_40 = len(Aggr_Data.objects(Q(time > fromTimeStamp) & Q(time < toTimeStamp) & Q(site = site) & Q(distance < 5)))
-    # records_50 = len(Aggr_Data.objects(Q(time > fromTimeStamp) & Q(time < toTimeStamp) & Q(site = site) & Q(distance < 5)))
-    #
-    # records_5 = Aggr_Data.objects(Q(time > fromTimeStamp) & Q(time < toTimeStamp) & Q(site = site) & Q(distance < 5)).average('cap')
-    # records_10 = Aggr_Data.objects(Q(time > fromTimeStamp) & Q(time < toTimeStamp) & Q(site = site) & Q(distance < 5)).average('cap')
-    # records_20 = Aggr_Data.objects(Q(time > fromTimeStamp) & Q(time < toTimeStamp) & Q(site = site) & Q(distance < 5)).average('cap')
-    # records_30 = Aggr_Data.objects(Q(time > fromTimeStamp) & Q(time < toTimeStamp) & Q(site = site) & Q(distance < 5)).average('cap')
-    # records_40 = Aggr_Data.objects(Q(time > fromTimeStamp) & Q(time < toTimeStamp) & Q(site = site) & Q(distance < 5)).average('cap')
-    # records_50 = Aggr_Data.objects(Q(time > fromTimeStamp) & Q(time < toTimeStamp) & Q(site = site) & Q(distance < 5)).average('cap')
+    for x in range(5,40,5):
+        records = len(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site , distance__lt = x, distance__gt = x-5))
+        avg_cap = Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site , distance__lt = x, distance__gt = x-5).average('cap')
+        dict.append({"Occurences": 100*records/total_records, "Avg_Capacity": avg_cap, "Distance":x})
+        # dict.append({ "Avg_Capacity": avg_cap})
 
-    return
+
+
+    return str(dict)
 
 def aggregate_data():
 
@@ -325,7 +298,7 @@ def aggregate_data():
 
         # get last entry for this site
 
-        timeStamp = Aggr_Data.objects(site = object).order_by('-time').only ('time').first()
+        timeStamp = Aggr_data.objects(site = object).order_by('-time').only ('time').first()
 
         # validate if timestamp is null
 
@@ -356,6 +329,26 @@ def aggregate_data():
         # for device in list:
         #     for mac in device.mac:
         #         mac.time =
+
+
+            # response = requests.get('http://127.0.0.1:5003')
+            # response = requests.get(url,params=params, headers=headers,timeout=5).json()  #working
+            # response = session.get(url,background_callback=bg_cb).result()  #working
+            # response = session.get(url).result()   #working
+
+            # size_of_content = len(response.content)
+            # size_of_object = sys.getsizeof(response)
+            # size_of_data = sys.getsizeof(response.data)
+            # elementlist = response.content.split()
+
+            # timeStamp = str(timeStamp.time)
+            # timeStamp = datetime.datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S+00:00')
+
+            # timeEntry = datetime.datetime.strptime(obj["time"],"%Y-%m-%dT%H:%M:%S.%f").replace(microsecond=0)
+
+            # ptp_device = Data.objects(Q(connId=connId) & Q(mac__ne=mac) & Q(time__lt = time+datetime.timedelta(seconds=5))).first()
+                    # second_device = Device.objects(Q(site=site) & Q(mac__ne=mac)).first() #WORKS
+                    # second_device = Device.objects(Q(site=site) and Q(mac__ne=mac)).first()  #DOES NOT WORK
 
 # check data and generate events
 # @app.route('/checkEvent')

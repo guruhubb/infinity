@@ -164,7 +164,7 @@ class Device(db.Document):
     active = db.BooleanField(default=True)
     geo = db.GeoPointField(default=(33.7,-118.19))
     site = db.StringField()                 # TODO may need to reference this at some point
-    # connId = db.ListField(db.StringField())
+    connId = db.StringField()
     # ssid = db.ReferenceField(Ssid)
     # power = db.ReferenceField(Power)
     firmware = db.ReferenceField('Firmware')
@@ -194,7 +194,7 @@ class Data(db.Document):
     meta = {'indexes': ['geo', 'connId','mac','time','distance']}
 
 #derived data from Data
-class Aggr_Data(db.Document):
+class Aggr_data(db.Document):
     site = db.StringField()
     time = db.DateTimeField()
     tx = db.FloatField()
@@ -205,7 +205,7 @@ class Aggr_Data(db.Document):
     distance = db.FloatField()
     geo = db.GeoPointField()
 
-    meta = {'indexes': ['site','time','distance']}
+    meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
 
 
 class Freq(db.Document):
