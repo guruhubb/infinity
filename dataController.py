@@ -25,9 +25,9 @@ DISTANCE_MAX = 40
 DISTANCE_MIN = 10
 CUTOFF_CAPACITY = 2
 CUTOFF_SNR = 2
-LOW_SNR = 10
-NUM_OF_EVENTS = 1
-EVENT_TIME_INTERVAL = 5
+LOW_SNR = 4
+NUM_OF_EVENTS = 50
+EVENT_TIME_INTERVAL = 180
 session = FuturesSession(max_workers=10)
 headers = {'Content-Type': 'application/json'}
 
@@ -47,20 +47,20 @@ def run_once(f):
 
 # run startdata once - could not implement the forever run logic at startup of the app
 
-# @app.route('/startdata')
-# @login_required
-# @run_once
+@app.route('/startdata')
+@login_required
+@run_once
 def startdata():
     try:
-        # while True:
+        while True:
             getData()
             time.sleep(1)
     except Exception, msg:
             app.logger.error('error message is: %s, ' % msg)
     return "Start getting data from device"
 
-@app.route('/getData')
-@login_required
+# @app.route('/getData')
+# @login_required
 def getData(ssid_event_counter=0, freq_event_counter=0, start=time.time()):
     urlList = []
     macList = []
@@ -271,6 +271,7 @@ def getData(ssid_event_counter=0, freq_event_counter=0, start=time.time()):
         else:
             return "No data from devices"
 
+
 @app.route('/histogram/<site>')
 @login_required
 def generate_histogram(site,fromTimeStamp=None,toTimeStamp=None):
@@ -288,9 +289,9 @@ def generate_histogram(site,fromTimeStamp=None,toTimeStamp=None):
         dict.append({"Occurences": 100*records/total_records, "Avg_Capacity": avg_cap, "Distance":x})
         # dict.append({ "Avg_Capacity": avg_cap})
 
-
-
     return str(dict)
+
+
 
 def aggregate_data():
 
@@ -314,7 +315,9 @@ def aggregate_data():
         # compute aggregate tx, rx, cap values for all devices for this site
         for device in devices:
             records_data = Data.objects(Q(mac = device.mac) & Q(time > timeStamp)).order_by('time').only('mac','time',
-                                                                                    'tx','rx','total_cap','distance','geo')
+                              'tx','rx','total_cap','distance','geo')
+
+
         # for record in records_data:
         #     for item in record:
         #         total_tx[record][item] = total_tx + item.tx
