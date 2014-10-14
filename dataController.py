@@ -24,8 +24,8 @@ dbmongo = pymongo.MongoClient().infinity
 DISTANCE_MAX = 40
 DISTANCE_MIN = 10
 CUTOFF_CAPACITY = 2
-CUTOFF_SNR = 3
-LOW_SNR = 4.5
+CUTOFF_SNR = 2
+LOW_SNR = 10
 NUM_OF_EVENTS = 1
 EVENT_TIME_INTERVAL = 5
 session = FuturesSession(max_workers=10)
@@ -91,7 +91,7 @@ def getData(ssid_event_counter=0, freq_event_counter=0, start=time.time()):
 
         # get new data gt (time.now - 1 hr), make sure time is in string format
 
-        filters = [dict(name='time', op='lt', val=str(timeItem))]
+        filters = [dict(name='time', op='gt', val=str(timeItem))]
         params = dict(q=json.dumps(dict(filters=filters)))
         try:
             response = session.get(url,params=params, headers=headers,timeout=5,background_callback=bg_cb).result()
@@ -181,6 +181,9 @@ def getData(ssid_event_counter=0, freq_event_counter=0, start=time.time()):
 
                 if device.type == 'CPE':
                     snr = min(snrA,snrB)
+
+                    # if snr is less than cutoff_snr and within operable distance, change ssid else change frequency
+
                     if snr < CUTOFF_SNR and distance < DISTANCE_MAX:
                         if ssid_event_counter == 0:
                             start = time.time()
@@ -190,7 +193,7 @@ def getData(ssid_event_counter=0, freq_event_counter=0, start=time.time()):
                         if ssid_event_counter >= NUM_OF_EVENTS and delta <= EVENT_TIME_INTERVAL:
                             event=Event(device=mac, parameter='SNR='+ str(snr), message='Change SSID')
                             event.save()
-                            url = device.url+'/api/device'
+                            url = device.url+'/api/config'
 
                             # remove ssid of 2nd device from ssidlist choices
 
@@ -228,12 +231,11 @@ def getData(ssid_event_counter=0, freq_event_counter=0, start=time.time()):
                             event=Event(device=mac, parameter='SNR='+ str(snr), message='Change Frequency')
                             event.save()
                             if ptp_device:
-                                url = Device.objects(mac = ptp_device.mac).first().url + '/api/device'
-
+                                url = Device.objects(mac = ptp_device.mac).first().url + '/api/config'
+                            # else:# Todo remove this test code
+                            #     url = device.url+'/api/config' # todo remove this test code
                                 # remove freqA and freqB from freqlist choices
 
-                            # if str(freqA) in freqList: freqList.remove(str(freqA))
-                            # if str(freqB) in freqList: freqList.remove(str(freqA))
                             current_freq = [str(freqA),str(freqB)]
                             freqList=[x for x in freqList if x not in current_freq]
 
