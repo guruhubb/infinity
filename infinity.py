@@ -7,6 +7,7 @@ from datetime import datetime
 import getpass, logging, memcache, time, json, pymongo, flask_security
 import mongoengine as dbmongo
 
+TYPE = ('BTS', 'CPE', 'BEAGLE', 'ROUTER')
 session = FuturesSession(max_workers=10)
 dbpy = pymongo.MongoClient().infinity
 headers = {'Content-Type': 'application/json'}
@@ -144,7 +145,6 @@ class Company(db.Document):
         return self.name
 
 
-
 class Tag(db.Document):
     name = db.StringField(max_length=32)
 
@@ -156,18 +156,21 @@ class Device(db.Document):
     name = db.StringField(max_length=64, unique=True)
     mac = db.StringField(max_length=32, unique = True)
     url = db.StringField(unique = True)
-    # connId = db.StringField()
-    # connected_to = db.ReferenceField("self")
+    type = db.StringField(max_length=10, choices=TYPE)
     operator = db.ReferenceField(Company)
     owner = db.ReferenceField(Company)
     tags = db.ListField(db.ReferenceField('Tag'), default=['all'])
-    timestamp = db.DateTimeField(default=datetime.now)
+    time = db.DateTimeField(default=datetime.now)
     active = db.BooleanField(default=True)
     geo = db.GeoPointField(default=(33.7,-118.19))
-    firmwareVersion = db.FloatField(default=0)
-    configVersion = db.FloatField(default=0)
+    site = db.StringField()                 # TODO may need to reference this at some point
+    # connId = db.ListField(db.StringField())
+    # ssid = db.ReferenceField(Ssid)
+    # power = db.ReferenceField(Power)
+    firmware = db.ReferenceField('Firmware')
+    config = db.ReferenceField('Config')
 
-    meta = {'indexes': ['name','mac','operator','owner','tags','geo']}
+    meta = {'indexes': ['mac','operator','owner','tags','geo']}
 
     def __unicode__(self):
         return self.name
@@ -180,25 +183,64 @@ class Data(db.Document):
     geo = db.GeoPointField()
     freqA = db.IntField()
     freqB = db.IntField()
-    snr = db.FloatField()
+    snrA = db.FloatField()
+    snrB = db.FloatField()
+    tx = db.FloatField()
+    rx = db.FloatField()
+    cap = db.FloatField()
+    total_cap = db.FloatField()
+    distance = db.FloatField()
+
+    meta = {'indexes': ['geo', 'connId','mac','time','distance']}
+
+#derived data from Data
+class Aggr_Data(db.Document):
+    site = db.StringField()
+    time = db.DateTimeField()
     tx = db.FloatField()
     rx = db.FloatField()
     cap = db.FloatField()
     data = db.FloatField()
+    coverage = db.BooleanField()
     distance = db.FloatField()
+    geo = db.GeoPointField()
+
+    meta = {'indexes': ['site','time','distance']}
 
 
-    meta = {'indexes': ['geo', 'connId']}
+class Freq(db.Document):
+    channel = db.StringField()
 
+    def __unicode__(self):
+        return self.channel
+
+class Ssid(db.Document):
+    name = db.StringField()
+
+    def __unicode__(self):
+        return self.name
+
+class Power(db.Document):
+    power = db.StringField(default='2')
+
+    def __unicode__(self):
+        return self.power
+
+class Site(db.Document):
+    name = db.StringField(max_length=32)
+    ssidList = db.ListField(db.StringField())
+    deviceList = db.ListField(db.StringField())
+
+    def __unicode__(self):
+        return self.name
 
 class Config(db.Document):
     name = db.StringField(max_length=64)
     description = db.StringField(max_length=512)
-    timestamp = db.DateTimeField(default=datetime.now)
-    freqChA = db.IntField(default=5200)
-    freqChB = db.IntField(default=5800)
-    dataLimit = db.IntField(default=100)
-    power = db.IntField(default=24)
+    time = db.DateTimeField(default=datetime.now)
+    ssid = db.ListField(db.StringField())
+    power = db.ListField(db.StringField())
+    freq = db.ListField(db.StringField())
 
     def __unicode__(self):
         return self.name
@@ -215,7 +257,7 @@ class Firmware (db.Document):
 
 
 class Job(db.Document):
-    tags = db.ListField(db.ReferenceField('Tag'), default=['all'])
+    tag = db.ReferenceField('Tag')
     config = db.ReferenceField(Config)
     firmware = db.ReferenceField(Firmware)
     completed = db.BooleanField()
@@ -223,7 +265,7 @@ class Job(db.Document):
 
 
 class Event(db.Document):
-    device = db.ReferenceField(Device)
+    device = db.StringField()
     parameter = db.StringField()
     message = db.StringField()
     timestamp = db.DateTimeField(default=datetime.now)
@@ -235,7 +277,10 @@ audit(Config)
 audit(Firmware)
 audit(Job)
 audit(Company)
-
+audit(Freq)
+audit(Power)
+audit(Ssid)
+audit(Site)
 
 # Register blueprints to route calls to other modules such as viewController
 def register_blueprints(app):
@@ -244,70 +289,3 @@ def register_blueprints(app):
 
 register_blueprints(app)
 
-
-def startData():
-    try:
-        # while True:
-            getData()
-            time.sleep(1)
-    except Exception, msg:
-            app.logger.error('error message is: %s, ' % msg)
-
-
-def getData():
-    urlList = []
-    macList = []
-    timeList = []
-    totaldocuments = []
-    msg = ""
-
-    for object in Device.objects(active = True):
-        urlList.append(object.url)
-        macList.append(object.mac)
-        timeStamp = Data.objects(mac = object.mac).order_by('-time').only ('time').first()
-        # timeStamp = timeStamp.time.strftime("%Y-%m-%d %H:%M:%S.%f")
-
-        if timeStamp:
-            timeStamp = datetime.strptime(timeStamp.time, '%Y-%m-%dT%H:%M:%S.%f')
-            timeStamp = timeStamp.strftime('%Y-%m-%d %H:%M:%S.%f')
-            timeList.append(timeStamp)
-        else:
-            timeList.append(str(datetime.now()-datetime.timedelta(hours=1)))
-
-    for url, time in zip(urlList,timeList):
-        filters = [dict(name='time', op='gt', val=time)]
-        params = dict(q=json.dumps(dict(filters=filters)))
-        try:
-            response = session.get(url,params=params, headers=headers,timeout=5,background_callback=bg_cb).result()
-            documents=[]
-            for obj in response.data["objects"]:
-                mac = obj["mac"]
-                connId = obj["connId"]
-                time = obj["time"]
-                lat = obj["lat"]
-                long = obj["long"]
-                freqA = obj["freqA"]
-                freqB = obj["freqB"]
-                snr = obj["snr"]
-                tx = obj["tx"]
-                rx = obj["rx"]
-                cap = obj["cap"]
-                documents.append({"mac":mac,"connId":connId,"time":time, "geo":(lat,long),"freqA":freqA,
-                                  "freqB":freqB,"snr":snr, "tx":tx,"rx":rx,"cap":cap})
-            if documents:
-                totaldocuments.append(documents)
-                dbpy.data.insert(documents) # Bulk Insert using pymongo - mongoengine cannot do it
-                # BE CAREFUL! pymongo client accesses database with actual name of collection, and not class name
-
-        except Exception, msg:
-            app.logger.error('error message is: %s, ' % msg)
-            pass
-    if totaldocuments:
-        return str(totaldocuments)
-    else:
-        if msg:
-            return "Some or all devices are down"
-        else:
-            return "No data from devices"
-
-# startData()

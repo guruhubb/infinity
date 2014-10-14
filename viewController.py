@@ -8,8 +8,8 @@ from infinity import app
 from tools import timeit
 import infinity, models, dataController
 import flask, math, random, collections, datetime, time, calendar, pytz, subprocess
-import models
-observer_views = Blueprint('observer_views', __name__, template_folder='templates')
+# import models
+# observer_views = Blueprint('observer_views', __name__, template_folder='templates')
 
 
 
@@ -60,8 +60,13 @@ def adminViews(app):
     admin.add_view(ModelView(infinity.Tag))
     admin.add_view(ModelView(infinity.Device))
     admin.add_view(ModelView(infinity.Data))
+    admin.add_view(ModelView(infinity.Aggr_Data))
     admin.add_view(ModelView(infinity.Config))
     admin.add_view(ModelView(infinity.Firmware))
+    admin.add_view(ModelView(infinity.Freq))
+    # admin.add_view(ModelView(infinity.Power))
+    admin.add_view(ModelView(infinity.Ssid))
+    admin.add_view(ModelView(infinity.Site))
     admin.add_view(ModelView(infinity.Job))
     admin.add_view(ModelView(infinity.Event))
     admin.add_view(ModelView(infinity.Audit))
