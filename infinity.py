@@ -190,9 +190,10 @@ class Data(db.Document):
     cap = db.FloatField()
     total_cap = db.FloatField()
     distance = db.FloatField()
-    completed = db.BooleanField(default=False)
     freqList = db.StringField()
     ssidList = db.StringField()
+    process = db.BooleanField(default=False)
+    aggregate = db.BooleanField(default=False)
 
     meta = {'indexes': ['geo', 'connId','mac','time','distance']}
 

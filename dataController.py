@@ -45,12 +45,16 @@ def startdata():
         while True:
             getData()
             time.sleep(2)  # give more time to write data otherwise if sleep =1, we don't read the latest item
+            post_process_data()
+            time.sleep(2)
+            aggr_data()
+            time.sleep(2)
     except Exception, msg:
             app.logger.error('error message is: %s, ' % msg)
     return "Start getting data from device"
 
-@app.route('/getData')
-@login_required
+# @app.route('/getData')
+# @login_required
 def getData():
     urlList = []
     macList = []
@@ -113,7 +117,7 @@ def getData():
                     geo = (lat,long)
                     documents.append({"mac":mac,"connId":connId,"time":timeEntry, "geo":geo,"freqA":freqA,
                         "freqB":freqB,"snrA":snrA,"snrB":snrB, "tx":tx,"rx":rx,"cap":cap,"total_cap":0,
-                        "distance":0,"completed":False, "freqList":freqList,  "ssidList":ssidList})
+                        "distance":0, "freqList":freqList,  "ssidList":ssidList,"process":False,"aggregate":False})
 
             if documents:   # bulk insert
                 totaldocuments.append(documents)
@@ -168,7 +172,8 @@ def post_process_data():
     # for device in Device.objects(active = True):
     #     test = device.mac
         # dataObjects = Data.objects(mac=device.mac, completed = False, time__lt = now-datetime.timedelta(seconds=1))
-    dataObjects = Data.objects(completed = False, time__lt = now-datetime.timedelta(seconds=1))
+    dataObjects = Data.objects(process = False, time__lt = now-datetime.timedelta(seconds=5),
+                               time__gt = datetime.datetime.now()-datetime.timedelta(days=1))
 
     for data in dataObjects:
         # data.time
@@ -190,8 +195,8 @@ def post_process_data():
             cap_of_other_connected_device = other_connected_device.cap
             total_cap = data.cap + cap_of_other_connected_device
             distance = distance_in_miles(other_connected_device,device.geo)
-            Data.objects(id=data.id).update(set__distance=distance, set__total_cap=total_cap, set__completed=True)
-            Data.objects(id=other_connected_device.id).update(set__distance=distance, set__total_cap=total_cap, set__completed=True)
+            Data.objects(id=data.id).update(set__distance=distance, set__total_cap=total_cap, set__process=True)
+            Data.objects(id=other_connected_device.id).update(set__distance=distance, set__total_cap=total_cap, set__process=True)
 
             # check CPE SNR and generate alarm if necessary
 
@@ -298,7 +303,8 @@ def post_process_data():
 @login_required
 def aggr_data():
 
-    dataObjects = Data.objects(completed = True, time__lt = datetime.datetime.now()-datetime.timedelta(seconds=1))
+    dataObjects = Data.objects(aggregate = False, time__lt = datetime.datetime.now()-datetime.timedelta(seconds=10),
+                               time__gt = datetime.datetime.now()-datetime.timedelta(days=1))
 
     for data in dataObjects:
         device = Device.objects(mac=data.mac).first()
@@ -345,8 +351,19 @@ def aggr_data():
                              cap = total_total_cap, data = total_rx+total_tx, coverage = coverage,
                              distance = min_distance, geo = data.geo)
                         aggr_data.save()
+                        Data.objects(id=data.id).update(set__aggregate=True)
                     else:
-                        app.logger.error("There is NO data from second device %s on site %s" % (second_device.name, device.site))
+                        if data.total_cap > CUTOFF_CAPACITY:
+                            coverage = True
+                        else:
+                            coverage = False
+                        aggr_data = Aggr_data(site=device.site, time = data.time, tx=data.tx, rx=data.rx,
+                             cap = data.total_cap, data = data.tx+data.rx, coverage = coverage,
+                             distance = data.distance, geo = data.geo)
+                        aggr_data.save()
+                        Data.objects(id=data.id).update(set__aggregate=True)
+                        app.logger.error("There is NO data from second device %s on site %s" %
+                                         (second_device.name, device.site))
                 else:
                     app.logger.error("There is NO second device on site %s" % device.site)
 
