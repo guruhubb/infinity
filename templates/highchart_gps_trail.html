@@ -1,0 +1,201 @@
+<div style="width:100%; height:100%; margin: 0 auto; box-shadow: 0 0 1em #000000; border: 1px solid #000000; border-radius: 0.2em;">
+	<div id="googleMap" style="width:100%; height:100%;"></div>
+</div>
+
+<script>
+	var map = null;
+    lines = [];
+    placemarks = [],
+
+
+	function addMap(lat, lng){
+		if((!lat) || (!lng)){
+			document.getElementById("googleMap").innerHTML = "Device has no position data";
+		}else{
+			if(!map){
+				var latlng = new google.maps.LatLng(lat,lng);
+	
+				var mapProp = {
+				  center:latlng,
+				  zoom:5,
+				  mapTypeId:google.maps.MapTypeId.ROADMAP
+				};
+				map = new google.maps.Map(document.getElementById("googleMap"),mapProp);
+			}
+		}
+	}
+	
+	function addConnectionLine(lat1, long1, lat2, long2, color)
+	{
+	  if (lat1==0 || lat2 ==0 || long1 ==0 || long2 == 0)
+	  	return;
+	  var connectionCoordinates = [
+	        new google.maps.LatLng(lat1, long1),
+			new google.maps.LatLng(lat2, long2) ];
+	  
+      var connectionPath = new google.maps.Polyline({
+	                             path: connectionCoordinates,
+	                             strokeColor: color,
+	                             strokeOpacity: 0.9,
+	                             strokeWeight: 3
+	                           });
+
+	  connectionPath.setMap(map);
+	  lines.push(connectionPath);
+	}
+
+
+    function clearPlacemarksAndLines()
+{
+	var len = placemarks.length;
+	for (var i=0; i<len; i++) {
+		var marker = placemarks[i];
+		marker.setMap(null);
+	}
+	placemarks = [];
+
+	len = lines.length;
+	for (var i=0; i<len; i++) {
+		var line = lines[i];
+		line.setMap(null);
+	}
+	lines = [];
+}
+
+    function addDevicePlaceMark(device, lat, lng) {
+        var pcolors = {online:'green',error:'pink',offline:'red'};
+
+        var status = device.device_status;
+        var latlng = new google.maps.LatLng(lat,lng);
+        //debugger;
+        var marker = new google.maps.Marker({
+            position: latlng,
+            title: device.name,
+            icon: {
+                //path: 'M0 0 L24 0 L32 8 L24 16 L0 16 Z',
+                path :'M20 0 L24 0 L24 6 L32 6 L30 16 L8 16 L0 6 L20 6 Z',
+                fillColor: pcolors[status],
+                fillOpacity: 0.8,
+                strokeColor:'white',
+                strokeWeight: 2,
+                scale:0.75,
+                //url: '/static/img/icon_'+device.device_class+'_'+status+'.png',
+                rotation: device.heading
+            },
+            desc: 'Some description',
+            //desc: getInfoWindowContent(device),
+            myurl: '/observer/cpe_monitor/'+device.mac,
+            map: map
+        });
+
+        placemarks.push(marker);
+        oms.addMarker(marker);
+
+    }
+
+
+    function addTrailPlaceMark(placemarkData) {
+        var pcolors = {online:'green',error:'pink',offline:'red'};
+
+        var latlng = new google.maps.LatLng(placemarkData.lat,placemarkData.lng);
+        var marker = new google.maps.Marker({
+            position: latlng,
+//            title: device.name,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: pcolors[status],
+                fillOpacity: 0.8,
+                strokeColor:placemarkData.color,
+                strokeWeight: 2,
+                scale:1
+            },
+            desc: 'Some description',
+            //desc: getInfoWindowContent(device),
+            map: map
+        });
+        marker.stime = placemarkData.stime;
+
+        placemarks.push(marker);
+        oms.addMarker(marker);
+
+        google.maps.event.addListener(marker, 'mouseover', function(event){
+
+            points = []
+            for (s in chart_{{ chart }}.series) {
+                points.push(chart_{{ chart }}.series[s].points[placemarkData.section]);
+            }
+            chart_{{ chart }}.tooltip.refresh(points);
+            updateTimeline(placemarkData.time);
+            //debugger;
+        });
+
+    }
+
+    function refreshTrailWithData(data) {
+
+        if (map == null)
+            return;
+
+        clearPlacemarksAndLines();
+        ppmark = null;
+		for (var section in data.CPE_GEO) {
+            var placemarks = data.CPE_GEO[section][1];
+            if (placemarks == null)
+                continue;
+            for (var x in placemarks) {
+
+                addTrailPlaceMark(placemarks[x]);
+                if (ppmark != null) {
+                    if (placemarks[x].distance < 3)
+                        addConnectionLine(ppmark.lat, ppmark.lng, placemarks[x].lat, placemarks[x].lng, placemarks[x].color);
+                    }
+                ppmark = placemarks[x];
+
+                }
+            }
+//             map.setCenter(new google.maps.LatLng(lat, lng));
+
+//             addPlaceMark(data.device, lat, lng);
+
+    }
+
+    function refreshTrail(device_mac, start_time, end_time) {
+
+        var url = "/reports/gps_trail_data";
+        for (line in lines) {
+            if (lines[line].setMap)
+                lines[line].setMap(null);
+        }
+        lines = [];
+
+        rqdata = {
+		//	'csrfmiddlewaretoken': token,
+			'device_mac': device_mac,
+			'start_time': start_time,
+			'end_time': end_time
+		}
+
+        $.post(url, rqdata, function(data) {
+            refreshTrailWithData(data);
+        });
+
+
+    }
+
+	$('#googleMap').ready(function() {
+
+		// Setup the map itself
+		var mapProp = {
+			center: new google.maps.LatLng({{ center_lat }}, {{ center_long }}),
+			zoom: 9,
+		    streetViewControl: false,
+			mapTypeId: google.maps.MapTypeId.HYBRID
+		};
+	
+		map = new google.maps.Map(document.getElementById('googleMap'), mapProp);
+		oms = new OverlappingMarkerSpiderfier(map);
+
+        //refreshTrail('{{device_mac}}', {{start_time}}, {{end_time}});
+
+	});
+</script>

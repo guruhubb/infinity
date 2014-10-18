@@ -1,10 +1,10 @@
 from requests_futures.sessions import FuturesSession
 from flask.ext.security import login_required
-import logging, models, datetime, pytz, math, time, json, flask, requests
+import logging, models, datetime, pytz, math, time, json, flask, requests,subprocess, spur
 
 from mongoengine import Q
 from flask.ext.mail import Message
-from infinity import mail, app, cache, Device, Data, Event, Site, Aggr_data
+from infinity import mail, app, cache, Device, Data, Event, Site, Aggr_data, Beagle, Router
 from collections import defaultdict
 
 import pymongo
@@ -135,24 +135,6 @@ def getData():
             return "No data from devices"
 
 
-@app.route('/histogram/<site>')
-@login_required
-def generate_histogram(site,fromTimeStamp=None,toTimeStamp=None):
-
-    if toTimeStamp is None:
-        toTimeStamp = datetime.datetime.now()
-    if fromTimeStamp is None:
-        fromTimeStamp=toTimeStamp-datetime.timedelta(days=2)
-    dict=[]
-    total_records = len(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
-
-    for x in range(5,40,5):
-        records = len(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site , distance__lt = x, distance__gt = x-5))
-        avg_cap = Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site , distance__lt = x, distance__gt = x-5).average('cap')
-        dict.append({"Occurences": 100*records/total_records, "Avg_Capacity": avg_cap, "Distance":x})
-        # dict.append({ "Avg_Capacity": avg_cap})
-
-    return str(dict)
 
 
 @app.route('/processdata')
@@ -368,7 +350,77 @@ def aggr_data():
                     app.logger.error("There is NO second device on site %s" % device.site)
 
     return "Done"
-#
+
+def get_ping_status(ip):
+    value = get_status(ip)
+    if value != 0:
+        return get_status(ip)   # ping twice
+    else:
+        return value
+
+
+def get_status(ip):
+    res = subprocess.call(['ping', '-c', '1', '-W', '1', ip])
+    if res == 0:
+        app.logger.info('successfully pinged to ip: %s, ' % ip)
+    elif res == 2:
+        app.logger.info('no response for the pinged to ip: %s, ' % ip)
+    else:
+        res = -1
+        app.logger.info('failed to ping the ip: %s, ' % ip)
+    return  res
+
+def findNumber (s):
+    l = []
+    for t in s.split():
+        try:
+            l.append(float(t))
+        except ValueError:
+            pass
+    return l
+
+def check_bandwidth(cmdOutput):
+    # cmd = subprocess.Popen('speedtest', shell=True, stdout=subprocess.PIPE)
+    # for line in cmd.stdout:
+    for line in cmdOutput:
+        if "ms" in line:
+            ms = findNumber(line)
+        elif "Download" in line:
+            download = findNumber(line)
+        elif "Upload" in line:
+            upload = findNumber(line)
+
+    return ms, download, upload
+
+
+def get_beagle():
+    urlList=[]
+    siteList=[]
+    now = datetime.datetime.now()
+    for object in Device.objects(active = True, type = 'BEAGLE'):
+        urlList.append(object.url)
+        siteList.append(object.site)
+    for url, site in urlList, siteList:
+        shell = spur.SshShell(hostname=url, username="admin", password="infinity")
+        with shell:
+            result = shell.run(["speedtest"])
+            latency, download, upload = check_bandwidth(result.output)
+
+        beagle_data = Beagle(site=site, time = now, latency=latency, download=download, upload=upload)
+        beagle_data.save()
+
+def get_router():
+    urlList=[]
+    siteList=[]
+    now = datetime.datetime.now()
+    for object in Device.objects(active = True, type = 'ROUTER'):
+        urlList.append(object.url)
+        siteList.append(object.site)
+    for url, site in urlList, siteList:
+        router_data = Router(site = site, time = now, ping = get_status(url))
+        router_data.save()
+
+        # validate if timestamp is null and format it for the device timestamp if necessary
 #     # Look at all devices 4 mins ago that has activity completion=False.
 #     # Fill in total capacity and distance, calc aggr_data
 #
@@ -1102,6 +1154,14 @@ def distance_in_miles(bts_device, geo):
     except :
         app.logger.exception("Value error calculating distance in miles for (%s,%s)-(%s,%s)" %(geo1[0], geo1[1], geo[0], geo[1]))
 
+def distance_in_miles_latlong(lat1, long1, lat2, long2):
+    logger = app.logger
+    try:
+        arc = distance_on_unit_sphere(lat1, long1, lat2, long2)
+        return 3960 * arc
+    except ValueError as ve:
+        logger.exception("Value error calculating distance in miles for (%s,%s)-(%s,%s)" %(lat1,long1, lat2, long2))
+
 
 def send_email(subject, recipients, text_body, html_body, sender=app.config['MAIL_USERNAME']):
     msg = Message(subject, sender=sender, recipients=recipients)
@@ -1151,3 +1211,130 @@ def handle_status_change(device, current_status, prev_status):
         # trap triggered
         emails = get_recipients_for_trap(trap, device)
         send_email("NMS Event Alert", emails, message, message)
+
+
+#  def get_scheduled_jobs_for_device(device):
+# 62	62	     ctx = {}
+# 63	63	     max = 0
+# 64	 	-    jobs_qset = models.JobSchedule.objects(device=device, status='scheduled')
+#  	64	+    jobs_qset = models.JobSchedule.objects(device=device, status__lte=models.JOB_STATUS_SCHEDULED)
+# 65	65	     for job in jobs_qset:
+# 66	66	         if job.timestamp > max:
+# 67	67	             max = job.timestamp
+# 68	68
+# 69	69	     return {'jobstamp':max}
+#  	70	+
+#  	71	+
+#  	72	+def get_available_firmware_images_for_device(device):
+#  	73	+    # currently we return all active images
+#  	74	+    # later we should make the selection firmware version based
+#  	75	+
+#  	76	+    data = []
+#  	77	+    images = models.FirmwareImage.objects.filter(retired=False)
+#  	78	+    for img in images:
+#  	79	+            data.append({'version':str(img.version),
+#  	80	+                         'description':str(img.description),
+#  	81	+                         'id':str(img.pk)})
+#  	82	+    return data
+#
+# +@app.route('/config/popup/<mac>/update-firmware', methods=['POST','GET'])
+#  	148	+def config_popup_update_firmware(mac):
+#  	149	+    device = models.ManagedDevice.objects.filter(mac=mac).first()
+#  	150	+    firmwares = config_services.get_available_firmware_images_for_device(device)
+#  	151	+    return flask.render_template('config/popups/update_firmware.html', mac=mac, firmwareSource=firmwares)
+
+# +import flask
+#  	2	+import models, security
+#  	3	+from collections import defaultdict
+#  	4	+
+#  	5	+
+#  	6	+def get_pending_jobs(for_device):
+#  	7	+
+#  	8	+    schedules = models.JobSchedule.objects.filter(device=for_device, status__lte=models.JOB_STATUS_SCHEDULED)
+#  	9	+    groups = defaultdict(int)
+#  	10	+    for sch in schedules:
+#  	11	+        groups[sch.job_type] += 1
+#  	12	+
+#  	13	+    return groups
+#  	14	+
+#  	15	+
+#  	16	+def schedule_update(device, firmware, date, auto):
+#  	17	+    sch = models.JobSchedule()
+#  	18	+    sch.job_type = models.JOB_TYPES[0][0]
+#  	19	+    sch.status = models.JOB_STATUS_DEFINED
+#  	20	+    sch.device = device
+#  	21	+    sch.image = firmware
+#  	22	+    sch.time = date
+#  	23	+    sch.auto = auto
+#  	24	+    sch.save()
+
+from flask_wtf import Form
+# 7	7	 import os
+# 8	8	 import flask
+#  	9	+import datetime
+#  	10	+import random
+#  	11	+import math
+#  	12	+import pytz
+# 9	13
+# 10	14	 from flask.ext.mongoengine.wtf import model_form
+# 11	15	 from mongoengine.queryset import Q
+# ...	...	@@ -19,7 +23,7 @@
+# 19	23	 from nmsapp import app
+# 20	24	 import json
+# 21	25
+# 22	 	-import config_services, event_services
+#  	26	+import config_services, event_services, engineer_services
+# 23	27
+# 24	28
+# 25	29	 @app.route('/manager/inventory')
+# ...	...	@@ -31,7 +35,7 @@
+# 31	35	 @app.route('/manager/devices', methods=['POST','GET'])
+# 32	36	 @login_required
+# 33	37	 def inventory_devices():
+# 34	 	-    logger = logging.getLogger('metrics')
+#  	38	+    logger = app.logger
+# 35	39	     from nmsapp import BEACON_DICT
+# 36	40	     devices = []
+# 37	41	     auser = current_user
+# ...	...	@@ -51,7 +55,7 @@
+# 51	55	     for device in devices:
+# 52	56
+# 53	57	         device_data = device.detach(graph='inventory')
+# 54	 	-        device_data['jobs']={'fmw':2,'cfg':1}
+#  	58	+        device_data['jobs'] = engineer_services.get_pending_jobs(device)
+# 55	59
+# 56	60	         if dtype is not None:
+# 57	61	             if device.device_class.type == dtype:
+# ...	...	@@ -68,7 +72,7 @@
+# 68	72	     return render_template('config/configuration_packages.html')
+# 69	73
+# 70	74
+# 71	75	-app.route('/config/packages-data', methods=['POST', 'GET'])
+# 72	76	+@app.route('/config/packages-data', methods=['POST', 'GET'])
+# 73	77	 @login_required
+# 74	78	 def config_packages_data():
+# 75	79	     logger = logging.getLogger('metrics')
+# ...	...	@@ -144,6 +148,24 @@
+# 144	148	     code = request.data
+# 145	149	     cdir = os.path.dirname(os.path.abspath(__file__))
+# 146	150	     open(cdir+'/et_capacity_estimation.py', 'w').write(code)
+#  	151	+
+#  	152	+    return jsonify(success=True)
+#  	153	+
+#  	154	+
+#  	155	+@app.route('/engineer/<mac>/schedule-firmware-update', methods=['GET', 'POST'])
+#  	156	+def schedule_firmware_update(mac):
+#  	157	+
+#  	158	+    logger = app.logger
+#  	159	+
+#  	160	+    device = models.ManagedDevice.objects.filter(mac=mac).first()
+#  	161	+
+#  	162	+    firmware = models.FirmwareImage.objects.filter(pk=flask.request.values['fmw']).first()
+#  	163	+
+#  	164	+    epoch = int(flask.request.values['date'])
+#  	165	+    date = datetime.datetime.fromtimestamp(float(epoch), tz=pytz.utc)
+#  	166	+    auto = flask.request.values['auto'] == 'on'
+#  	167	+
+#  	168	+    engineer_services.schedule_update(device, firmware, date, auto)
+# 147	169
+# 148	170	     return jsonify(success=True)

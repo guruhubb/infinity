@@ -1,0 +1,204 @@
+{# expected context variables:
+- chart_id
+- chart_title
+- chart_data = [ {name:name, type:type, label:label, plot_type:'line'} ... ]  - type can be integer, float, plot_type is the type of plot
+- autoscale = true/false
+- start_time
+- end_time
+#}
+<div id="highchart_{{ chart }}" style="height: 100%; width: 100%;"></div>
+<script type="text/javascript">
+
+    highchart_{{ chart }}_extremes = [];
+    highchart_{{ chart }}_data = [];
+    function showChart_{{ chart }}(data, start_time, end_time) {
+        chart_{{ chart }} = new Highcharts.Chart({
+
+           navigator : {
+                adaptToUpdatedData: false,
+                series : {
+                    data : highchart_{{ chart }}_data
+                }
+            },
+
+            scrollbar: {
+                liveRedraw: false
+            },
+
+
+            chart: {
+                renderTo: 'highchart_{{ chart }}',
+{#                width: 1000,#}
+{#                height: 300,#}
+                zoomType: 'x'
+                },
+            title: { text: '{{ chart_title }}'},
+            xAxis: {
+                type: 'datetime',
+                minRange: 3 * 60 * 60 * 1000, // 3 hours
+                events: {
+                    afterSetExtremes: function(event) {
+
+                        var startTime = Math.ceil(event.min / 1000);
+                        var endTime = Math.ceil(event.max / 1000);
+
+                        if (this.getExtremes().dataMin < event.min) {
+                            //zoom in
+
+                            loadChart_{{ chart }}('{{ device_mac }}', startTime, endTime)
+                            refreshAvgData(startTime, endTime);
+
+
+                        }
+                        else {
+                            extremes = highchart_{{ chart }}_extremes.pop();
+                            extremes = highchart_{{ chart }}_extremes[highchart_{{ chart }}_extremes.length-1];
+                            startTime = extremes[0];
+                            endTime = extremes[1];
+                            loadChart_{{ chart }}('{{ device_mac }}', startTime, endTime);
+                            refreshAvgData(startTime, endTime);
+
+                        }
+
+                    }
+                }
+            },
+            yAxis: [
+                {
+                    min: 0, minRange: 0.1,
+                    title: {
+                        text: 'Mbps'
+                    }
+                },
+                {
+                    min: 0,minRange: 0.1,
+                    title: {
+                    text: 'Miles'
+                    },
+                    opposite:true
+            }
+
+            ],
+            tooltip: {
+                shared: true,
+                crosshairs: false,
+                backgroundColor: 'white',
+                borderWidth: 0,
+                borderRadius: 0,
+                positioner: function () {
+                    return { x: 10, y: 35 };
+                },
+                shadow: false,
+                formatter: function () {
+                var s = '<b>' + new Date(this.x).toUTCString() + '</b>';
+
+                $.each(this.points, function () {
+                    s += ' | ' + this.series.name + ': ' +
+                        this.y;
+                });
+
+                if (placemarks != null) {
+
+                    for (p in placemarks) {
+                        if (placemarks[p].stime == this.x) {
+                            placemarks[p].icon.scale = 5;
+                            placemarks[p].setMap(null);
+                            placemarks[p].setMap(map);
+                        }
+                        else if (placemarks[p].icon.scale != 1) {
+                            placemarks[p].icon.scale = 1;
+                            placemarks[p].setMap(null);
+                            placemarks[p].setMap(map);
+                        }
+
+                    } //for
+                } //if placemarks!=null
+
+                return s;
+                }
+            }, // tooltip
+            plotOptions: {
+                    series: {
+                        marker: {
+                            enabled: false,
+                            states: {
+                                hover: {
+                                    enabled: true,
+                                    radius: 3
+                                }
+                            }
+                        }
+                    }
+                },
+            series: [
+                     {% for data in chart_data %}
+                         { name: '{{ data.label }}', type:'line', //type: '{{ data.plot_type }}',
+                           data: data.{{ data.name }},
+                           yAxis: {{ data.yAxis }}
+                           {% if data.dashStyle %},
+                           dashStyle:'{{ data.dashStyle  }}'
+                           {% endif %}
+                         },
+                    {% endfor %}
+            ]
+        });
+
+    }
+
+    function updateTimeline(x){
+        chart_{{ chart }}.xAxis[0].removePlotLine('timeline');
+        chart_{{ chart }}.xAxis[0].addPlotLine({
+            id: 'timeline',
+            value: x,
+            width: 1,
+            color: '#C0C0C0'
+            });
+    }
+
+    function reloadChartData_{{ chart }}(data, startTime, endTime) {
+        {% for data in chart_data %}
+          chart_{{ chart }}.series[{{ loop.index0 }}].setData(data.{{ data.name }},true);
+        {% endfor %}
+        chart_{{ chart }}.redraw();
+    }
+
+    function loadChart_{{ chart }}(mac, startTime, endTime) {
+
+        chart_{{ chart }}.showLoading('loading...');
+
+        aj = $.ajax({
+                type: "GET",
+                url: '{{ data_url }}',
+                async: true,
+                data: {
+                    device_mac:'{{ device_mac }}',start_time:startTime, end_time:endTime,
+                    metrics_count: {{ chart_data|count }},
+                    {% for data in chart_data %} metric_{{loop.index0}}:'{{ data.name }}',
+                    {% endfor %}
+                },
+                contentType: "application/json; charset=utf-8",
+                dataType: "json"});
+
+                aj.done(function (response, textStatus, jqXHR) {
+                   $('#date_from').jqxDateTimeInput('setDate', new Date(startTime * 1000));
+                   $('#date_to').jqxDateTimeInput('setDate', new Date(endTime * 1000));
+                   highchart_{{ chart }}_extremes.push([startTime, endTime]);
+                   highchart_{{ chart }}_data = response;
+                   reloadChartData_{{ chart }}(response, startTime, endTime);
+                   refreshTrailWithData(highchart_{{ chart }}_data);
+                   chart_{{ chart }}.hideLoading();
+                });
+                aj.fail(function (jqXHR, textStatus, errorThrown) {
+                alert(textStatus);
+                chart_{{ chart }}.hideLoading();
+                });
+    };
+
+
+    window.addEventListener('load', function(e) {
+        showChart_{{chart }}({},{{ start_time }},{{ end_time }});
+        loadChart_{{ chart }}('{{ device_mac }}', {{ start_time }}, {{ end_time }});
+	}, false);
+
+
+</script>

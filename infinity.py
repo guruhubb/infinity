@@ -209,8 +209,27 @@ class Aggr_data(db.Document):
     distance = db.FloatField()
     geo = db.GeoPointField()
 
-    meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
+    meta = {'indexes': ['site','time','distance']}
 
+    # meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
+
+class Router(db.Document):
+    site = db.StringField()
+    time = db.DateTimeField()
+    ping = db.IntField()
+    # geo = db.GeoPointField()
+
+    meta = {'indexes': ['site','time','geo']}
+
+class Beagle(db.Document):
+    site = db.StringField()
+    time = db.DateTimeField()
+    latency = db.FloatField()
+    download = db.FloatField()
+    upload = db.FloatField()
+    # geo = db.GeoPointField()
+
+    meta = {'indexes': ['site','time','geo','latency','download','upload']}
 
 class Freq(db.Document):
     channel = db.StringField()
