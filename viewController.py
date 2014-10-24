@@ -1,4 +1,4 @@
-from flask import Blueprint, request,render_template
+from flask import Blueprint, request,render_template, Response
 from flask.ext.security import login_required, current_user
 from mongoengine.queryset import Q
 from flask.ext.admin import Admin
@@ -7,7 +7,7 @@ from flask.ext.admin.contrib.mongoengine import ModelView
 from infinity import app
 from tools import timeit, utc_now
 import infinity, models, dataController
-import flask, math, random, collections, datetime, time, calendar, pytz, subprocess
+import flask, math, random, collections, datetime, time, calendar, pytz, subprocess, json
 from infinity import mail, app, cache, Device, Data, Event, Site, Aggr_data
 import plotly.plotly as py
 from plotly.graph_objs import *
@@ -81,83 +81,143 @@ adminViews(app)
 
 
 # Route main page
+
 @app.route('/')
 @login_required  # if not logged in, login.html will be the default page
 def home():
 
     now=datetime.datetime.now()
-    yesterday = now - datetime.timedelta(days=1)
-    ctx={}
-    ctx['plotA']=chart_view(site ='ShipA')
-    ctx['plotB']=generate_histogram(site = 'ShipA')
+    yesterday = now - datetime.timedelta(days=20)
+    now_js = time.mktime(now.timetuple()) * 1000
+    yesterday_js = time.mktime(yesterday.timetuple()) * 1000
+
+    ctx = {
+        'chart_url':'/chart',
+        'fromTime' :yesterday_js,
+        'toTime'   :now_js,
+        'plotB'    :generate_histogram(site = 'ShipA')
+    }
+    if current_user.has_role('Root'):
+        ctx['devices_url'] = '/devices'
+    else:
+        ctx['devices_url'] = '/devices?type=CPE'
+    # ctx['plotA']=chart_view(site ='ShipA')
+    # ctx['plotB']=generate_histogram(site = 'ShipA')
 
     return render_template('index.html',**ctx)
 
-def chart_view(site,fromTime=None,toTime=None):
+@app.route('/chart', methods= ['POST','GET'])
+@login_required
+def chart_view():
+    site = flask.request.args.get('site')
+    fromTime = int(flask.request.args.get('fromTime'))
+    toTime  = int(flask.request.args.get('toTime'))
 
     if toTime is None:
         toTime = datetime.datetime.now()
+    else:
+        toTime = datetime.datetime.fromtimestamp(toTime/1000)
     if fromTime is None:
-        fromTime = toTime-datetime.timedelta(days=2)
-
+        fromTime = toTime-datetime.timedelta(days=6)
+    else:
+        fromTime = datetime.datetime.fromtimestamp(fromTime/1000)
+    if site is None:
+        site = 'ShipA'
     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only("time","data","cap","distance").order_by("time")
 
-    x = []
-    y = []
-    z = []
-    w = []
-    for ob in query_set:
-        x.append(ob.time.strftime("%Y-%m-%d %H:%M:%S"))
-        y.append(ob.cap)
-        z.append(ob.data)
-        w.append(ob.distance)
+    data = {}
+    data["cap"]=[]
+    data["data"]=[]
+    data["distance"]=[]
 
-    trace1 = Scatter(
-        x=x,
-        y=y,
-        name='Capacity'
-    )
-    trace2 = Scatter(
-        x=x,
-        y=z,
-        name='Data'
-    )
-    trace3 = Scatter(
-        x=x,
-        y=w,
-        name='Distance',
-        yaxis='y2'
-    )
-    data = Data([trace1, trace2,trace3])
-    layout = Layout(
-        title='Capacity and Traffic',
-        yaxis=YAxis(
-            title='Capacity, Traffic'
-        ),
-        yaxis2=YAxis(
-            title='Distance',
-            titlefont=Font(
-                color='rgb(148, 103, 189)'
-            ),
-            tickfont=Font(
-                color='rgb(148, 103, 189)'
-            ),
-            overlaying='y',
-            side='right'
-        ),
-        xaxis=XAxis(
-            title='Time',
-            titlefont=Font(
-                family='Arial, sans-serif',
-                size=18,
-                color='grey'
-            )
-        )
-    )
-    fig = Figure(data=data, layout=layout)
-    plot_url = py.plot(fig, filename='capacity-traffic-distance', auto_open=False)
-    return plot_url
+    for ob in query_set:
+        # x = ob.time.strftime("%Y-%m-%d %H:%M:%S")
+        # data["time"].append(time.mktime(ob.time.timetuple()) * 1000)
+
+        # x = time.mktime(ob.time.timetuple()) * 1000
+        # data["cap"].append([x,ob.cap])
+        # data["data"].append([x,ob.data])
+        # data["distance"].append([x,ob.distance])
+
+        data["cap"].append(ob.cap)
+        data["data"].append(ob.data)
+        data["distance"].append(ob.distance)
+
+    #     data[]
+    # data = [x, y1, y2, y3];
+    # trace1 = Scatter(
+    #     x=x,
+    #     y=y,
+    #     name='Capacity'
+    # )
+    # trace2 = Scatter(
+    #     x=x,
+    #     y=z,
+    #     name='Data'
+    # )
+    # trace3 = Scatter(
+    #     x=x,
+    #     y=w,
+    #     name='Distance',
+    #     yaxis='y2'
+    # )
+    # data = Data([trace1, trace2,trace3])
+    # layout = Layout(
+    #     title='Capacity and Traffic',
+    #     yaxis=YAxis(
+    #         title='Capacity, Traffic'
+    #     ),
+    #     yaxis2=YAxis(
+    #         title='Distance',
+    #         titlefont=Font(
+    #             color='rgb(148, 103, 189)'
+    #         ),
+    #         tickfont=Font(
+    #             color='rgb(148, 103, 189)'
+    #         ),
+    #         overlaying='y',
+    #         side='right'
+    #     ),
+    #     xaxis=XAxis(
+    #         title='Time',
+    #         titlefont=Font(
+    #             family='Arial, sans-serif',
+    #             size=18,
+    #             color='grey'
+    #         )
+    #     )
+    # )
+    # fig = Figure(data=data, layout=layout)
+    # plot_url = py.plot(fig, filename='capacity-traffic-distance', auto_open=False)
+
+    data_dumps = Response(json.dumps(data),  mimetype='application/json')
+    # data_jsonify = flask.jsonify(**data)  # same as flask.Response but doesn't quite work
+
+    return data_dumps
+
+
+@app.route('/devices', methods=['POST','GET'])
+@login_required
+def get_devices_and_data():
+    device_type = flask.request.args.get('type')
+    sites = Site.objects.only('name')
+    response_data = []
+    if device_type is None:
+        for site in sites:
+            record = Aggr_data.objects(site=site.name).order_by("-time").first()
+            if record is not None:
+                response_data.append({"site":record.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
+                                      "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
+                                        "coverage":record.coverage,"distance":"{:.2f}".format(record.distance)
+                                        , "lat":record.geo[0], "lng":record.geo[1], "time":time.mktime(record.time.timetuple()) * 1000})
+    # data_jsonify= flask.jsonify(*response_data)
+    data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
+    # if (data1==data2):
+    #     print "blah"
+    # return Response(json.dumps(response_data),  mimetype='application/json')
+    # return flask.jsonify(*response_data)  # same as flask.Response but doesn't work
+    return data_dumps
 
 
 # @app.route('/histogram/<site>')
@@ -167,7 +227,7 @@ def generate_histogram(site,fromTimeStamp=None,toTimeStamp=None):
     if toTimeStamp is None:
         toTimeStamp = datetime.datetime.now()
     if fromTimeStamp is None:
-        fromTimeStamp=toTimeStamp-datetime.timedelta(days=2)
+        fromTimeStamp=toTimeStamp-datetime.timedelta(days=6)
 
     records=[]
     avg_cap=[]

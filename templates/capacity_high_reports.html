@@ -37,75 +37,71 @@
 <div style="width:98%; height:90%; margin: 0 auto; box-shadow: 0 0 1em #000000; border: 1px solid #000000; border-radius: 0.2em; overflow: scroll">
         <div class = "ex">
             <label style="font-size: 14px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif"> Connected Devices Status </label>
-        <hr/>
-        <table>
-            <tr>
-                <td> <label style="font-size: 14px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif"> PC </label></td>
-                <td><img src="{{ STATIC_URL }}img/600px-Ski_trail_rating_symbol-green_circle.png" width=12 height=12</img></td>
-            </tr>
-            <tr>
-                <td> <label style="font-size: 14px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif"> Router </label></td>
-                <td id="cell" ></td>
-            </tr>
-       </table>
+            <hr/>
+            <table>
+                <tr>
+                    <td> <label style="font-size: 14px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif"> PC </label></td>
+                    <td><img src="{{ STATIC_URL }}img/600px-Ski_trail_rating_symbol-green_circle.png" width=12 height=12</img></td>
+                </tr>
+                <tr>
+                    <td> <label style="font-size: 14px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif"> Router </label></td>
+                    <td id="cell" ></td>
+                </tr>
+           </table>
 
-        <hr/>
-        <td>
-            <label style="font-size: 12px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif"> Start Date: </label></td>
+            <hr/>
+            <td><label style="font-size: 12px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif"> Start Date: </label></td>
 
-         <div id="date_from"></div>
-        <br/><label style="font-size: 12px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif"> End Date: </label></td>
+            <div id="date_from"></div>
+            <br/>
+                <label style="font-size: 12px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif"> End Date: </label></td>
+                <div id="date_to"></div>
+            <br/>
+            <div>   <input type="button" value="Submit" id='jqxSubmitButton' /> </div>
 
-        <div id="date_to"></div>
+            <div id='avgCoverage' style="float:left;margin-top: 40px;margin-left: 0px;  height: 20px; ">
+                <label style="font-size: 12px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif">Average Coverage: <span id="coverage">{{ coverage }}</span> % </label>
+            </div>
+            <div id='avgCapacity' style="float:left;margin-top: 20px;margin-left: 0px;  height: 20px; ">
+                <label style="font-size: 12px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif">Average Capacity: <span id="capacity">{{capacity_average }}</span> Mbps </label>
+            </div>
+            <div id='avgTraffic' style="float:left;margin-top: 20px;margin-left: 0px;  height: 20px; ">
+                <label style="font-size: 12px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif">Average Traffic: <span id="traffic">{{ traffic_average }}</span> Mbps </label>
+            </div>
 
-        <br/>
-        <div>
-            <input type="button" value="Submit" id='jqxSubmitButton' />
-        </div>
-
-        <div id='avgCoverage' style="float:left;margin-top: 40px;margin-left: 0px;  height: 20px; ">
-            <label style="font-size: 12px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif">Average Coverage: <span id="coverage">{{ coverage }}</span> % </label>
-        </div>
-        <div id='avgCapacity' style="float:left;margin-top: 20px;margin-left: 0px;  height: 20px; ">
-            <label style="font-size: 12px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif">Average Capacity: <span id="capacity">{{capacity_average }}</span> Mbps </label>
-        </div>
-        <div id='avgTraffic' style="float:left;margin-top: 20px;margin-left: 0px;  height: 20px; ">
-            <label style="font-size: 12px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif">Average Traffic: <span id="traffic">{{ traffic_average }}</span> Mbps </label>
-        </div>
-
-        <br/>
-        <div id='one' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #003300;
+            <br/>
+            <div id='one' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #003300;
         font-size: 9px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;line-height: 20px;
         text-align: center;color: #ffffff">+30</div>
 
-        <div id='two' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #006600;
+            <div id='two' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #006600;
         font-size: 9px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;line-height: 20px;
         text-align: center;color: #ffffff">30-20</div>
 
-        <div id='three' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #009933;
+            <div id='three' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #009933;
         font-size: 9px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;line-height: 20px;
         text-align: center;color: #ffffff">20-10</div>
 
-        <div id='four' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #33CC33;
+            <div id='four' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #33CC33;
         font-size: 9px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;line-height: 20px;
         text-align: center;color: #ffffff">10-05</div>
 
-        <div id='five' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #99FF33;
+            <div id='five' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #99FF33;
         font-size: 9px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;line-height: 20px;
         text-align: center;color: #ffffff">05-02</div>
 
-        <div id='six' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #ffa500;
+            <div id='six' style="float:left;margin-top: 20px;margin-left: 0px;width:30px; height: 20px; background-color: #ffa500;
         font-size: 9px;font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;line-height: 20px;
         text-align: center;color: #ffffff"><strong>SAT </strong></div>
-    </div>
+        </div>
 
-    <div style="float:left;width:75%;height: 50%; margin-left: 0px;">
+        <div style="float:left;width:75%;height: 50%; margin-left: 0px;">
 
-{#        {% include "reports/chart_static.html" %}#}
-        {% include "highchart_static.html" %}
-        {% include "highchart_gps_trail.html" %}
+    {#        {% include "reports/chart_static.html" %}#}
+            {% include "highchart_static.html" %}
+            {% include "highchart_gps_trail.html" %}
 
-    </div>
+        </div>
 </div>
 
     <script type="text/javascript">

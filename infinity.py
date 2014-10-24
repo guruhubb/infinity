@@ -219,7 +219,7 @@ class Router(db.Document):
     ping = db.IntField()
     # geo = db.GeoPointField()
 
-    meta = {'indexes': ['site','time','geo']}
+    meta = {'indexes': ['site','time','ping']}
 
 class Beagle(db.Document):
     site = db.StringField()
@@ -229,7 +229,7 @@ class Beagle(db.Document):
     upload = db.FloatField()
     # geo = db.GeoPointField()
 
-    meta = {'indexes': ['site','time','geo','latency','download','upload']}
+    meta = {'indexes': ['site','time','latency','download','upload']}
 
 class Freq(db.Document):
     channel = db.StringField()
@@ -253,6 +253,7 @@ class Site(db.Document):
     name = db.StringField(max_length=32)
     ssidList = db.ListField(db.StringField())
     deviceList = db.ListField(db.StringField())
+    active = db.BooleanField(default=True)
 
     def __unicode__(self):
         return self.name

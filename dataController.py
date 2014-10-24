@@ -7,6 +7,7 @@ from flask.ext.mail import Message
 from infinity import mail, app, cache, Device, Data, Event, Site, Aggr_data, Beagle, Router
 from collections import defaultdict
 
+
 import pymongo
 dbmongo = pymongo.MongoClient().infinity
 
