@@ -64,16 +64,16 @@
                         <a href="#page-top"></a>
                     </li>
                     <li>
-                        <a class="page-scroll" href="#services">Chart</a>
+                        <a class="page-scroll" href="#chart_">Chart</a>
                     </li>
                     <li>
-                        <a class="page-scroll" href="#portfolio">Histogram</a>
+                        <a class="page-scroll" href="#histogram_">Histogram</a>
                     </li>
                     <li>
-                        <a class="page-scroll" href="#about">Course</a>
+                        <a class="page-scroll" href="#path_">Course</a>
                     </li>
                     <li>
-                        <a class="page-scroll" href="#team">Settings</a>
+                        <a class="page-scroll" href="#settings_">Settings</a>
                     </li>
                     <li>
                         <a class="page-scroll" href="/logout">Logout</a>
@@ -111,7 +111,7 @@
     </header>
 
     <!-- Services Section -->
-    <section id="services">
+    <section id="chart_">
         <div class="container">
 {#            <div id="plot-data" style="width:100%; height:100%;">#}
 {#               <img src="{{ plot }}" alt="" width="100%" height="100%"/>#}
@@ -155,11 +155,12 @@
     </section>
 
     <!-- Portfolio Grid Section -->
-    <section id="portfolio" class="bg-light-gray">
+    <section id="histogram_" class="bg-light-gray">
         <div class="container">
 {#             <div id="plot-data" style="width:100%; height:100%;">#}
 {#               <img src="{{ plot }}" alt="" width="100%" height="100%"/>#}
-                 <iframe id="igraph" style='border:none' src="{{ plotB }}" width = "100%" height="600px" frameborder="0" seamless="seamless" scrolling="no"></iframe>
+            <div id="histogram" style="width: 100%; height: 600px; margin: 0 auto"></div>
+{#                 <iframe id="igraph" style='border:none' src="{{ plotB }}" width = "100%" height="600px" frameborder="0" seamless="seamless" scrolling="no"></iframe>#}
 {#                 {% include "highchart_gps_trail.html" %}#}
 {#            </div>#}
 {#            <div class="row">#}
@@ -258,7 +259,7 @@
     </section>
 
     <!-- About Section -->
-    <section id="about">
+    <section id="path_">
         <div class="container">
 {#             <div id="plot-data" style="width:100%; height:100%;">#}
 {#               <img src="{{ plot }}" alt="" width="100%" height="100%"/>#}
@@ -344,7 +345,7 @@
     </section>
 
     <!-- Team Section -->
-    <section id="team" class="bg-light-gray">
+    <section id="settings_" class="bg-light-gray">
         <div class="container">
                 <div id="highchart" style="height: 600px; width: 100%"></div>
 
@@ -715,6 +716,7 @@
 
 <!-- Scripts follow -->
     <script type="text/javascript">
+{#    debugger;#}
     var	map,
         markers = [],
 	    lines = [],
@@ -722,9 +724,14 @@
         fromTime = {{fromTime}},
         toTime = {{ toTime }},
         popup = L.popup(),
-        data_cap = [],
-        data_data = [],
-        data_distance = [];
+        test = true,
+        data_cap = {{ data.cap }},
+        data_data = {{ data.data }},
+        data_distance = {{ data.distance }},
+        hist_cap = {{ histogram.avg_cap }},
+        hist_freq = {{ histogram.records }},
+        hist_distance = {{ histogram.distance }}
+        site = '{{ site }}';
     var blackIcon = L.icon({
         iconUrl: '/static/img/ships/ship-black.png',
         iconSize:     [40, 40] // size of the icon
@@ -778,15 +785,18 @@
             title = title + ' is offline';
 
         }
-        debugger;
+{#        debugger;#}
 {#        var colors = {true: 'green', false: 'orange'};#}
         var marker;
         var coverage = device.coverage;
-        if (coverage){
+
+        if (test){
             marker = L.marker([lat, lng], {icon: blackIcon}).addTo(map);
+            test = false;
         }
         else {
             marker = L.marker([lat, lng], {icon: orangeIcon}).addTo(map);
+            test = true;
         }
 
         marker.bindPopup(title);
@@ -846,7 +856,7 @@
     }
 
     function onMarkerClick(e) {
-        debugger;
+{#        debugger;#}
         var site;
         map.panTo(e.latlng);
         for (i=0; i < markers.length; i++) {
@@ -863,15 +873,21 @@
                 dataType: "json"});
 
         aj.done(function (response, textStatus, jqXHR) {
-            debugger;
+{#            debugger;#}
             data_cap = response.cap;
             data_data = response.data;
             data_distance = response.distance;
             var chart =  $('#chart').highcharts();
             chart.series[0].setData(data_cap,true);
-            chart.series[1].setData(data_data,true);
-            chart.series[2].setData(data_distance,true);
+            chart.series[1].setData(data_distance,true);
+            chart.series[2].setData(data_data,true);
+            chart.setTitle(null, { text: site });
 
+            var hist =  $('#histogram').highcharts();
+            hist.series[0].setData(hist_cap,true);
+            hist.series[1].setData(hist_distance,true);
+            hist.series[2].setData(hist_freq,true);
+            hist.setTitle(null, { text: site });
         });
         aj.fail(function (jqXHR, textStatus, errorThrown) {
         alert(textStatus);
@@ -879,22 +895,35 @@
     }
 
     $(function() {
-         leafletMap();
-         data = data_data;
-         cap = data_cap;
-         distance = data_distance;
-         chartOptions = {
+        leafletMap();
+        debugger;
+        chartOptions = {
 
                 chart: {
-                    renderTo:"#chart" ,
+{#                    renderTo:'chart',#}
                     zoomType: 'x'
                 },
                 title: {
-                    text: 'Capacity, Traffic, Distance'
+                    text: 'Traffic, Capacity, Distance'
                 },
                 subtitle: {
-                    text: 'Snapshot of Data over time'
+                    text: site
                 },
+{#                 events: {#}
+{#                        load: function () {#}
+{#    #}
+{#                            // set up the updating of the chart each second#}
+{#                            var series0 = this.series[0];#}
+{#                            var series1 = this.series[1];#}
+{#                            var series2 = this.series[2];#}
+{#                            #}
+{#                            setInterval(function () {#}
+{#                                var x = newTime, // current time#}
+{#                                    y = Math.random();#}
+{#                                series.addPoint([x, y], true, true);#}
+{#                            }, 1000);#}
+{#                        }#}
+{#                    },#}
                 xAxis: {
                     type: 'datetime',
                     minRange: 60000, // 1 min
@@ -905,13 +934,13 @@
 {#                }],#}
                 yAxis: [{ // Primary yAxis
                     labels: {
-                        format: '{value}°C',
+                        format: '{value}Mbps',
                         style: {
                             color: Highcharts.getOptions().colors[2]
                         }
                     },
                     title: {
-                        text: 'Temperature',
+                        text: 'Traffic',
                         style: {
                             color: Highcharts.getOptions().colors[2]
                         }
@@ -921,13 +950,13 @@
                 }, { // Secondary yAxis
                     gridLineWidth: 0,
                     title: {
-                        text: 'Rainfall',
+                        text: 'Capacity',
                         style: {
                             color: Highcharts.getOptions().colors[0]
                         }
                     },
                     labels: {
-                        format: '{value} mm',
+                        format: '{value} Mbps',
                         style: {
                             color: Highcharts.getOptions().colors[0]
                         }
@@ -936,13 +965,13 @@
                 }, { // Tertiary yAxis
                     gridLineWidth: 0,
                     title: {
-                        text: 'Sea-Level Pressure',
+                        text: 'Distance',
                         style: {
                             color: Highcharts.getOptions().colors[1]
                         }
                     },
                     labels: {
-                        format: '{value} mb',
+                        format: '{value} miles',
                         style: {
                             color: Highcharts.getOptions().colors[1]
                         }
@@ -968,42 +997,142 @@
                     {
                     pointInterval: 1000,
                     pointStart: fromTime,
-                    name: 'Rainfall',
+                    name: 'Capacity',
                     type: 'column',
                     yAxis: 1,
-                    data: [1,2,2,2,3],
+                    data: data_cap,
                     tooltip: {
-                        valueSuffix: ' mm'
+                        valueSuffix: ' Mbps'
                     }
 
                 }, {
                     pointInterval: 1000,
                     pointStart: fromTime,
-                    name: 'Sea-Level Pressure',
+                    name: 'Distance',
                     type: 'spline',
                     yAxis: 2,
-                    data: data_data,
+                    data: data_distance,
                     marker: {
                         enabled: false
                     },
                     tooltip: {
-                        valueSuffix: ' mb'
+                        valueSuffix: ' miles'
                     }
 
                 }, {
                     pointInterval: 1000,
                     pointStart: fromTime,
-                    name: 'Temperature',
+                    name: 'Traffic',
                     type: 'spline',
-                    data: [10,20,21,23,35],
+                    data: data_data,
                     tooltip: {
-                        valueSuffix: ' °C'
+                        valueSuffix: ' Mbps'
                     }
                 }]
-            }
+            };
+        histOptions = {
+                chart: {
+{#                    renderTo:'histogram',#}
+                    zoomType: 'x'
+                },
+                title: {
+                    text: 'Capacity vs Distance'
+                },
+                subtitle: {
+                    text: site
+                },
+
+                xAxis: [{
+                    categories: hist_distance
+                    },{
+                    title: {
+                        text: 'Distance',
+                        style: {
+                            color: Highcharts.getOptions().colors[3]
+                        }
+                    }
+                }],
+                yAxis: [{ // Primary yAxis
+
+                    title: {
+                        text: 'Capacity',
+                        style: {
+                            color: Highcharts.getOptions().colors[0]
+                        }
+                    },
+                    labels: {
+                        format: '{value} Mbps',
+                        style: {
+                            color: Highcharts.getOptions().colors[0]
+                        }
+                    },
+                    opposite: true
+
+                }, { // Secondary yAxis
+                    gridLineWidth: 0,
+                    title: {
+                        text: 'Frequency',
+                        style: {
+                            color: Highcharts.getOptions().colors[1]
+                        }
+                    },
+                    labels: {
+                        format: '{value} %',
+                        style: {
+                            color: Highcharts.getOptions().colors[1]
+                        }
+                    }
+
+                }],
+                tooltip: {
+                    shared: true
+                },
+                exporting: false,
+                credits: false,
+                legend: {
+                    layout: 'vertical',
+                    align: 'left',
+                    x: 120,
+                    verticalAlign: 'top',
+                    y: 80,
+                    floating: true,
+                    backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF'
+                },
+                series: [
+
+                    {
+{#                    pointInterval: 1000,#}
+{#                    pointStart: fromTime,#}
+                    name: 'Capacity',
+                    type: 'column',
+                    yAxis: 0,
+                    data: hist_cap,
+                    tooltip: {
+                        valueSuffix: ' Mbps'
+                    }
+
+                }, {
+{#                    pointInterval: 1000,#}
+{#                    pointStart: fromTime,#}
+                    name: 'Frequency',
+                    type: 'column',
+                    yAxis: 1,
+                    data: hist_freq,
+                    marker: {
+                        enabled: false
+                    },
+                    tooltip: {
+                        valueSuffix: ' %'
+                    }
+
+                }]
+            };
+{#        chart = new Highcharts.Chart(chartOptions);#}  //this will work too
+{#        histogram = new Highcharts.Chart(histOptions);#}
 
         $('#chart').highcharts(chartOptions);
-         setInterval(function() {
+        $('#histogram').highcharts(histOptions);
+        setInterval(function() {
             loadDevices();
             }, (15 * 1000));
     });

@@ -64,6 +64,8 @@ def adminViews(app):
     admin.add_view(ModelView(infinity.Company))
     admin.add_view(ModelView(infinity.Tag))
     admin.add_view(ModelView(infinity.Device))
+    admin.add_view(ModelView(infinity.Beagle))
+    admin.add_view(ModelView(infinity.Router))
     admin.add_view(ModelView(infinity.Data))
     admin.add_view(ModelView(infinity.Aggr_data))
     admin.add_view(ModelView(infinity.Config))
@@ -95,7 +97,11 @@ def home():
         'chart_url':'/chart',
         'fromTime' :yesterday_js,
         'toTime'   :now_js,
-        'plotB'    :generate_histogram(site = 'ShipA')
+        # 'plotB'    :generate_histogram(site = 'ShipA'),
+        'site'     :'ShipA',
+        'data'     :chart_view_init(),
+        'histogram':generate_histogram_init()
+
     }
     if current_user.has_role('Root'):
         ctx['devices_url'] = '/devices'
@@ -108,21 +114,20 @@ def home():
 
 @app.route('/chart', methods= ['POST','GET'])
 @login_required
-def chart_view():
-    site = flask.request.args.get('site')
-    fromTime = int(flask.request.args.get('fromTime'))
-    toTime  = int(flask.request.args.get('toTime'))
-
+def chart_view(site=None, fromTime=None, toTime=None):
     if toTime is None:
         toTime = datetime.datetime.now()
     else:
-        toTime = datetime.datetime.fromtimestamp(toTime/1000)
+        toTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('toTime'))/1000)
     if fromTime is None:
-        fromTime = toTime-datetime.timedelta(days=6)
+        fromTime = toTime-datetime.timedelta(days=15)
     else:
-        fromTime = datetime.datetime.fromtimestamp(fromTime/1000)
+        fromTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('fromTime'))/1000)
     if site is None:
         site = 'ShipA'
+    else:
+        site = flask.request.args.get('site')
+
     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only("time","data","cap","distance").order_by("time")
 
@@ -140,7 +145,7 @@ def chart_view():
         # data["data"].append([x,ob.data])
         # data["distance"].append([x,ob.distance])
 
-        data["cap"].append(ob.cap)
+        data["cap"].append(ob.cap)   # multiple by 1.5 to see if data is changing
         data["data"].append(ob.data)
         data["distance"].append(ob.distance)
 
@@ -183,7 +188,7 @@ def chart_view():
     #         title='Time',
     #         titlefont=Font(
     #             family='Arial, sans-serif',
-    #             size=18,
+    #             size=18m,
     #             color='grey'
     #         )
     #     )
@@ -193,9 +198,29 @@ def chart_view():
 
     data_dumps = Response(json.dumps(data),  mimetype='application/json')
     # data_jsonify = flask.jsonify(**data)  # same as flask.Response but doesn't quite work
-
     return data_dumps
 
+
+def chart_view_init():
+
+    toTime = datetime.datetime.now()
+    fromTime = toTime-datetime.timedelta(days=15)
+    site = 'ShipA'
+
+    query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+        only("time","data","cap","distance").order_by("time")
+
+    data = {}
+    data["cap"]=[]
+    data["data"]=[]
+    data["distance"]=[]
+
+    for ob in query_set:
+        data["cap"].append(ob.cap)
+        data["data"].append(ob.data)
+        data["distance"].append(ob.distance)
+
+    return data
 
 @app.route('/devices', methods=['POST','GET'])
 @login_required
@@ -220,76 +245,104 @@ def get_devices_and_data():
     return data_dumps
 
 
-# @app.route('/histogram/<site>')
-# @login_required
-def generate_histogram(site,fromTimeStamp=None,toTimeStamp=None):
 
-    if toTimeStamp is None:
-        toTimeStamp = datetime.datetime.now()
-    if fromTimeStamp is None:
-        fromTimeStamp=toTimeStamp-datetime.timedelta(days=6)
+def generate_histogram_init():
 
-    records=[]
-    avg_cap=[]
-    distance=[]
+    toTimeStamp = datetime.datetime.now()
+    fromTimeStamp = toTimeStamp-datetime.timedelta(days=15)
+    site = 'ShipA'
+
+    data = {}
+    data["avg_cap"]=[]
+    data["records"]=[]
+    data["distance"]=[]
 
     total_records = len(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
     if total_records == 0:
         total_records=1
     step=50
     for x in range(step,251,step):
-        records.append( len( Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+        data["records"].append( len( Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
                                              site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
-        avg_cap.append(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
+        data["avg_cap"].append(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
                                          , distance__lt = x, distance__gte = x-step).average('cap'))
-        distance.append(x)
+        data["distance"].append(x)
+
+    return data
         # dict.append({"Occurences": 100*records/total_records, "Avg_Capacity": avg_cap, "Distance":x})
         # dict.append({ "Avg_Capacity": avg_cap})
 
-    trace1 = Bar(
-        x=distance,
-        y=avg_cap,
-        name='Avg Capacity'
-    )
-    trace2 = Bar(
-        x=distance,
-        y=records,
-        name='% Time'
-        # ,
-        # yaxis='y2'
-    )
-    data = Data([trace1, trace2])
+    # trace1 = Bar(
+    #     x=distance,
+    #     y=avg_cap,
+    #     name='Avg Capacity'
+    # )
+    # trace2 = Bar(
+    #     x=distance,
+    #     y=records,
+    #     name='% Time'
+    #     # ,
+    #     # yaxis='y2'
+    # )
+    # data = Data([trace1, trace2])
+    #
+    # layout = Layout(
+    #     barmode='group',
+    #
+    #     title='Capacity,Time vs Distance',
+    #     yaxis=YAxis(
+    #         title='Capacity, %Time'
+    #     ),
+    #     # yaxis2=YAxis(
+    #     #     title='% Time',
+    #     #     titlefont=Font(
+    #     #         color='rgb(148, 103, 189)'
+    #     #     ),
+    #     #     tickfont=Font(
+    #     #         color='rgb(148, 103, 189)'
+    #     #     ),
+    #     #     overlaying='y',
+    #     #     side='right'
+    #     # ),
+    #     xaxis=XAxis(
+    #         title='Distance',
+    #         titlefont=Font(
+    #             family='Arial, sans-serif',
+    #             size=18,
+    #             color='grey'
+    #         )
+    #     )
+    # )
+    # fig = Figure(data=data, layout=layout)
+    # plot_url = py.plot(fig, filename='grouped-bar', auto_open=False)
+    # return plot_url
 
-    layout = Layout(
-        barmode='group',
+@app.route('/histogram')
+@login_required
+def generate_histogram():
 
-        title='Capacity,Time vs Distance',
-        yaxis=YAxis(
-            title='Capacity, %Time'
-        ),
-        # yaxis2=YAxis(
-        #     title='% Time',
-        #     titlefont=Font(
-        #         color='rgb(148, 103, 189)'
-        #     ),
-        #     tickfont=Font(
-        #         color='rgb(148, 103, 189)'
-        #     ),
-        #     overlaying='y',
-        #     side='right'
-        # ),
-        xaxis=XAxis(
-            title='Distance',
-            titlefont=Font(
-                family='Arial, sans-serif',
-                size=18,
-                color='grey'
-            )
-        )
-    )
-    fig = Figure(data=data, layout=layout)
-    plot_url = py.plot(fig, filename='grouped-bar', auto_open=False)
-    return plot_url
+    toTimeStamp = datetime.datetime.fromtimestamp(int(flask.request.args.get('toTime'))/1000)
+    fromTimeStamp = datetime.datetime.fromtimestamp(int(flask.request.args.get('fromTime'))/1000)
+    site = flask.request.args.get('site')
+
+    data = {}
+    data["avg_cap"]=[]
+    data["records"]=[]
+    data["distance"]=[]
+
+    total_records = len(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+    if total_records == 0:
+        total_records=1
+    step=50
+    for x in range(step,251,step):
+        data["records"].append( len( Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+                                             site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
+        data["avg_cap"].append(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
+                                         , distance__lt = x, distance__gte = x-step).average('cap'))
+        data["distance"].append(x)
+
+    data_dumps= Response(json.dumps(data),  mimetype='application/json')
+    return data_dumps
 
 
 # @app.route('/observer/cpe_monitor/<mac>')
