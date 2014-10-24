@@ -725,7 +725,18 @@
         data_cap = [],
         data_data = [],
         data_distance = [];
-
+    var blackIcon = L.icon({
+        iconUrl: '/static/img/ships/ship-black.png',
+        iconSize:     [40, 40] // size of the icon
+    });
+    var orangeIcon = L.icon({
+        iconUrl: '/static/img/ships/ship-orange.png',
+        iconSize:     [40, 40] // size of the icon
+    });
+    var redIcon = L.icon({
+        iconUrl: '/static/img/ships/ship-red.png',
+        iconSize:     [40, 40] // size of the icon
+    });
 
 
     function loadDevices() {
@@ -748,39 +759,6 @@
 	    });
     }
 
-{#function loadMap () {#}
-{##}
-{#	var mapProp = {#}
-{#        {% if selected_lat and selected_long %}#}
-{#		center: new google.maps.LatLng({{ selected_lat }}, {{ selected_long }}),#}
-{#		zoom: 9,#}
-{#		{% else %}#}
-{#		center: new google.maps.LatLng(33, -118),#}
-{#		zoom: 4,#}
-{#		{% endif %}#}
-{#        streetViewControl: false,#}
-{#		mapTypeId: google.maps.MapTypeId.HYBRID#}
-{#	};#}
-{#	map = new google.maps.Map(document.getElementById('google-map'), mapProp);#}
-{#	oms = new OverlappingMarkerSpiderfier(map);#}
-{##}
-{##}
-{#	loadDevices();#}
-
-{#	oms.addListener('click', function(marker, event) {#}
-{##}
-{#        window.open(marker.myurl, '_blank');#}
-{#        //window.location.href = marker.myurl;#}
-{##}
-{#	});#}
-{##}
-{#	// Update placemarks every 30 seconds#}
-{#	setInterval(function() {#}
-{#		loadDevices();#}
-{#	}, (15 * 1000));#}
-{# }#}
-
-
     function addMarker(device, lat, lng) {
         {#	if (!map) return;#}
         //clearPlacemarksAndLines(); // Remove old placemarks
@@ -791,7 +769,7 @@
             title = title + '<br> Tx: ' + device.tx + ' Mbps ';
             title = title + '<br> Rx: ' + device.rx + ' Mbps ';
             title = title + '<br> Distance: ' + device.distance + " miles ";
-            title = title + '<br> Capacity: ' + device.capacity + " Mbps ";
+            title = title + '<br> Capacity: ' + device.cap + " Mbps ";
             title = title + '<br> Traffic: ' + device.data + " Mbps ";
             title = title + '<br> Time: ' + d.toUTCString();
 
@@ -800,11 +778,17 @@
             title = title + ' is offline';
 
         }
-
-        var colors = {true: 'green', false: 'orange'};
-
+        debugger;
+{#        var colors = {true: 'green', false: 'orange'};#}
+        var marker;
         var coverage = device.coverage;
-        var marker = L.marker([lat, lng]).addTo(map);
+        if (coverage){
+            marker = L.marker([lat, lng], {icon: blackIcon}).addTo(map);
+        }
+        else {
+            marker = L.marker([lat, lng], {icon: orangeIcon}).addTo(map);
+        }
+
         marker.bindPopup(title);
         marker.on('click', onMarkerClick);
         markers.push(marker);
@@ -845,197 +829,6 @@
           lines.push(connectionPath);
     }
 
-{#    highchart_{{ chart }}_extremes = [];#}
-{#    highchart_{{ chart }}_data = [];#}
-{#    function showChart_{{ chart }}(data, start_time, end_time) {#}
-{#        chart_{{ chart }} = new Highcharts.Chart({#}
-{##}
-{#           navigator : {#}
-{#                adaptToUpdatedData: false,#}
-{#                series : {#}
-{#                    data : highchart_{{ chart }}_data#}
-{#                }#}
-{#            },#}
-{##}
-{#            scrollbar: {#}
-{#                liveRedraw: false#}
-{#            },#}
-{##}
-{##}
-{#            chart: {#}
-{#                renderTo: 'highchart_{{ chart }}',#}
-{#                width: 1000,#}
-{#                height: 300,#}
-{#                zoomType: 'x'#}
-{#                },#}
-{#            title: { text: '{{ chart_title }}'},#}
-{#            xAxis: {#}
-{#                type: 'datetime',#}
-{#                minRange: 3 * 60 * 60 * 1000, // 3 hours#}
-{#                events: {#}
-{#                    afterSetExtremes: function(event) {#}
-{##}
-{#                        var startTime = Math.ceil(event.min / 1000);#}
-{#                        var endTime = Math.ceil(event.max / 1000);#}
-{##}
-{#                        if (this.getExtremes().dataMin < event.min) {#}
-{#                            //zoom in#}
-{##}
-{#                            loadChart_{{ chart }}('{{ device_mac }}', startTime, endTime)#}
-{#                            refreshAvgData(startTime, endTime);#}
-{##}
-{##}
-{#                        }#}
-{#                        else {#}
-{#                            extremes = highchart_{{ chart }}_extremes.pop();#}
-{#                            extremes = highchart_{{ chart }}_extremes[highchart_{{ chart }}_extremes.length-1];#}
-{#                            startTime = extremes[0];#}
-{#                            endTime = extremes[1];#}
-{#                            loadChart_{{ chart }}('{{ device_mac }}', startTime, endTime);#}
-{#                            refreshAvgData(startTime, endTime);#}
-{##}
-{#                        }#}
-{##}
-{#                    }#}
-{#                }#}
-{#            },#}
-{#            yAxis: [#}
-{#                {#}
-{#                    min: 0, minRange: 0.1,#}
-{#                    title: {#}
-{#                        text: 'Mbps'#}
-{#                    }#}
-{#                },#}
-{#                {#}
-{#                    min: 0,minRange: 0.1,#}
-{#                    title: {#}
-{#                    text: 'Miles'#}
-{#                    },#}
-{#                    opposite:true#}
-{#            }#}
-{##}
-{#            ],#}
-{#            tooltip: {#}
-{#                shared: true,#}
-{#                crosshairs: false,#}
-{#                backgroundColor: 'white',#}
-{#                borderWidth: 0,#}
-{#                borderRadius: 0,#}
-{#                positioner: function () {#}
-{#                    return { x: 10, y: 35 };#}
-{#                },#}
-{#                shadow: false,#}
-{#                formatter: function () {#}
-{#                var s = '<b>' + new Date(this.x).toUTCString() + '</b>';#}
-{##}
-{#                $.each(this.points, function () {#}
-{#                    s += ' | ' + this.series.name + ': ' +#}
-{#                        this.y;#}
-{#                });#}
-{##}
-{#                if (placemarks != null) {#}
-{##}
-{#                    for (p in placemarks) {#}
-{#                        if (placemarks[p].stime == this.x) {#}
-{#                            placemarks[p].icon.scale = 5;#}
-{#                            placemarks[p].setMap(null);#}
-{#                            placemarks[p].setMap(map);#}
-{#                        }#}
-{#                        else if (placemarks[p].icon.scale != 1) {#}
-{#                            placemarks[p].icon.scale = 1;#}
-{#                            placemarks[p].setMap(null);#}
-{#                            placemarks[p].setMap(map);#}
-{#                        }#}
-{##}
-{#                    } //for#}
-{#                } //if placemarks!=null#}
-{##}
-{#                return s;#}
-{#                }#}
-{#            }, // tooltip#}
-{#            plotOptions: {#}
-{#                    series: {#}
-{#                        marker: {#}
-{#                            enabled: false,#}
-{#                            states: {#}
-{#                                hover: {#}
-{#                                    enabled: true,#}
-{#                                    radius: 3#}
-{#                                }#}
-{#                            }#}
-{#                        }#}
-{#                    }#}
-{#                },#}
-{#            series: [#}
-{#                     {% for data in chart_data %}#}
-{#                         { name: '{{ data.label }}', type:'line', //type: '{{ data.plot_type }}',#}
-{#                           data: data.{{ data.name }},#}
-{#                           yAxis: {{ data.yAxis }}#}
-{#                           {% if data.dashStyle %},#}
-{#                           dashStyle:'{{ data.dashStyle  }}'#}
-{#                           {% endif %}#}
-{#                         },#}
-{#                    {% endfor %}#}
-{#            ]#}
-{#        });#}
-{##}
-{#    }#}
-{##}
-{#    function updateTimeline(x){#}
-{#        chart_{{ chart }}.xAxis[0].removePlotLine('timeline');#}
-{#        chart_{{ chart }}.xAxis[0].addPlotLine({#}
-{#            id: 'timeline',#}
-{#            value: x,#}
-{#            width: 1,#}
-{#            color: '#C0C0C0'#}
-{#            });#}
-{#    }#}
-{##}
-{#    function reloadChartData_{{ chart }}(data, startTime, endTime) {#}
-{#        {% for data in chart_data %}#}
-{#          chart_{{ chart }}.series[{{ loop.index0 }}].setData(data.{{ data.name }},true);#}
-{#        {% endfor %}#}
-{#        chart_{{ chart }}.redraw();#}
-{#    }#}
-{##}
-{#    function loadChart_{{ chart }}(mac, startTime, endTime) {#}
-{##}
-{#        chart_{{ chart }}.showLoading('loading...');#}
-{##}
-{#        aj = $.ajax({#}
-{#                type: "GET",#}
-{#                url: '{{ data_url }}',#}
-{#                async: true,#}
-{#                data: {#}
-{#                    device_mac:'{{ device_mac }}',start_time:startTime, end_time:endTime,#}
-{#                    metrics_count: {{ chart_data|count }},#}
-{#                    {% for data in chart_data %} metric_{{loop.index0}}:'{{ data.name }}',#}
-{#                    {% endfor %}#}
-{#                },#}
-{#                contentType: "application/json; charset=utf-8",#}
-{#                dataType: "json"});#}
-{##}
-{#                aj.done(function (response, textStatus, jqXHR) {#}
-{#                   $('#date_from').jqxDateTimeInput('setDate', new Date(startTime * 1000));#}
-{#                   $('#date_to').jqxDateTimeInput('setDate', new Date(endTime * 1000));#}
-{#                   highchart_{{ chart }}_extremes.push([startTime, endTime]);#}
-{#                   highchart_{{ chart }}_data = response;#}
-{#                   reloadChartData_{{ chart }}(response, startTime, endTime);#}
-{#                   refreshTrailWithData(highchart_{{ chart }}_data);#}
-{#                   chart_{{ chart }}.hideLoading();#}
-{#                });#}
-{#                aj.fail(function (jqXHR, textStatus, errorThrown) {#}
-{#                alert(textStatus);#}
-{#                chart_{{ chart }}.hideLoading();#}
-{#                });#}
-{#    };#}
-
-
-{#    window.addEventListener('load', function(e) {#}
-{#        showChart_{{chart }}({},{{ start_time }},{{ end_time }});#}
-{#        loadChart_{{ chart }}('{{ device_mac }}', {{ start_time }}, {{ end_time }});#}
-{#	}, false);#}
-
     function leafletMap(){
         map = L.map('map').setView([33, -118], 6);
         L.tileLayer('http://{s}.tiles.mapbox.com/v3/saswata.jldkb3nl/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(map);
@@ -1056,18 +849,11 @@
         debugger;
         var site;
         map.panTo(e.latlng);
-{#        if (map.getZoom() < 7)#}
-{#            map.zoomIn(4);#}
         for (i=0; i < markers.length; i++) {
             if (markers[i]._leaflet_id == this._leaflet_id) {
                 site = sites[i];
             }
         }
-{#        var url = '{{ chart_url }}';#}
-{#        $.post( url, function ( site, fromTime, toTime, data ) {#}
-{#            $( "#chart" ).html( data );#}
-{#            alert( "Load was performed." );#}
-{#        });#}
         aj = $.ajax({
                 type: "GET",
                 url: '{{ chart_url }}',
@@ -1093,73 +879,7 @@
     }
 
     $(function() {
-{#        debugger;#}
-        leafletMap();
-    {#        loadMap();#}
-{#        Highcharts.setOptions({#}
-{#                global : {#}
-{#                    useUTC : false#}
-{#                }#}
-{#            });#}
-
-            // Create the chart
-    {#        $('#highchart').highcharts('StockChart', {#}
-    {#            chart : {#}
-    {#                events : {#}
-    {#                    load : function () {#}
-    {##}
-    {#                        // set up the updating of the chart each second#}
-    {#                        var series = this.series[0];#}
-    {#                        setInterval(function () {#}
-    {#                            var x = (new Date()).getTime(), // current time#}
-    {#                                y = Math.round(Math.random() * 100);#}
-    {#                            series.addPoint([x, y], true, true);#}
-    {#                        }, 1000);#}
-    {#                    }#}
-    {#                }#}
-    {#            },#}
-    {##}
-    {#            rangeSelector: {#}
-    {#                buttons: [{#}
-    {#                    count: 1,#}
-    {#                    type: 'minute',#}
-    {#                    text: '1M'#}
-    {#                }, {#}
-    {#                    count: 5,#}
-    {#                    type: 'minute',#}
-    {#                    text: '5M'#}
-    {#                }, {#}
-    {#                    type: 'all',#}
-    {#                    text: 'All'#}
-    {#                }],#}
-    {#                inputEnabled: false,#}
-    {#                selected: 0#}
-    {#            },#}
-    {##}
-    {#            title : {#}
-    {#                text : 'Live random data'#}
-    {#            },#}
-    {##}
-    {#            exporting: {#}
-    {#                enabled: false#}
-    {#            },#}
-    {##}
-    {#            series : [{#}
-    {#                name : 'Random data',#}
-    {#                data : (function () {#}
-    {#                    // generate an array of random data#}
-    {#                    var data = [], time = (new Date()).getTime(), i;#}
-    {##}
-    {#                    for (i = -999; i <= 0; i += 1) {#}
-    {#                        data.push([#}
-    {#                            time + i * 1000,#}
-    {#                            Math.round(Math.random() * 100)#}
-    {#                        ]);#}
-    {#                    }#}
-    {#                    return data;#}
-    {#                }())#}
-    {#            }]#}
-    {#        });#}
+         leafletMap();
          data = data_data;
          cap = data_cap;
          distance = data_distance;
@@ -1283,9 +1003,9 @@
             }
 
         $('#chart').highcharts(chartOptions);
-{#         setInterval(function() {#}
-{#            loadDevices();#}
-{#            }, (15 * 1000));#}
+         setInterval(function() {
+            loadDevices();
+            }, (15 * 1000));
     });
 
 
