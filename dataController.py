@@ -352,6 +352,11 @@ def aggr_data():
 
     return "Done"
 
+def get_ping(ip):
+    result = [line.rpartition('=')[-1] for line in subprocess.check_output(['ping', '-c', '2', ip]).splitlines()[1:-4]]
+    resultWithNoString = [findNumber(result[0]),findNumber(result[1])]
+    return resultWithNoString
+
 def get_ping_status(ip):
     value = get_status(ip)
     if value != 0:

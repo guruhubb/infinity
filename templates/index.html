@@ -28,6 +28,8 @@
     <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
     <link href='https://api.tiles.mapbox.com/mapbox.js/v2.1.2/mapbox.css' rel='stylesheet' />
 
+    <!-- jQuery CSS -->
+    <link rel="stylesheet" type="text/css" href="/static/css/jquery.datetimepicker.css"/>
 
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -349,24 +351,25 @@
     </section>
 
     <!-- Team Section -->
-{#    <section id="histogram_" class="bg-light-gray">#}
+    <section id="settings_" class="bg-light-gray">
 
-    <section id="settings_" >
+{#    <section id="settings_" >#}
         <div class="container">
-                <div id="highchart" style="height: 600px; width: 100%"></div>
 
-{#            <div class="row">#}
-{#                <div class="col-lg-12 text-center">#}
-{#                    <h2 class="section-heading">Our Amazing Team</h2>#}
-{#                    <h3 class="section-subheading text-muted">Lorem ipsum dolor sit amet consectetur.</h3>#}
-{#                </div>#}
-{#            </div>#}
-{#            <div class="row">#}
-{#                <div class="col-sm-4">#}
-{#                    <div class="team-member">#}
+            <div class="row">
+                <div class="col-lg-12 text-center">
+                    <h2 class="section-heading">Settings</h2>
+                    <h3 class="section-subheading text-muted">Select dates and click the Submit button</h3>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-4">
+                    <div class="team-member">
+                                    <input id="datetimepicker1" type="text" >
+
 {#                        <img src="static/img/team/1.jpg" class="img-responsive img-circle" alt="">#}
-{#                        <h4>Kay Garland</h4>#}
-{#                        <p class="text-muted">Lead Designer</p>#}
+                        <h4>From Date and Time</h4>
+{#                        <p class="text-muted"></p>#}
 {#                        <ul class="list-inline social-buttons">#}
 {#                            <li><a href="#"><i class="fa fa-twitter"></i></a>#}
 {#                            </li>#}
@@ -375,12 +378,14 @@
 {#                            <li><a href="#"><i class="fa fa-linkedin"></i></a>#}
 {#                            </li>#}
 {#                        </ul>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-sm-4">#}
-{#                    <div class="team-member">#}
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="team-member">
+                                    <input id="datetimepicker2" type="text" >
+
 {#                        <img src="static/img/team/2.jpg" class="img-responsive img-circle" alt="">#}
-{#                        <h4>Larry Parker</h4>#}
+                        <h4>To Date and Time</h4>
 {#                        <p class="text-muted">Lead Marketer</p>#}
 {#                        <ul class="list-inline social-buttons">#}
 {#                            <li><a href="#"><i class="fa fa-twitter"></i></a>#}
@@ -390,10 +395,11 @@
 {#                            <li><a href="#"><i class="fa fa-linkedin"></i></a>#}
 {#                            </li>#}
 {#                        </ul>#}
-{#                    </div>#}
-{#                </div>#}
-{#                <div class="col-sm-4">#}
-{#                    <div class="team-member">#}
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="team-member">
+                        <input id="bigbutton" type="submit" value="Submit" />
 {#                        <img src="static/img/team/3.jpg" class="img-responsive img-circle" alt="">#}
 {#                        <h4>Diana Pertersen</h4>#}
 {#                        <p class="text-muted">Lead Developer</p>#}
@@ -405,9 +411,9 @@
 {#                            <li><a href="#"><i class="fa fa-linkedin"></i></a>#}
 {#                            </li>#}
 {#                        </ul>#}
-{#                    </div>#}
-{#                </div>#}
-{#            </div>#}
+                    </div>
+                </div>
+            </div>
 {#            <div class="row">#}
 {#                <div class="col-lg-8 col-lg-offset-2 text-center">#}
 {#                    <p class="large text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aut eaque, laboriosam veritatis, quos non quis ad perspiciatis, totam corporis ea, alias ut unde.</p>#}
@@ -697,17 +703,20 @@
     <script src="static/js/classie.js"></script>
     <script src="static/js/cbpAnimatedHeader.js"></script>
 
+
     <!-- Contact Form JavaScript -->
     <script src="static/js/jqBootstrapValidation.js"></script>
-    <script src="static/js/contact_me.js"></script>
+{#    <script src="static/js/contact_me.js"></script>#}
 
     <!-- Custom Theme JavaScript -->
     <script src="static/js/agency.js"></script>
+    <script src="static/js/jquery.js"></script>
+    <script src="static/js/jquery.datetimepicker.js"></script>
 
     <!-- Google JavaScript -->
     <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyDY0kkJiTPVd2U7aTOAwhc9ySH6oHxOIYM&sensor=false"></script>
 {#    <script type="text/javascript" src="/static/oms.min.js"></script>#}
-    <script src="http://jawj.github.io/OverlappingMarkerSpiderfier/bin/oms.min.js"></script> //added the file
+    <script src="http://jawj.github.io/OverlappingMarkerSpiderfier/bin/oms.min.js"></script>
 
     <!-- Leaflet JavaScript -->
     <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
@@ -745,6 +754,7 @@
         path_lng = {{ path.lng }},
         path_lat = {{ path.lat }},
         site = '{{ site }}';
+
     var blackIcon = L.icon({
         iconUrl: '/static/img/ships/ship-black.png',
         iconSize:     [40, 40] // size of the icon
@@ -917,8 +927,7 @@
     }
     function secondMap(){
 
-        var med = medLatLng(path_lat, path_lng);
-        map2 = L.map('map2').setView([med[0],med[1]], 8);
+        map2 = L.map('map2').setView(medLatLng(path_lat, path_lng), 8);
         L.tileLayer('http://{s}.tiles.mapbox.com/v3/saswata.jldkb3nl/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(map2);
         map2.attributionControl.setPrefix(false);
         clearCircles();
@@ -952,7 +961,6 @@
 {#    }#}
 
     function onMarkerClick(e) {
-{#        debugger;#}
         var site;
         map1.panTo(e.latlng);
         for (i=0; i < markers.length; i++) {
@@ -960,6 +968,8 @@
                 site = sites[i];
             }
         }
+                debugger;
+
         aj = $.ajax({
                 type: "GET",
                 url: '{{ chart_url }}',
@@ -968,12 +978,14 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
         aj.done(function (response, textStatus, jqXHR) {
-{#            debugger;#}
-            var chart =  $('#chart').highcharts();
-            chart.series[0].setData(response.cap,true);
-            chart.series[1].setData(response.distance,true);
-            chart.series[2].setData(response.data,true);
-            chart.setTitle(null, { text: site });
+            {#            debugger;#}
+            if (response.cap.length > 0) {
+                var chart = $('#chart').highcharts();
+                chart.series[0].setData(response.cap, true);
+                chart.series[1].setData(response.distance, true);
+                chart.series[2].setData(response.data, true);
+                chart.setTitle(null, { text: site });
+            }
         });
         aj.fail(function (jqXHR, textStatus, errorThrown) {
             alert(textStatus);
@@ -988,12 +1000,11 @@
                 dataType: "json"});
         aj1.done(function (response, textStatus, jqXHR) {
 {#            debugger;#}
-
-            var hist =  $('#histogram').highcharts();
-            hist.xAxis[0].setCategories(response.distance, true);
-            hist.series[0].setData(response.avg_cap,true);
-            hist.series[1].setData(response.records,true);
-            hist.setTitle(null, { text: site });
+                var hist = $('#histogram').highcharts();
+                hist.xAxis[0].setCategories(response.distance, true);
+                hist.series[0].setData(response.avg_cap, true);
+                hist.series[1].setData(response.records, true);
+                hist.setTitle(null, { text: site });
 
         });
         aj1.fail(function (jqXHR, textStatus, errorThrown) {
@@ -1009,11 +1020,14 @@
                 dataType: "json"});
         aj2.done(function (response, textStatus, jqXHR) {
             debugger;
-            map2.panTo(medLatLng(path_lat, path_lng));
-            clearCircles();
-            for (i=0; i< response.cap.length; i++) {
-                addCircle(response.lng[i], response.lat[i], response.cap[i])
+            if (response.lat.length > 0) {
+                map2.panTo(medLatLng(response.lat, response.lng));
+                clearCircles();
+                for (i = 0; i < response.cap.length; i++) {
+                    addCircle(response.lng[i], response.lat[i], response.cap[i])
+                }
             }
+            else clearCircles();
         });
         aj2.fail(function (jqXHR, textStatus, errorThrown) {
             alert(textStatus);
@@ -1254,150 +1268,24 @@
 
                 }]
             };
-{#        heatOptions = {#}
-{##}
-{#                chart: {#}
-{#                    type: 'heatmap',#}
-{#                    marginTop: 40,#}
-{#                    marginBottom: 40#}
-{#                },#}
-{##}
-{##}
-{#                title: {#}
-{#                    text: 'Sales per employee per weekday'#}
-{#                },#}
-{##}
-{#                xAxis: {#}
-{#                    categories: ['Alexander', 'Marie', 'Maximilian', 'Sophia', 'Lukas', 'Maria', 'Leon',#}
-{#                        'Anna', 'Tim', 'Laura']#}
-{#                },#}
-{##}
-{#                yAxis: {#}
-{#                    categories: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],#}
-{#                    title: null#}
-{#                },#}
-{##}
-{#                colorAxis: {#}
-{#                    min: 0,#}
-{#                    minColor: '#FFFFFF',#}
-{#                    maxColor: Highcharts.getOptions().colors[0]#}
-{#                },#}
-{##}
-{#                legend: {#}
-{#                    align: 'right',#}
-{#                    layout: 'vertical',#}
-{#                    margin: 0,#}
-{#                    verticalAlign: 'top',#}
-{#                    y: 25,#}
-{#                    symbolHeight: 320#}
-{#                },#}
-{##}
-{#                tooltip: {#}
-{#                    formatter: function () {#}
-{#                        return '<b>' + this.series.xAxis.categories[this.point.x] + '</b> sold <br><b>' +#}
-{#                            this.point.value + '</b> items on <br><b>' + this.series.yAxis.categories[this.point.y]#}
-{#                                + '</b>';#}
-{#                    }#}
-{#                },#}
-{##}
-{#                series: [{#}
-{#                    name: 'Sales per employee',#}
-{#                    borderWidth: 1,#}
-{#                    data: [[0, 0, 10], [0, 1, 19], [0, 2, 8], [0, 3, 24], [0, 4, 67], [1, 0, 92], [1, 1, 58], [1, 2, 78]#}
-{#                        , [1, 3, 117], [1, 4, 48], [2, 0, 35], [2, 1, 15], [2, 2, 123], [2, 3, 64], [2, 4, 52],#}
-{#                        [3, 0, 72], [3, 1, 132], [3, 2, 114], [3, 3, 19], [3, 4, 16], [4, 0, 38], [4, 1, 5],#}
-{#                        [4, 2, 8], [4, 3, 117], [4, 4, 115], [5, 0, 88], [5, 1, 32], [5, 2, 12], [5, 3, 6],#}
-{#                        [5, 4, 120], [6, 0, 13], [6, 1, 44], [6, 2, 88], [6, 3, 98], [6, 4, 96], [7, 0, 31],#}
-{#                        [7, 1, 1], [7, 2, 82], [7, 3, 32], [7, 4, 30], [8, 0, 85], [8, 1, 97], [8, 2, 123], [8, 3, 64],#}
-{#                        [8, 4, 84], [9, 0, 47], [9, 1, 114], [9, 2, 31], [9, 3, 48], [9, 4, 91]],#}
-{#                    dataLabels: {#}
-{#                        enabled: true,#}
-{#                        color: 'black',#}
-{#                        style: {#}
-{#                            textShadow: 'none',#}
-{#                            HcTextStroke: null#}
-{#                        }#}
-{#                    }#}
-{#                }]#}
-{##}
-{#            };#}
-{#        heatOptions = {#}
-{##}
-{#            chart: {#}
-{#                type: 'heatmap',#}
-{#                marginTop: 40,#}
-{#                marginBottom: 40#}
-{#            },#}
-{##}
-{#            title: {#}
-{#                text: "Capacity Heatmap of Ship's path"#}
-{#            },#}
-{#            subtitle: {#}
-{#                    text: site#}
-{#                },#}
-{#            xAxis: {#}
-{#                categories: path_lng#}
-{#                 title: {#}
-{#                    text: 'Longitude'#}
-{#                }#}
-{#            },#}
-{##}
-{#            yAxis: {#}
-{#                categories: path_lat,#}
-{#                 title: {#}
-{#                    text: 'Latitude'#}
-{#                }#}
-{#            },#}
-{##}
-{#            colorAxis: {#}
-{#                min: 0,#}
-{#                minColor: '#FFFFFF',#}
-{#                maxColor: Highcharts.getOptions().colors[0]#}
-{#            },#}
-{##}
-{#            legend: {#}
-{#                align: 'right',#}
-{#                layout: 'vertical',#}
-{#                margin: 0,#}
-{#                verticalAlign: 'top',#}
-{#                y: 25,#}
-{#                symbolHeight: 320#}
-{#            },#}
-{##}
-{#            tooltip: {#}
-{#                formatter: function () {#}
-{#                    return '<b>' + "LatLng: "+ (this.series.xAxis.categories[this.point.lng],this.series.yAxis.categories[this.point.lat]) + '<br>' +#}
-{#                        'Capacity: '+this.point.value + '</b> items on <br><b>' + this.series.yAxis.categories[this.point.y] + '</b>';#}
-{#                }#}
-{#            },#}
-{#            tooltip: {#}
-{#                    shared: true#}
-{#                },#}
-{#            #}
-{#            exporting: false,#}
-{#            credits: false,#}
-{##}
-{#            series: [{#}
-{#                name: 'Capacity Heatmap',#}
-{#                borderWidth: 1,#}
-{#                data:path,#}
-    {#            data: [[0, 0, 10], [0, 1, 19], [0, 2, 8], [0, 3, 24], [0, 4, 67], [1, 0, 92], [1, 1, 58], [1, 2, 78], [1, 3, 117], [1, 4, 48], [2, 0, 35], [2, 1, 15], [2, 2, 123], [2, 3, 64], [2, 4, 52], [3, 0, 72], [3, 1, 132], [3, 2, 114], [3, 3, 19], [3, 4, 16], [4, 0, 38], [4, 1, 5], [4, 2, 8], [4, 3, 117], [4, 4, 115], [5, 0, 88], [5, 1, 32], [5, 2, 12], [5, 3, 6], [5, 4, 120], [6, 0, 13], [6, 1, 44], [6, 2, 88], [6, 3, 98], [6, 4, 96], [7, 0, 31], [7, 1, 1], [7, 2, 82], [7, 3, 32], [7, 4, 30], [8, 0, 85], [8, 1, 97], [8, 2, 123], [8, 3, 64], [8, 4, 84], [9, 0, 47], [9, 1, 114], [9, 2, 31], [9, 3, 48], [9, 4, 91]],#}
-{#                dataLabels: {#}
-{#                    enabled: true,#}
-{#                    color: 'black',#}
-{#                    style: {#}
-{#                        textShadow: 'none',#}
-{#                        HcTextStroke: null#}
-{#                    }#}
-{#                }#}
-{#            }]#}
-{##}
-{#    };#}
-{#        chart = new Highcharts.Chart(chartOptions);  //this will work too#}
-{#        histogram = new Highcharts.Chart(histOptions);#}
-
         $('#chart').highcharts(chartOptions);
         $('#histogram').highcharts(histOptions);
+        $('#datetimepicker1').datetimepicker({
+              format:'unixtime',
+              inline:true,
+              onChangeDateTime:function(dp,$input){
+                 debugger;
+                 fromTime = Number($input.val()*1000)
+                }
+            });
+        $('#datetimepicker2').datetimepicker({
+              format:'unixtime',
+              inline:true,
+              onChangeDateTime:function(dp,$input){
+                 debugger;
+                 toTime = Number($input.val()*1000)
+                }
+            });
 {#        $('#path').highcharts(heatOptions);#}
         setInterval(function() {
             loadDevices();
