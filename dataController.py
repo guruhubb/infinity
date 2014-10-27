@@ -1,6 +1,6 @@
 from requests_futures.sessions import FuturesSession
 from flask.ext.security import login_required
-import logging, models, datetime, pytz, math, time, json, flask, requests,subprocess, spur
+import logging, models, datetime, pytz, math, time, json, flask, requests,subprocess, spur, numpy
 
 from mongoengine import Q
 from flask.ext.mail import Message
@@ -177,6 +177,8 @@ def post_process_data():
         if other_connected_device:
             cap_of_other_connected_device = other_connected_device.cap
             total_cap = data.cap + cap_of_other_connected_device
+            total_cap = (data.cap*data.tx + cap_of_other_connected_device*data.rx)/(data.tx + data.rx)
+
             distance = distance_in_miles(other_connected_device,device.geo)
             Data.objects(id=data.id).update(set__distance=distance, set__total_cap=total_cap, set__process=True)
             Data.objects(id=other_connected_device.id).update(set__distance=distance, set__total_cap=total_cap, set__process=True)
@@ -352,10 +354,81 @@ def aggr_data():
 
     return "Done"
 
+@app.route('/sixtydata')
+@login_required
+def aggr_data():
+
+    dataObjects = Aggr_data.objects(sixty = False, time__lt = datetime.datetime.now()-datetime.timedelta(seconds=60),
+                               time__gt = datetime.datetime.now()-datetime.timedelta(days=1))
+
+    for data in dataObjects:
+        device = Device.objects(mac=data.mac).first()
+
+        if device.type == 'CPE':
+            # if Aggr_data.objects(time__lt = data.time + datetime.timedelta(seconds = 0.5),
+            #                         time__gt = data.time - datetime.timedelta(seconds = 0.5),
+            #                         site = device.site).first() is None:
+            if Aggr_data.objects(time = data.time,site = device.site).first() is None:
+
+                # get data from the second device
+
+                second_device = Device.objects(site=device.site, mac__ne=device.mac).first()
+                if second_device:
+                    # second_device_data = Data.objects(mac=second_device.mac,
+                    #         time__lt= data.time+datetime.timedelta(seconds=1),
+                    #         time__gt= data.time-datetime.timedelta(seconds=1)).first()
+                    second_device_data = Data.objects(mac=second_device.mac,time= data.time).first()
+
+                    # add aggr_data record with tx, rx, total_cap, minimum distance;
+                    # if total_cap > cutoff_capacity then cov = YES
+
+                    if second_device_data:
+                        total_tx = second_device_data.tx + data.tx
+                        total_rx = second_device_data.rx + data.rx
+                        total_total_cap = second_device_data.total_cap + data.total_cap
+                        if second_device_data.distance > data.distance :
+                            min_distance = data.distance
+                        else :
+                            min_distance = second_device_data.distance
+
+                        # prevent zero distance condition
+
+                        if second_device_data.distance == 0:
+                            min_distance = data.distance
+                        if data.distance == 0:
+                            min_distance = second_device_data.distance
+
+                        if total_total_cap > CUTOFF_CAPACITY:
+                            coverage = True
+                        else:
+                            coverage = False
+                        aggr_data = Aggr_data(site=device.site, time = data.time, tx=total_tx, rx=total_rx,
+                             cap = total_total_cap, data = total_rx+total_tx, coverage = coverage,
+                             distance = min_distance, geo = data.geo)
+                        aggr_data.save()
+                        Data.objects(id=data.id).update(set__aggregate=True)
+                    else:
+                        if data.total_cap > CUTOFF_CAPACITY:
+                            coverage = True
+                        else:
+                            coverage = False
+                        aggr_data = Aggr_data(site=device.site, time = data.time, tx=data.tx, rx=data.rx,
+                             cap = data.total_cap, data = data.tx+data.rx, coverage = coverage,
+                             distance = data.distance, geo = data.geo)
+                        aggr_data.save()
+                        Data.objects(id=data.id).update(set__aggregate=True)
+                        app.logger.error("There is NO data from second device %s on site %s" %
+                                         (second_device.name, device.site))
+                else:
+                    app.logger.error("There is NO second device on site %s" % device.site)
+
+    return "Done"
+
 def get_ping(ip):
     result = [line.rpartition('=')[-1] for line in subprocess.check_output(['ping', '-c', '2', ip]).splitlines()[1:-4]]
     resultWithNoString = [findNumber(result[0]),findNumber(result[1])]
-    return resultWithNoString
+    average = numpy.mean(resultWithNoString)
+    return average
 
 def get_ping_status(ip):
     value = get_status(ip)
@@ -423,7 +496,7 @@ def get_router():
         urlList.append(object.url)
         siteList.append(object.site)
     for url, site in urlList, siteList:
-        router_data = Router(site = site, time = now, ping = get_status(url))
+        router_data = Router(site = site, time = now, ping = get_ping(url))
         router_data.save()
 
         # validate if timestamp is null and format it for the device timestamp if necessary
