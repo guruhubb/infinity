@@ -111,19 +111,10 @@ def home():
 
 @app.route('/chart', methods= ['POST','GET'])
 @login_required
-def chart_view(site=None, fromTime=None, toTime=None):
-    if toTime is None:
-        toTime = datetime.datetime.now()
-    else:
-        toTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('toTime'))/1000)
-    if fromTime is None:
-        fromTime = toTime-datetime.timedelta(days=15)
-    else:
-        fromTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('fromTime'))/1000)
-    if site is None:
-        site = 'ShipA'
-    else:
-        site = flask.request.args.get('site')
+def chart_view():
+    toTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('toTime'))/1000)
+    fromTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('fromTime'))/1000)
+    site = flask.request.args.get('site')
 
     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only("time","data","cap","distance").order_by("time")
