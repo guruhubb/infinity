@@ -195,7 +195,7 @@ class Data(db.Document):
     process = db.BooleanField(default=False)
     aggregate = db.BooleanField(default=False)
 
-    meta = {'indexes': ['geo', 'connId','mac','time','distance']}
+    meta = {'indexes': ['geo', 'connId','mac','time','distance','process','aggregate']}
 
 #derived data from Data
 class Aggr_data(db.Document):
@@ -208,8 +208,9 @@ class Aggr_data(db.Document):
     coverage = db.BooleanField()
     distance = db.FloatField()
     geo = db.GeoPointField()
+    sixty = db.BooleanField(default=False)
 
-    meta = {'indexes': ['site','time','distance']}
+    meta = {'indexes': ['site','time','distance', 'sixty']}
 
     # meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
 
@@ -306,10 +307,11 @@ audit(Power)
 audit(Ssid)
 audit(Site)
 
-# Register blueprints to route calls to other modules such as viewController
+# Register blueprints to route calls to other modules such as viewController and dataController
 def register_blueprints(app):
     from viewController import viewController
     app.register_blueprint(viewController)
-
+    from dataController import dataController
+    app.register_blueprint(dataController)
 register_blueprints(app)
 
