@@ -5,14 +5,13 @@ from flask.ext.admin.contrib.mongoengine import ModelView
 import infinity
 import flask, datetime, time, subprocess, json
 from infinity import app, Site, Aggr_data
+from monary import Monary
+import numpy
+MAX_POINTS = 100
 
 # import plotly.plotly as py
-from plotly.graph_objs import *
+# from plotly.graph_objs import *
 # py.sign_in("saswata", "mret9csgsi")
-
-# import models
-# observer_views = Blueprint('observer_views', __name__, template_folder='templates')
-
 
 
 # Route calls from app to viewController
@@ -65,13 +64,15 @@ def adminViews(app):
     admin.add_view(ModelView(infinity.Router))
     admin.add_view(ModelView(infinity.Data))
     admin.add_view(ModelView(infinity.Aggr_data))
-    admin.add_view(ModelView(infinity.Config))
-    admin.add_view(ModelView(infinity.Firmware))
-    admin.add_view(ModelView(infinity.Freq))
+    admin.add_view(ModelView(infinity.Sixty))
+    admin.add_view(ModelView(infinity.Hour))
+    # admin.add_view(ModelView(infinity.Config))
+    # admin.add_view(ModelView(infinity.Firmware))
+    # admin.add_view(ModelView(infinity.Freq))
     # admin.add_view(ModelView(infinity.Power))
-    admin.add_view(ModelView(infinity.Ssid))
+    # admin.add_view(ModelView(infinity.Ssid))
     admin.add_view(ModelView(infinity.Site))
-    admin.add_view(ModelView(infinity.Job))
+    # admin.add_view(ModelView(infinity.Job))
     admin.add_view(ModelView(infinity.Event))
     admin.add_view(ModelView(infinity.Audit))
 
@@ -126,9 +127,9 @@ def chart_view():
 
     for ob in query_set:
 
-        data["cap"].append(ob.cap)   # multiple by 1.5 to see if data is changing
-        data["data"].append(ob.data)
-        data["distance"].append(ob.distance)
+        data["cap"].append(float("{0:.2f}".format(ob.cap)))   # multiple by 1.5 to see if data is changing
+        data["data"].append(float("{0:.2f}".format(ob.data)))
+        data["distance"].append(float("{0:.2f}".format(ob.distance)))
 
     data_dumps = Response(json.dumps(data),  mimetype='application/json')
     # data_jsonify = flask.jsonify(**data)  # same as flask.Response but doesn't quite work
@@ -150,9 +151,9 @@ def chart_view_init():
     data["distance"]=[]
 
     for ob in query_set:
-        data["cap"].append(ob.cap)
-        data["data"].append(ob.data)
-        data["distance"].append(ob.distance)
+        data["cap"].append(float("{0:.2f}".format(ob.cap)))
+        data["data"].append(float("{0:.2f}".format(ob.data)))
+        data["distance"].append(float("{0:.2f}".format(ob.distance)))
 
     return data
 
@@ -180,18 +181,14 @@ def get_devices_and_data():
     # return flask.jsonify(*response_data)  # same as flask.Response but doesn't work
 
 
-
 def generate_histogram_init():
-
     toTimeStamp = datetime.datetime.now()
     fromTimeStamp = toTimeStamp-datetime.timedelta(days=15)
     site = 'ShipA'
-
     data = {}
     data["avg_cap"]=[]
     data["records"]=[]
     data["distance"]=[]
-
     total_records = len(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
     if total_records == 0:
         total_records=1
@@ -199,8 +196,8 @@ def generate_histogram_init():
     for x in range(step,251,step):
         data["records"].append( len( Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
                                              site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
-        data["avg_cap"].append(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
-                                         , distance__lt = x, distance__gte = x-step).average('cap'))
+        data["avg_cap"].append(float("{0:.2f}".format(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
+                                         , distance__lt = x, distance__gte = x-step).average('cap'))))
         data["distance"].append(x)
 
     return data
@@ -227,8 +224,8 @@ def generate_histogram():
     for x in range(step,251,step):
         data["records"].append( len( Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
                                              site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
-        data["avg_cap"].append(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
-                                         , distance__lt = x, distance__gte = x-step).average('cap'))
+        data["avg_cap"].append(float("{0:.2f}".format(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
+                                         , distance__lt = x, distance__gte = x-step).average('cap'))))
         data["distance"].append(x)
 
     data_dumps= Response(json.dumps(data),  mimetype='application/json')
@@ -241,19 +238,25 @@ def generate_path():
     toTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('toTime'))/1000)
     fromTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('fromTime'))/1000)
     site = flask.request.args.get('site')
-
-    query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-        only("geo","cap").order_by("time")
-
+    query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
+    start = 0
+    skip = len(query_set)/MAX_POINTS
     data = {}
     data["cap"]=[]
     data["lat"]=[]
     data["lng"]=[]
-
     for ob in query_set:
-        data["cap"].append(ob.cap)
-        data["lat"].append(ob.geo[0])
-        data["lng"].append(ob.geo[1])
+        if start == 0:
+            data["cap"].append(float("{0:.2f}".format(ob.cap)))
+            data["lat"].append(float("{0:.2f}".format(ob.geo[0])))
+            data["lng"].append(float("{0:.2f}".format(ob.geo[1])))
+            start +=1
+        else:
+            if start > skip:
+                start = 0
+            else:
+                start+=1
+
 
     data_dumps= Response(json.dumps(data),  mimetype='application/json')
     return data_dumps
@@ -265,19 +268,25 @@ def generate_path_init():
     fromTime = toTime-datetime.timedelta(days=15)
     site = 'ShipA'
 
-    query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-        only("geo","cap").order_by("time")
-
+    query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
+    start = 0
+    skip = len(query_set)/MAX_POINTS
     data = {}
     data["cap"]=[]
     data["lat"]=[]
     data["lng"]=[]
 
     for ob in query_set:
-        data["cap"].append(ob.cap)
-        data["lat"].append(ob.geo[0])
-        data["lng"].append(ob.geo[1])
-
+        if start == 0:
+            data["cap"].append(float("{0:.2f}".format(ob.cap)))
+            data["lat"].append(float("{0:.2f}".format(ob.geo[0])))
+            data["lng"].append(float("{0:.2f}".format(ob.geo[1])))
+            start +=1
+        else:
+            if start > skip:
+                start = 0
+            else:
+                start+=1
 
     return data
 
@@ -421,3 +430,89 @@ def get_status(ip):
         # data["cap"].append([x,ob.cap])
         # data["data"].append([x,ob.data])
         # data["distance"].append([x,ob.distance])
+
+
+# app.route('/path')
+# @login_required
+# def generate_path():
+#
+#     toTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('toTime'))/1000)
+#     fromTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('fromTime'))/1000)
+#     site = flask.request.args.get('site')
+#     tic = time.time()
+#     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
+#     toc = time.time()
+#     delta = toc-tic
+    # skip = len(query_set)/MAX_POINTS
+    # data = {}
+    # data["cap"]=[]
+    # data["lat"]=[]
+    # data["lng"]=[]
+    # start = 0
+    # for ob in query_set:
+    #     if start == 0:
+    #         data["cap"].append(float("{0:.2f}".format(ob.cap)))
+    #         data["lat"].append(float("{0:.2f}".format(ob.geo[0])))
+    #         data["lng"].append(float("{0:.2f}".format(ob.geo[1])))
+    #
+    #         # data["cap"].append(ob.cap)
+    #         # data["lat"].append(ob.geo[0])
+    #         # data["lng"].append(ob.geo[1])
+    #         start +=1
+    #     else:
+    #         if start > skip:
+    #             start = 0
+    #         else:
+    #             start+=1
+    #
+    # toc2 = time.time()
+    # delta2 = toc2-tic
+    # app.logger.info("delta = %s, delta2 = %s"% (delta,delta2))
+    # num = query_set.count()
+    # data = []
+    # for doc in query_set:
+    #     data.append((
+    #        doc['data'],
+    #        doc['tx'],
+    #        doc['cap']
+    #     ))
+    #
+    # toc3 = time.time()
+    # delta3 = toc3-toc
+    #
+    # # data1 = zip(*data)
+    # arrays = numpy.array(data)
+    # data1={}
+    # data1['lat']=[]
+    # data1['lng']=[]
+    # data1['cap']=[]
+    # data1['lat']=arrays[: ,0].tolist()
+    # data1['lng']=arrays[: ,1].tolist()
+    # data1['cap']=arrays[: ,2].tolist()
+    # toc4 = time.time()
+    # delta4 = toc4-toc3
+    #
+    #
+    #
+    # with Monary("127.0.0.1") as monary:
+    #     arrays = monary.query(
+    #         "infinity",                         # database name
+    #         "aggr_data",                   # collection name
+    #         {"time":{'$gt':fromTime, '$lt':toTime},'site':site},                             # query spec
+    #         ["cap", "data","tx"], # field names (in Mongo record)
+    #         ["float64"] * 3                # Monary field types (see below)
+    #     )
+    # data1={}
+    # data1['lat']=arrays[0]
+    # data1['lng']=arrays[1]
+    # data1['cap']=arrays[2]
+    # # data1['lat']=arrays[: ,0].tolist()
+    # # data1['lng']=arrays[: ,1].tolist()
+    # # data1['cap']=arrays[: ,2].tolist()
+    # toc5 = time.time()
+    # delta5 = toc5-toc4
+    #
+    # app.logger.info(" delta = %s, delta3 = %s, delta4 = %s, delta5 = %s"% (delta, delta3, delta4, delta5))
+    #
+    # data_dumps= Response(json.dumps(data1),  mimetype='application/json')
+    # return data_dumps

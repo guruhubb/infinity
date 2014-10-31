@@ -167,8 +167,8 @@ class Device(db.Document):
     connId = db.StringField()
     # ssid = db.ReferenceField(Ssid)
     # power = db.ReferenceField(Power)
-    firmware = db.ReferenceField('Firmware')
-    config = db.ReferenceField('Config')
+    # firmware = db.ReferenceField('Firmware')
+    # config = db.ReferenceField('Config')
 
     meta = {'indexes': ['mac','operator','owner','tags','geo']}
 
@@ -208,11 +208,37 @@ class Aggr_data(db.Document):
     coverage = db.BooleanField()
     distance = db.FloatField()
     geo = db.GeoPointField()
-    sixty = db.BooleanField(default=False)
 
-    meta = {'indexes': ['site','time','distance', 'sixty']}
+    meta = {'indexes': ['site','time','distance']}
 
     # meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
+
+#derived data from Aggr_Data
+class Sixty(db.Document):
+    site = db.StringField()
+    time = db.DateTimeField()
+    tx = db.FloatField()
+    rx = db.FloatField()
+    cap = db.FloatField()
+    data = db.FloatField()
+    coverage = db.BooleanField()
+    distance = db.FloatField()
+    geo = db.GeoPointField()
+
+    meta = {'indexes': ['site','time','distance']}
+
+class Hour(db.Document):
+    site = db.StringField()
+    time = db.DateTimeField()
+    tx = db.FloatField()
+    rx = db.FloatField()
+    cap = db.FloatField()
+    data = db.FloatField()
+    coverage = db.BooleanField()
+    distance = db.FloatField()
+    geo = db.GeoPointField()
+
+    meta = {'indexes': ['site','time','distance']}
 
 class Router(db.Document):
     site = db.StringField()
@@ -232,23 +258,23 @@ class Beagle(db.Document):
 
     meta = {'indexes': ['site','time','latency','download','upload']}
 
-class Freq(db.Document):
-    channel = db.StringField()
-
-    def __unicode__(self):
-        return self.channel
-
-class Ssid(db.Document):
-    name = db.StringField()
-
-    def __unicode__(self):
-        return self.name
-
-class Power(db.Document):
-    power = db.StringField(default='2')
-
-    def __unicode__(self):
-        return self.power
+# class Freq(db.Document):
+#     channel = db.StringField()
+#
+#     def __unicode__(self):
+#         return self.channel
+#
+# class Ssid(db.Document):
+#     name = db.StringField()
+#
+#     def __unicode__(self):
+#         return self.name
+#
+# class Power(db.Document):
+#     power = db.StringField(default='2')
+#
+#     def __unicode__(self):
+#         return self.power
 
 class Site(db.Document):
     name = db.StringField(max_length=32)
@@ -259,34 +285,34 @@ class Site(db.Document):
     def __unicode__(self):
         return self.name
 
-class Config(db.Document):
-    name = db.StringField(max_length=64)
-    description = db.StringField(max_length=512)
-    time = db.DateTimeField(default=datetime.now)
-    ssid = db.ListField(db.StringField())
-    power = db.ListField(db.StringField())
-    freq = db.ListField(db.StringField())
-
-    def __unicode__(self):
-        return self.name
-
-
-class Firmware (db.Document):
-    name = db.StringField()
-    description = db.StringField()
-    timestamp = db.DateTimeField(default=datetime.now)
-    file = db.FileField()
-
-    def __unicode__(self):
-        return self.name
+# class Config(db.Document):
+#     name = db.StringField(max_length=64)
+#     description = db.StringField(max_length=512)
+#     time = db.DateTimeField(default=datetime.now)
+#     ssid = db.ListField(db.StringField())
+#     power = db.ListField(db.StringField())
+#     freq = db.ListField(db.StringField())
+#
+#     def __unicode__(self):
+#         return self.name
 
 
-class Job(db.Document):
-    tag = db.ReferenceField('Tag')
-    config = db.ReferenceField(Config)
-    firmware = db.ReferenceField(Firmware)
-    completed = db.BooleanField()
-    timestamp = db.DateTimeField(default=datetime.now)
+# class Firmware (db.Document):
+#     name = db.StringField()
+#     description = db.StringField()
+#     timestamp = db.DateTimeField(default=datetime.now)
+#     file = db.FileField()
+#
+#     def __unicode__(self):
+#         return self.name
+#
+#
+# class Job(db.Document):
+#     tag = db.ReferenceField('Tag')
+#     config = db.ReferenceField(Config)
+#     firmware = db.ReferenceField(Firmware)
+#     completed = db.BooleanField()
+#     timestamp = db.DateTimeField(default=datetime.now)
 
 
 class Event(db.Document):
@@ -298,13 +324,13 @@ class Event(db.Document):
 
 audit(Tag)
 audit(Device)
-audit(Config)
-audit(Firmware)
-audit(Job)
+# audit(Config)
+# audit(Firmware)
+# audit(Job)
 audit(Company)
-audit(Freq)
-audit(Power)
-audit(Ssid)
+# audit(Freq)
+# audit(Power)
+# audit(Ssid)
 audit(Site)
 
 # Register blueprints to route calls to other modules such as viewController and dataController

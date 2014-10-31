@@ -1,11 +1,12 @@
 from requests_futures.sessions import FuturesSession
 from flask.ext.security import login_required
-import models, datetime, math, time, json, flask, requests,subprocess, spur, numpy
+import models, datetime, math, time, json, flask, requests,subprocess, spur, numpy,collections
 from flask import Blueprint
 from mongoengine import Q
 from flask.ext.mail import Message
-from infinity import mail, app, Device, Data, Event, Site, Aggr_data, Beagle, Router
+from infinity import mail, app, Device, Data, Event, Site, Aggr_data, Beagle, Router, Sixty, Hour
 from math import radians, cos, sin, asin, sqrt
+from bson import Code
 
 dataController = Blueprint('dataController', __name__, template_folder='templates')
 
@@ -344,11 +345,87 @@ def aggrData():
 @app.route('/sixtyData')
 @login_required
 def sixtyData():
-    dataObjects = Aggr_data.objects(sixty = False, time__lt = datetime.datetime.now()
-                                                              -datetime.timedelta(seconds=SIXTY_TIME_DELAY),
-                               time__gt = datetime.datetime.now()-
-                                          datetime.timedelta(days=MAX_DAYS)).order_by('time')[:60].average('cap')
-    d= dataObjects
+    timeStamp=None
+    # go through all sites, look at last timestamp and aggregate records for one minute and store it in the Sixty colleciton
+    for site in Site.objects():
+        if Sixty.objects:
+            lastObject = Sixty.objects(site = site.name).order_by('-time').only ('time').first()  # last record from Sixty
+            if lastObject:
+                timeStamp=lastObject.time
+        # work on aggr_data records that has a timestamp if it is more than 1 minute
+        if timeStamp is None:
+            timeStamp = datetime.datetime.now() - datetime.timedelta(days = 1)
+        firstRecord = Aggr_data.objects(site = site.name, time__gt = timeStamp).first()
+        lastRecord = Aggr_data.objects(site = site.name).order_by('-time').first()
+        if lastRecord:
+            lastTime = lastRecord.time
+            if firstRecord:
+                time1 = firstRecord.time
+                time2 = firstRecord.time+datetime.timedelta(minutes=1)
+                while time1 < lastTime:
+                    dataObject = dbmongo.aggr_data.aggregate([
+                        {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
+                            , 'site':site.name}},
+                        # {'$limit' : 60 },
+                        {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
+                               'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
+                        }}
+                    ])
+                    if len(dataObject['result']) > 0:
+                        sixty_data = Sixty( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
+                                        rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
+                                        data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
+                                        distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
+                        sixty_data.save()
+                    time1 = time1 + datetime.timedelta(minutes=1)
+                    time2 = time1 + datetime.timedelta(minutes=1)
+                    firstRecord = Aggr_data.objects(site = site.name, time__gte = time1).first()
+            else:
+                continue
+
+    return "Done"
+
+@app.route('/hourData')
+@login_required
+def hourData():
+    timeStamp=None
+    # go through all sites, look at last timestamp and aggregate records for one minute and store it in the Sixty colleciton
+    for site in Site.objects():
+        if Hour.objects:
+            lastObject = Hour.objects(site = site.name).order_by('-time').only ('time').first()  # last record from Sixty
+            if lastObject:
+                timeStamp=lastObject.time
+        # work on aggr_data records that has a timestamp if it is more than 1 hour
+        if timeStamp is None:
+            timeStamp = datetime.datetime.now() - datetime.timedelta(days = 1)
+        firstRecord = Sixty.objects(site = site.name, time__gt = timeStamp).first()
+        lastRecord = Sixty.objects(site = site.name).order_by('-time').first()
+        if lastRecord:
+            lastTime = lastRecord.time
+            if firstRecord:
+                time1 = firstRecord.time
+                time2 = firstRecord.time+datetime.timedelta( hours = 1 )
+                while time1 < lastTime:
+                    dataObject = dbmongo.sixty.aggregate([
+                        {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
+                            , 'site':site.name}},
+                        # {'$limit' : 60 },
+                        {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
+                               'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
+                        }}
+                    ])
+                    if len(dataObject['result']) > 0:
+                        hour_data = Hour( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
+                                        rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
+                                        data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
+                                        distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
+                        hour_data.save()
+                    time1 = time1 + datetime.timedelta( hours = 1 )
+                    time2 = time1 + datetime.timedelta( hours = 1 )
+                    firstRecord = Sixty.objects(site = site.name, time__gte = time1).first()
+            else:
+                continue
+
     return "Done"
 
 def get_ping(ip):
@@ -449,6 +526,17 @@ def distance_in_miles(geo_bts, geo_cpe):
     except :
         app.logger.exception("Value error calculating distance in miles for (%s,%s)-(%s,%s)" %(geo_bts[0], geo_bts[1],
                                                                                                geo_cpe[0], geo_cpe[1]))
+
+def convert(data):   # convert unicode to ascii
+    if isinstance(data, basestring):
+        return str(data)
+    elif isinstance(data, collections.Mapping):
+        return dict(map(convert, data.iteritems()))
+    elif isinstance(data, collections.Iterable):
+        return type(data)(map(convert, data))
+    else:
+        return data
+
 
         # validate if timestamp is null and format it for the device timestamp if necessary
 #     # Look at all devices 4 mins ago that has activity completion=False.
@@ -1354,3 +1442,137 @@ from flask_wtf import Form
 #  	168	+    engineer_services.schedule_update(device, firmware, date, auto)
 # 147	169
 # 148	170	     return jsonify(success=True)
+
+   # data_cap=[]
+   #  for data in dataObjects2:
+   #      data_cap.append(data.cap)
+   #  l = data_cap
+   #  avg = sum(l) / float(len(l))
+   #  map = Code('function() {'
+   #                    'var key = this.site;'
+   #                    'var value = {'
+   #                                  'site: this.site,'
+   #                                  'total_time: this.length,'
+   #                                  'count: 1,'
+   #                                  'avg_time: 0'
+   #                                ' };'
+   #
+   #                    'emit( key, value );'
+   #               ' };')
+   #  reduce = Code('function(key, values) {'
+   #
+   #                      'var reducedObject = {'
+   #                                            'userid: key,'
+   #                                            'total_time: 0,'
+   #                                            'count:0,'
+   #                                            'avg_time:0'
+   #                                          '};'
+   #
+   #                      'values.forEach( function(value) {'
+   #                                            'reducedObject.total_time += value.total_time;'
+   #                                            'reducedObject.count += value.count;'
+   #                                      '}'
+   #                                    ');'
+   #                      'return reducedObject;'
+   #                   '};'
+   #  )
+   #  finalize = Code ('function (key, reducedValue) {'
+   #                        'if (reducedValue.count > 0)'
+   #                            'reducedValue.avg_time = reducedValue.total_time / reducedValue.count;'
+   #                        'return reducedValue;'
+   #                     '};'
+   #  )
+
+    # map_reduce = Code (db.sessions.mapReduce( mapFunction,
+    #                    reduceFunction,
+    #                    {
+    #                      query: { ts: { $gt: ISODate('2011-11-05 00:00:00') } },
+    #                      out: { reduce: "session_stat" },
+    #                      finalize: finalizeFunction
+    #                    }
+    #                  );
+    #                  )
+    #
+    # )
+    # result = dbmongo.aggr_data.map_reduce(map, reduce, finalize_f=finalize, out={'merge':"sixty"}, query={"time":{"$gt": gtTime})
+
+# @app.route('/sixtyDataProto')
+# @login_required
+# def sixtyData1():
+#     dataObjects0 = Aggr_data.objects(sixty = False, time__lt = datetime.datetime.now()
+#                                                           -datetime.timedelta(seconds=SIXTY_TIME_DELAY),
+#                            time__gt = datetime.datetime.now()-
+#                                       datetime.timedelta(days=MAX_DAYS))[:5]
+#     dataObjects1 = Aggr_data.objects(sixty = False, time__lt = datetime.datetime.now()
+#                                                           -datetime.timedelta(seconds=SIXTY_TIME_DELAY),
+#                            time__gt = datetime.datetime.now()-
+#                                       datetime.timedelta(days=MAX_DAYS)).order_by('time')[:5]
+#     dataObjects3 = Aggr_data.objects(sixty = False, time__lt = datetime.datetime.now()
+#                                                           -datetime.timedelta(seconds=SIXTY_TIME_DELAY),
+#                            time__gt = datetime.datetime.now()-
+#                                       datetime.timedelta(days=MAX_DAYS)).order_by('time')[:5].sum('cap')
+#     dataObjects2 = Aggr_data.objects(sixty = False)[:5]
+#     gtTime = datetime.datetime.now()-datetime.timedelta(days=MAX_DAYS)
+#     ltTime = datetime.datetime.now()-datetime.timedelta(seconds=SIXTY_TIME_DELAY)
+#     dataObjects4 = dbmongo.aggr_data.aggregate([
+#                         {'$match':{ 'sixty' : False } },
+#                         {'$limit' : 60 },
+#                         {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
+#                                     'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
+#                                      }}
+#     ])
+#     dataObjects5 = dbmongo.aggr_data.distinct('geo')[:5]
+#     #, {'time' : { '$gt' : 'gtTime', '$lt' : 'ltTime'} }
+#     data_cap=[]
+#     for data in dataObjects2:
+#         data_cap.append(data.cap)
+#     l = data_cap
+#     avg = sum(l) / float(len(l))
+#     map = Code('function() {'
+#                       'var key = this.site;'
+#                       'var value = {'
+#                                     'site: this.site,'
+#                                     'total_time: this.length,'
+#                                     'count: 1,'
+#                                     'avg_time: 0'
+#                                   ' };'
+#
+#                       'emit( key, value );'
+#                  ' };')
+#     reduce = Code('function(key, values) {'
+#
+#                         'var reducedObject = {'
+#                                               'userid: key,'
+#                                               'total_time: 0,'
+#                                               'count:0,'
+#                                               'avg_time:0'
+#                                             '};'
+#
+#                         'values.forEach( function(value) {'
+#                                               'reducedObject.total_time += value.total_time;'
+#                                               'reducedObject.count += value.count;'
+#                                         '}'
+#                                       ');'
+#                         'return reducedObject;'
+#                      '};'
+#     )
+#     finalize = Code ('function (key, reducedValue) {'
+#                           'if (reducedValue.count > 0)'
+#                               'reducedValue.avg_time = reducedValue.total_time / reducedValue.count;'
+#                           'return reducedValue;'
+#                        '};'
+#     )
+#
+#     # map_reduce = Code (db.sessions.mapReduce( mapFunction,
+#     #                    reduceFunction,
+#     #                    {
+#     #                      query: { ts: { $gt: ISODate('2011-11-05 00:00:00') } },
+#     #                      out: { reduce: "session_stat" },
+#     #                      finalize: finalizeFunction
+#     #                    }
+#     #                  );
+#     #                  )
+#     #
+#     # )
+#     # result = dbmongo.aggr_data.map_reduce(map, reduce, finalize_f=finalize, out={'merge':"sixty"}, query={"time":{"$gt": gtTime})
+#     return "Done"

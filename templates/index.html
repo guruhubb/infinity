@@ -879,7 +879,10 @@
                 fillOpacity: 0.5
             });
         circle.addTo(map2);
-        circle.bindPopup('Capacity: ' + cap + ' Mbps');
+        title = '<br> Lat: ' + lat;
+        title = title + '<br> Lng: ' + lng;
+        title = title + '<br> Capacity: ' + cap + ' Mbps';
+        circle.bindPopup(title);
         circles.push(circle);
     }
 
@@ -931,7 +934,7 @@
         L.tileLayer('http://{s}.tiles.mapbox.com/v3/saswata.jldkb3nl/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(map2);
         map2.attributionControl.setPrefix(false);
         clearCircles();
-        for (i=0; i< path_cap.length; i+=10) {
+        for (i=0; i< path_cap.length; i+=1) {
             addCircle(path_lng[i], path_lat[i], path_cap[i])
         }
 {#        map2.on('click', onMapClick2);#}
@@ -945,20 +948,20 @@
             med_lng = (max_lng+min_lng)/2;
         return [med_lat, med_lng];
     }
-{#    function onMapClick1(e) {#}
-{#        popup#}
-{#            .setLatLng(e.latlng)#}
-{#            .setContent("You clicked the map at " + e.latlng.toString())#}
-{#            .openOn(map1);#}
-{#        map1.panTo(e.latlng);#}
-{#    }#}
-{#    function onMapClick2(e) {#}
-{#        popup#}
-{#            .setLatLng(e.latlng)#}
-{#            .setContent("You clicked the map at " + e.latlng.toString())#}
-{#            .openOn(map2);#}
-{#        map2.panTo(e.latlng);#}
-{#    }#}
+    function onMapClick1(e) {
+        popup
+            .setLatLng(e.latlng)
+            .setContent("You clicked the map at " + e.latlng.toString())
+            .openOn(map1);
+        map1.panTo(e.latlng);
+    }
+    function onMapClick2(e) {
+        popup
+            .setLatLng(e.latlng)
+            .setContent("You clicked the map at " + e.latlng.toString())
+            .openOn(map2);
+        map2.panTo(e.latlng);
+    }
 
     function onMarkerClick(e) {
         map1.panTo(e.latlng);
