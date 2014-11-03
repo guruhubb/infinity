@@ -726,10 +726,10 @@
 {#    <script src="http://code.highcharts.com/stock/highstock.js"></script>#}
 {#    <script src="http://code.highcharts.com/stock/modules/exporting.js"></script>#}
 
-    <script src="http://code.highcharts.com/highcharts.js"></script>
-    <script src="http://code.highcharts.com/modules/exporting.js"></script>
-    <script src="http://code.highcharts.com/modules/heatmap.js"></script>
-
+{#    <script src="http://code.highcharts.com/highcharts.js"></script>#}
+{#    <script src="http://code.highcharts.com/modules/exporting.js"></script>#}
+{#    <script src="http://code.highcharts.com/modules/heatmap.js"></script>#}
+    <script src="http://code.highcharts.com/stock/highstock.js"></script>
 
 <!-- Scripts follow -->
     <script type="text/javascript">
@@ -742,8 +742,10 @@
         sites = [],
         fromTime = {{fromTime}},
         toTime = {{ toTime }},
+        lastTime = 0,
         popup = L.popup(),
         test = true,
+{#        data = {{ data }},#}
         data_cap = {{ data.cap }},
         data_data = {{ data.data }},
         data_distance = {{ data.distance }},
@@ -753,6 +755,7 @@
         path_cap = {{ path.cap }},
         path_lng = {{ path.lng }},
         path_lat = {{ path.lat }},
+        path_time = {{ path.time }},
         site = '{{ site }}';
 
     var blackIcon = L.icon({
@@ -767,7 +770,7 @@
         iconUrl: '/static/img/ships/ship-red.png',
         iconSize:     [40, 40] // size of the icon
     });
-   var TYPICAL_COVERAGE_MILES = 20;
+    var TYPICAL_COVERAGE_MILES = 20;
 
     function loadDevices() {
 	    var url = '{{ devices_url }}';
@@ -810,31 +813,64 @@
         }
 {#        debugger;#}
 {#        var colors = {true: 'green', false: 'orange'};#}
-        var marker;
-        var coverage = device.coverage;
-
-{#        if (test){#}
-        if (coverage){
-            marker = L.marker([lat, lng], {icon: blackIcon}).addTo(map1);
-{#            test = false;#}
-        }
-        else {
+        var color, circle,cap ;
+        cap = device.cap;
+        if (device.coverage) {
+            if (cap > 90) {
+                color = '#0ca35f'
+            }
+            else if (cap > 80) {
+                color = '#3cb57e'
+            }
+            else if (cap > 70) {
+                color = '#6dc79f'
+            }
+            else if (cap > 50) {
+                color = '#9ddabf'
+            }
+            else if (cap > 10) {
+                color = '#ceecdf'
+            }
+            else {
+                color = '#d7efe5'
+            }
+        } else {
             if (device.distance < TYPICAL_COVERAGE_MILES) {
-                marker = L.marker([lat, lng], {icon: redIcon}).addTo(map1);
-                {#              test = true;#}
+                color = 'red';
             } else {
-                marker = L.marker([lat, lng], {icon: orangeIcon}).addTo(map1);
-                {#              test = true;#}
+                color = 'orange';
             }
         }
+        marker = L.circle([lat, lng], 10000, {
+                color: color,
+                fillColor: 'white',
+                fillOpacity: 1.0
+            });
+        marker.addTo(map1);
+{#        var marker;#}
+{#        var coverage = device.coverage;#}
+{##}
+{#        if (test){#}
+{#        if (coverage){#}
+{#            marker = L.marker([lat, lng], {icon: blackIcon}).addTo(map1);#}
+{#            test = false;#}
+{#        }#}
+{#        else {#}
+{#            if (device.distance < TYPICAL_COVERAGE_MILES) {#}
+{#                marker = L.marker([lat, lng], {icon: redIcon}).addTo(map1);#}
+                {#              test = true;#}
+{#            } else {#}
+{#                marker = L.marker([lat, lng], {icon: orangeIcon}).addTo(map1);#}
+                {#              test = true;#}
+{#            }#}
+{#        }#}
         marker.bindPopup(title);
         marker.on('click', onMarkerClick);
         markers.push(marker);
         sites.push(device.site);
     }
 
-    function clearPlacemarksAndLines()
-    {
+    function clearPlacemarksAndLines() {
         var len = markers.length;
         for (var i=0; i<len; i++) {
             var marker = markers[i];
@@ -851,10 +887,10 @@
     }
 
 
-    function addCircle(lng, lat, cap) {
+    function addCircle(lng, lat, cap, time) {
         {#	if (!map) return;#}
         //clearPlacemarksAndLines(); // Remove old placemarks
-        var color, circle ;
+        var color, circle,d ;
         if (cap > 90) {
             color = '#0ca35f'
         }
@@ -879,15 +915,16 @@
                 fillOpacity: 0.5
             });
         circle.addTo(map2);
+        d = new Date(time);
         title = '<br> Lat: ' + lat;
         title = title + '<br> Lng: ' + lng;
         title = title + '<br> Capacity: ' + cap + ' Mbps';
+        title = title + '<br> Time: ' + d.toUTCString();
         circle.bindPopup(title);
         circles.push(circle);
     }
 
-    function clearCircles()
-    {
+    function clearCircles() {
         var len = circles.length;
         for (var i=0; i<len; i++) {
             var circle = circles[i];
@@ -904,8 +941,7 @@
 
     }
 
-    function addConnectionLine(lat1, long1, lat2, long2)
-    {
+    function addConnectionLine(lat1, long1, lat2, long2) {
           var connectionCoordinates = [
                 new google.maps.LatLng(lat1, long1),
                 new google.maps.LatLng(lat2, long2) ];
@@ -920,10 +956,9 @@
           connectionPath.setMap(map1);
           lines.push(connectionPath);
     }
-
     function firstMap(){
         map1 = L.map('map1').setView([33, -118], 6);
-        L.tileLayer('http://{s}.tiles.mapbox.com/v3/saswata.jldkb3nl/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(map1);
+        L.tileLayer('http://{s}.tiles.mapbox.com/v3/infinity.k4e0f93f/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(map1);
         map1.attributionControl.setPrefix(false);
         loadDevices();
 {#        map1.on('click', onMapClick1);#}
@@ -935,7 +970,7 @@
         map2.attributionControl.setPrefix(false);
         clearCircles();
         for (i=0; i< path_cap.length; i+=1) {
-            addCircle(path_lng[i], path_lat[i], path_cap[i])
+            addCircle(path_lng[i], path_lat[i], path_cap[i], path_time[i])
         }
 {#        map2.on('click', onMapClick2);#}
     }
@@ -962,7 +997,6 @@
             .openOn(map2);
         map2.panTo(e.latlng);
     }
-
     function onMarkerClick(e) {
         map1.panTo(e.latlng);
         for (i = 0; i < markers.length; i++) {
@@ -973,8 +1007,7 @@
         getData();
     }
     function getData() {
-                debugger;
-
+        debugger;
         aj = $.ajax({
                 type: "GET",
                 url: '{{ chart_url }}',
@@ -985,10 +1018,17 @@
         aj.done(function (response, textStatus, jqXHR) {
                         debugger;
                 var chart = $('#chart').highcharts();
-                chart.series[0].setData(response.cap, true);
-                chart.series[1].setData(response.distance, true);
-                chart.series[2].setData(response.data, true);
+{#                chart.series[0].setData(response.cap, true);#}
+{#                chart.series[1].setData(response.distance, true);#}
+{#                chart.series[2].setData(response.data, true);#}
+{#                chart.setData(response,true);#}
+                chart.series[0].setData(response.data);
+                chart.series[1].setData(response.cap);
+                chart.series[2].setData(response.distance);
+{#                fromTime = response.cap[0][0];#}
+{#                toTime = response.cap[]#}
                 chart.setTitle(null, { text: site });
+
         });
         aj.fail(function (jqXHR, textStatus, errorThrown) {
             alert(textStatus);
@@ -1002,7 +1042,7 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
         aj1.done(function (response, textStatus, jqXHR) {
-{#            debugger;#}
+            debugger;
                 var hist = $('#histogram').highcharts();
                 hist.xAxis[0].setCategories(response.distance, true);
                 hist.series[0].setData(response.avg_cap, true);
@@ -1022,12 +1062,11 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
         aj2.done(function (response, textStatus, jqXHR) {
-            debugger;
             if (response.lat.length > 0) {
                 map2.panTo(medLatLng(response.lat, response.lng));
                 clearCircles();
                 for (i = 0; i < response.cap.length; i++) {
-                    addCircle(response.lng[i], response.lat[i], response.cap[i])
+                    addCircle(response.lng[i], response.lat[i], response.cap[i], response.time[i])
                 }
             }
             else clearCircles();
@@ -1036,16 +1075,76 @@
             alert(textStatus);
         });
     }
-
-    $(function() {
+    function getLastPoint() {
         debugger;
+        aj = $.ajax({
+            type: "GET",
+            url: '{{ lastPoint_url }}',
+            async: true,
+            data: { site: site },
+            contentType: "application/json; charset=utf-8",
+            dataType: "json"});
+        aj.done(function (response, textStatus, jqXHR) {
+            debugger;
+            var chart = $('#chart').highcharts();
+            chart.series[0].addPoint(response.data);
+            chart.series[1].addPoint(response.cap);
+            chart.series[2].addPoint(response.distance);
+        });
+        aj.fail(function (jqXHR, textStatus, errorThrown) {
+            alert(textStatus);
+        });
+    }
+    $(function() {
         firstMap();
         secondMap();
+        function afterSetExtremes(e) {
+            debugger;
+            if (e.min) {
+                fromTime = Math.ceil(e.min);
+                toTime = Math.ceil(e.max);
+                getData();
+            }
+        }
+        debugger;
+        Highcharts.setOptions({
+            global : {
+                useUTC : false
+            }
+        });
+
         chartOptions = {
 
                 chart: {
 {#                    renderTo:'chart',#}
-                    zoomType: 'x'
+                    zoomType: 'x',
+                    events : {
+                        load : function () {
+                            setInterval(function () {
+                                aj = $.ajax({
+                                    type: "GET",
+                                    url: '{{ lastPoint_url }}',
+                                    async: true,
+                                    data: { site: site },
+                                    contentType: "application/json; charset=utf-8",
+                                    dataType: "json"});
+                                aj.done(function (response, textStatus, jqXHR) {
+                                    debugger;
+                                    var chart = $('#chart').highcharts();
+                                    if (response.cap[0] != lastTime) {
+                                        chart.series[0].addPoint(response.data);
+                                        chart.series[1].addPoint(response.cap);
+                                        chart.series[2].addPoint(response.distance);
+                                        lastTime = response.cap[0];
+                                    }
+                                });
+                                aj.fail(function (jqXHR, textStatus, errorThrown) {
+{#                                    alert(textStatus);#}
+
+                                });
+                            }, 1000);
+                        }
+                    }
                 },
                 title: {
                     text: 'Traffic, Capacity, Distance'
@@ -1053,6 +1152,55 @@
                 subtitle: {
                     text: site
                 },
+
+                navigator : {
+                    adaptToUpdatedData: false,
+                    series : [{
+                        data : data_data
+                    },
+                    {
+                        data : data_cap
+                    },
+                    {
+                        data : data_distance
+                    }]
+                },
+                scrollbar: {
+                    liveRedraw: false
+                },
+                rangeSelector : {
+                    buttons: [{
+                        count: 1,
+                        type: 'minute',
+                        text: '1M'
+                    }, {
+                        count: 5,
+                        type: 'minute',
+                        text: '5M'
+                    }, {
+                        type: 'hour',
+                        count: 1,
+                        text: '1h'
+                    }, {
+                        type: 'day',
+                        count: 1,
+                        text: '1d'
+                    }, {
+                        type: 'month',
+                        count: 1,
+                        text: '1m'
+                    }, {
+                        type: 'year',
+                        count: 1,
+                        text: '1y'
+                    }, {
+                        type: 'all',
+                        text: 'All'
+                    }],
+                    inputEnabled: false, // it supports only days
+                    selected : 4 // all
+                },
+
 {#                 events: {#}
 {#                        load: function () {#}
 {#    #}
@@ -1068,10 +1216,33 @@
 {#                            }, 1000);#}
 {#                        }#}
 {#                    },#}
+{#                events: {#}
+{#                    selection: function (e) {#}
+{#                        if (e.min) {#}
+{#                            debugger;#}
+{#                            fromTime = Math.ceil(e.min);#}
+{#                            toTime = Math.ceil(e.max);#}
+{#                            getData();#}
+{#                        }#}
+{#                    }#}
+{#                },#}
                 xAxis: {
                     type: 'datetime',
-                    minRange: 60000, // 1 min
-                    tickInterval: 60000  // 1 min
+                    minRange: 1000, // 1 s
+                    tickInterval: 60000,  // 1 min
+{#                     events: {#}
+{#                        selection: function (e) {#}
+{#                            if (e.min) {#}
+{#                                debugger;#}
+{#                                fromTime = Math.ceil(e.min);#}
+{#                                toTime = Math.ceil(e.max);#}
+{#                                getData();#}
+{#                            }#}
+{#                        }#}
+{#                     }#}
+                    events: {
+                        afterSetExtremes: afterSetExtremes
+                    }
                 },
 {#                xAxis: [{#}
 {#                    categories: chart_data_x#}
@@ -1105,7 +1276,6 @@
                             color: Highcharts.getOptions().colors[0]
                         }
                     }
-
                 }, { // Tertiary yAxis
                     gridLineWidth: 0,
                     title: {
@@ -1120,10 +1290,12 @@
                             color: Highcharts.getOptions().colors[1]
                         }
                     },
-                    opposite: true
+                    opposite: true,
+                    floor: 0
                 }],
                 tooltip: {
-                    shared: true
+                    shared: true,
+                    valueDecimals: 2
                 },
                 exporting: false,
                 credits: false,
@@ -1136,13 +1308,22 @@
                     floating: true,
                     backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF'
                 },
-                series: [
-
+                series:[{
+{#                    pointInterval: 1000,#}
+{#                    pointStart: fromTime,#}
+                    name: 'Traffic',
+                    type: 'spline',
+                    yAxis:0,
+                    data: data_data,
+                    tooltip: {
+                        valueSuffix: ' Mbps'
+                    }
+                },
                     {
-                    pointInterval: 1000,
-                    pointStart: fromTime,
+{#                    pointInterval: 1000,#}
+{#                    pointStart: fromTime,#}
                     name: 'Capacity',
-                    type: 'column',
+                    type: 'spline',
                     yAxis: 1,
                     data: data_cap,
                     tooltip: {
@@ -1150,8 +1331,8 @@
                     }
 
                 }, {
-                    pointInterval: 1000,
-                    pointStart: fromTime,
+{#                    pointInterval: 1000,#}
+{#                    pointStart: fromTime,#}
                     name: 'Distance',
                     type: 'spline',
                     yAxis: 2,
@@ -1163,15 +1344,6 @@
                         valueSuffix: ' miles'
                     }
 
-                }, {
-                    pointInterval: 1000,
-                    pointStart: fromTime,
-                    name: 'Traffic',
-                    type: 'spline',
-                    data: data_data,
-                    tooltip: {
-                        valueSuffix: ' Mbps'
-                    }
                 }]
             };
         histOptions = {
@@ -1185,7 +1357,12 @@
                 subtitle: {
                     text: site
                 },
-
+                navigator: {
+                    enabled: false
+                },
+                rangeSelector : {
+                    enabled: false
+                },
                 xAxis: [{
                     categories: hist_distance
                     },{
@@ -1243,7 +1420,6 @@
                     backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF'
                 },
                 series: [
-
                     {
 {#                    pointInterval: 1000,#}
 {#                    pointStart: fromTime,#}
@@ -1271,13 +1447,14 @@
 
                 }]
             };
-        $('#chart').highcharts(chartOptions);
+        $('#chart').highcharts('StockChart',chartOptions);
         $('#histogram').highcharts(histOptions);
+
         $('#datetimepicker1').datetimepicker({
               format:'unixtime',
               inline:true,
               onChangeDateTime:function(dp,$input){
-                 debugger;
+                  debugger;
                  fromTime = Number($input.val()*1000)
                 }
             });
@@ -1285,12 +1462,10 @@
               format:'unixtime',
               inline:true,
               onChangeDateTime:function(dp,$input){
-                 debugger;
                  toTime = Number($input.val()*1000)
                 }
             });
         $('#bigbutton').on('click', function () {
-            debugger;
             getData();
         });
 {#        $('a[href*=#]:not([href=#])').click(function() {#}
@@ -1306,15 +1481,21 @@
 {#            }#}
 {#        });#}
 {#        $('#path').highcharts(heatOptions);#}
-        setInterval(function() {
-            loadDevices();
-            }, (15 * 1000));
+{#        setInterval(function() {#}
+{#            loadDevices();#}
+{#            }, (15 * 1000));#}
     });
-
-    $(function() {
-
-});
-
+/**
+ * Load new data depending on the selected min and max
+ */
+{#    function afterSetExtremes(e) {#}
+{#        debugger;#}
+{#        if (e.min) {#}
+{#            fromTime = Math.ceil(e.min);#}
+{#            toTime = Math.ceil(e.max);#}
+{#            getData();#}
+{#        }#}
+{#    }#}
 
     </script>
 </body>

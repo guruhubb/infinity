@@ -28,7 +28,6 @@ SIXTY_TIME_DELAY = 120
 session = FuturesSession(max_workers=10)        #increase the number of workers based on number of processes we can run
 headers = {'Content-Type':'application/json'}
 
-
 def bg_cb(sess, resp):
     resp.data = resp.json()                     # parse the json storing the result on the response object
 
@@ -140,9 +139,6 @@ def getData():
             return "Some or all devices are down"
         else:
             return "No data from devices"
-
-
-
 
 @app.route('/processData')
 @login_required
@@ -274,6 +270,8 @@ def processData():
 @app.route('/aggrData')
 @login_required
 def aggrData():
+
+    # aggregate cpe devices on a ship, and bts devices at a port
 
     dataObjects = Data.objects(aggregate = False, time__lt = datetime.datetime.now()-
                    datetime.timedelta(seconds=AGGR_TIME_DELAY),time__gt = datetime.datetime.now()
