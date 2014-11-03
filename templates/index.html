@@ -816,19 +816,19 @@
         var color, circle,cap ;
         cap = device.cap;
         if (device.coverage) {
-            if (cap > 90) {
+            if (cap > 40) {
                 color = '#0ca35f'
             }
-            else if (cap > 80) {
+            else if (cap > 30) {
                 color = '#3cb57e'
             }
-            else if (cap > 70) {
+            else if (cap > 20) {
                 color = '#6dc79f'
             }
-            else if (cap > 50) {
+            else if (cap > 10) {
                 color = '#9ddabf'
             }
-            else if (cap > 10) {
+            else if (cap > 5) {
                 color = '#ceecdf'
             }
             else {
@@ -843,7 +843,7 @@
         }
         marker = L.circle([lat, lng], 10000, {
                 color: color,
-                fillColor: 'white',
+                fillColor: color,
                 fillOpacity: 1.0
             });
         marker.addTo(map1);
@@ -891,19 +891,19 @@
         {#	if (!map) return;#}
         //clearPlacemarksAndLines(); // Remove old placemarks
         var color, circle,d ;
-        if (cap > 90) {
-            color = '#0ca35f'
+        if (cap > 40) {
+                color = '#0ca35f'
         }
-        else if (cap > 80) {
+        else if (cap > 30) {
             color = '#3cb57e'
         }
-        else if (cap > 70) {
+        else if (cap > 20) {
             color = '#6dc79f'
         }
-        else if (cap > 50) {
+        else if (cap > 10) {
             color = '#9ddabf'
         }
-        else if (cap > 10) {
+        else if (cap > 5) {
             color = '#ceecdf'
         }
         else {
@@ -1247,51 +1247,54 @@
 {#                xAxis: [{#}
 {#                    categories: chart_data_x#}
 {#                }],#}
-                yAxis: [{ // Primary yAxis
-                    labels: {
-                        format: '{value}Mbps',
-                        style: {
-                            color: Highcharts.getOptions().colors[2]
-                        }
-                    },
-                    title: {
-                        text: 'Traffic',
-                        style: {
-                            color: Highcharts.getOptions().colors[2]
-                        }
-                    },
-                    opposite: true
-
-                }, { // Secondary yAxis
+                yAxis: [{ // Secondary yAxis
                     gridLineWidth: 0,
                     title: {
                         text: 'Capacity',
                         style: {
-                            color: Highcharts.getOptions().colors[0]
+                            color: Highcharts.getOptions().colors[1]
                         }
                     },
                     labels: {
                         format: '{value} Mbps',
                         style: {
-                            color: Highcharts.getOptions().colors[0]
+                            color: Highcharts.getOptions().colors[1]
                         }
-                    }
+                    },
+                    opposite: true,
+                    floor:0
                 }, { // Tertiary yAxis
                     gridLineWidth: 0,
                     title: {
                         text: 'Distance',
                         style: {
-                            color: Highcharts.getOptions().colors[1]
+                            color: Highcharts.getOptions().colors[2]
                         }
                     },
                     labels: {
                         format: '{value} miles',
                         style: {
-                            color: Highcharts.getOptions().colors[1]
+                            color: Highcharts.getOptions().colors[2]
+                        }
+                    },
+                    opposite: false,
+                    floor:0
+                },{ // Primary yAxis
+                    labels: {
+                        format: '{value}Mbps',
+                        style: {
+                            color: Highcharts.getOptions().colors[0]
+                        }
+                    },
+                    title: {
+                        text: 'Traffic',
+                        style: {
+                            color: Highcharts.getOptions().colors[0]
                         }
                     },
                     opposite: true,
-                    floor: 0
+                    floor:0
+
                 }],
                 tooltip: {
                     shared: true,
@@ -1313,8 +1316,10 @@
 {#                    pointStart: fromTime,#}
                     name: 'Traffic',
                     type: 'spline',
-                    yAxis:0,
+                    yAxis:2,
                     data: data_data,
+                    dashStyle: 'shortdot',
+{#                    color:'red',#}
                     tooltip: {
                         valueSuffix: ' Mbps'
                     }
@@ -1324,7 +1329,6 @@
 {#                    pointStart: fromTime,#}
                     name: 'Capacity',
                     type: 'spline',
-                    yAxis: 1,
                     data: data_cap,
                     tooltip: {
                         valueSuffix: ' Mbps'
@@ -1335,7 +1339,7 @@
 {#                    pointStart: fromTime,#}
                     name: 'Distance',
                     type: 'spline',
-                    yAxis: 2,
+                    yAxis: 1,
                     data: data_distance,
                     marker: {
                         enabled: false
