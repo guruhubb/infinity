@@ -9,12 +9,16 @@ $(function() {
     $('a.page-scroll').bind('click', function(event) {
         var $anchor = $(this).attr('href');
         // get target div to scroll to
-        var target = $($anchor.attr('href'));
-        // if target is valid, scroll to
-        if(target && target.offset()){
-            $('html, body').stop().animate({
-                scrollTop: target.offset().top
-            }, 1500,'easeInOutExpo');
+
+        var target;
+        if ($anchor && $anchor.attr()) {
+            target = $($anchor.attr('href'));
+            // if target is valid, scroll to
+            if (target && target.offset()) {
+                $('html, body').stop().animate({
+                    scrollTop: target.offset().top
+                }, 1500, 'easeInOutExpo');
+            }
         }
 //        $('html, body').stop().animate({
 //            scrollTop: $($anchor.attr('href')).offset().top

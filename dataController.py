@@ -22,10 +22,10 @@ OUT_OF_NETWORK_SNR = 2
 NUM_OF_EVENTS = 4
 EVENT_TIME_INTERVAL = 4
 MAX_DAYS=1
-PROCESS_TIME_DELAY = 5
-AGGR_TIME_DELAY = 10
-SIXTY_TIME_DELAY = 120
-session = FuturesSession(max_workers=10)        #increase the number of workers based on number of processes we can run
+PROCESS_TIME_DELAY_IN_SECS = 1
+AGGR_TIME_DELAY_IN_SECS = 1
+SIXTY_TIME_DELAY = 61
+session = FuturesSession(max_workers=1000)        #increase the number of workers based on number of processes we can run
 headers = {'Content-Type':'application/json'}
 
 def bg_cb(sess, resp):
@@ -50,11 +50,12 @@ def startdata():
     try:
         while True:
             getData()
-            time.sleep(2)  # give more time to write data otherwise if sleep =1, we don't read the latest item
             processData()
-            time.sleep(2)
             aggrData()
-            time.sleep(2)
+            sixtyData()
+            hourData()
+            time.sleep(1)
+
     except Exception, msg:
             app.logger.error('error message is: %s, ' % msg)
     return "Start getting data from device"
@@ -78,13 +79,13 @@ def getData():
         # validate if timestamp is null and format it for the device timestamp if necessary
 
         if timeStamp:
-            timeStamp = timeStamp.time
+            # timeStamp = timeStamp.time
             # timeStamp = datetime.datetime.strptime(timeStamp,"%Y-%m-%dT%H:%M:%S.%f")
             # timeStamp = timeStamp.strftime('%Y-%m-%d %H:%M:%S.%f')
-            timeStamp = timeStamp.strftime('%Y-%m-%d %H:%M:%S')
-            timeList.append(timeStamp)
+            # timeStamp = timeStamp.strftime('%Y-%m-%d %H:%M:%S')
+            timeList.append(timeStamp.time)
         else:
-            timeList.append(datetime.datetime.now()-datetime.timedelta(minutes=2))
+            timeList.append(time.time()-2*60)    # append 2 minutes from now ghl;'
 
     # do REST calls and get new data
 
@@ -107,7 +108,8 @@ def getData():
                 else:
                     mac = obj["mac"]
                     connId = obj["connId"]
-                    timeEntry = datetime.datetime.strptime(obj["time"],"%Y-%m-%dT%H:%M:%S.%f").replace(microsecond=0)
+                    timeEntry = obj["time"]
+                    # timeEntry = datetime.datetime.strptime(obj["time"],"%Y-%m-%dT%H:%M:%S.%f").replace(microsecond=0)
                     lat = obj["lat"]
                     long = obj["long"]
                     freqA = obj["freqA"]
@@ -123,7 +125,7 @@ def getData():
                     geo = (lat,long)
                     documents.append({"mac":mac,"connId":connId,"time":timeEntry, "geo":geo,"freqA":freqA,
                         "freqB":freqB,"snrA":snrA,"snrB":snrB, "tx":tx,"rx":rx,"cap":cap,"total_cap":0,
-                        "distance":0, "freqList":freqList,  "ssidList":ssidList,"process":False,"aggregate":False})
+                        "distance":0, "freqList":freqList, "ssidList":ssidList,"process":False,"aggregate":False})
 
             if documents:   # bulk insert
                 totaldocuments.append(documents)
@@ -148,15 +150,15 @@ def processData():
     # process CPE data continuously, calculate distance and coverage and update both CPE and BTS data
     # generate snr related events for CPE
 
-    now = datetime.datetime.now()
+    now = int(time.time())
     ssid_event_counter=0
     freq_event_counter=0
     out_of_network_counter=0
     start=time.time()
     distance = 0
 
-    dataObjects = Data.objects(process = False, time__lt = now-datetime.timedelta(seconds=PROCESS_TIME_DELAY),
-                               time__gt = datetime.datetime.now()-datetime.timedelta(days=MAX_DAYS))
+    dataObjects = Data.objects(process = False, time__lt = now-PROCESS_TIME_DELAY_IN_SECS,
+                               time__gt = now-MAX_DAYS*24*60*60)
     for data in dataObjects:
         device = Device.objects(mac=data.mac).first()
         if device.type == 'CPE':
@@ -272,10 +274,9 @@ def processData():
 def aggrData():
 
     # aggregate cpe devices on a ship, and bts devices at a port
-
-    dataObjects = Data.objects(aggregate = False, time__lt = datetime.datetime.now()-
-                   datetime.timedelta(seconds=AGGR_TIME_DELAY),time__gt = datetime.datetime.now()
-                                                                          -datetime.timedelta(days=MAX_DAYS))
+    now = int(time.time())
+    dataObjects = Data.objects(aggregate = False, time__lt = now-AGGR_TIME_DELAY_IN_SECS,time__gt = now
+                                                                          -24*60*60*MAX_DAYS)
 
     for data in dataObjects:
         device = Device.objects(mac=data.mac).first()
@@ -352,14 +353,14 @@ def sixtyData():
                 timeStamp=lastObject.time
         # work on aggr_data records that has a timestamp if it is more than 1 minute
         if timeStamp is None:
-            timeStamp = datetime.datetime.now() - datetime.timedelta(days = 1)
+            timeStamp = int(time.time()) - 60*60*24
         firstRecord = Aggr_data.objects(site = site.name, time__gt = timeStamp).first()
         lastRecord = Aggr_data.objects(site = site.name).order_by('-time').first()
         if lastRecord:
             lastTime = lastRecord.time
             if firstRecord:
                 time1 = firstRecord.time
-                time2 = firstRecord.time+datetime.timedelta(minutes=1)
+                time2 = firstRecord.time+60
                 while time1 < lastTime:
                     dataObject = dbmongo.aggr_data.aggregate([
                         {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
@@ -375,8 +376,8 @@ def sixtyData():
                                         data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
                                         distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
                         sixty_data.save()
-                    time1 = time1 + datetime.timedelta(minutes=1)
-                    time2 = time1 + datetime.timedelta(minutes=1)
+                    time1 = time1 + 60
+                    time2 = time1 + 60
                     firstRecord = Aggr_data.objects(site = site.name, time__gte = time1).first()
             else:
                 continue
@@ -395,14 +396,14 @@ def hourData():
                 timeStamp=lastObject.time
         # work on aggr_data records that has a timestamp if it is more than 1 hour
         if timeStamp is None:
-            timeStamp = datetime.datetime.now() - datetime.timedelta(days = 1)
+            timeStamp = int(time.time()) - 60*60*24
         firstRecord = Sixty.objects(site = site.name, time__gt = timeStamp).first()
         lastRecord = Sixty.objects(site = site.name).order_by('-time').first()
         if lastRecord:
             lastTime = lastRecord.time
             if firstRecord:
                 time1 = firstRecord.time
-                time2 = firstRecord.time+datetime.timedelta( hours = 1 )
+                time2 = firstRecord.time+60*60
                 while time1 < lastTime:
                     dataObject = dbmongo.sixty.aggregate([
                         {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
@@ -418,8 +419,8 @@ def hourData():
                                         data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
                                         distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
                         hour_data.save()
-                    time1 = time1 + datetime.timedelta( hours = 1 )
-                    time2 = time1 + datetime.timedelta( hours = 1 )
+                    time1 = time1 + 60*60
+                    time2 = time1 + 60*60
                     firstRecord = Sixty.objects(site = site.name, time__gte = time1).first()
             else:
                 continue
@@ -474,7 +475,7 @@ def check_bandwidth(cmdOutput):
 def get_beagle():
     urlList=[]
     siteList=[]
-    now = datetime.datetime.now()
+    now = int(time.time())
     for object in Device.objects(active = True, type = 'BEAGLE'):
         urlList.append(object.url)
         siteList.append(object.site)
@@ -490,7 +491,7 @@ def get_beagle():
 def get_router():
     urlList=[]
     siteList=[]
-    now = datetime.datetime.now()
+    now = int(time.time())
     for object in Device.objects(active = True, type = 'ROUTER'):
         urlList.append(object.url)
         siteList.append(object.site)

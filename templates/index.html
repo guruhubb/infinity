@@ -66,13 +66,16 @@
                         <a href="#page-top"></a>
                     </li>
                     <li>
-                        <a class="page-scroll" href="#chart_">Chart</a>
+                        <a class="page-scroll" href="#stream_">Stream</a>
+                    </li>
+                    <li>
+                        <a class="page-scroll" href="#historical_">History</a>
                     </li>
                     <li>
                         <a class="page-scroll" href="#histogram_">Histogram</a>
                     </li>
                     <li>
-                        <a class="page-scroll" href="#path_">Course</a>
+                        <a class="page-scroll" href="#path_">Path</a>
                     </li>
                     <li>
                         <a class="page-scroll" href="#settings_">Settings</a>
@@ -111,9 +114,51 @@
         </div>
 
     </header>
-
     <!-- Services Section -->
-    <section id="chart_">
+    <section id="stream_">
+        <div class="container">
+{#            <div id="plot-data" style="width:100%; height:100%;">#}
+{#               <img src="{{ plot }}" alt="" width="100%" height="100%"/>#}
+            <div id="stream" style="width: 100%; height: 480px; margin: 0 auto"></div>
+{#                 <iframe id="igraph" style='border:none' src="{{ plotA }}" width = "100%" height="600px"frameborder="0" seamless="seamless" scrolling="no" ></iframe>#}
+{#                 {% include "highchart_gps_trail.html" %}#}
+{#            </div>#}
+{#            <div class="row">#}
+{#                <div class="col-lg-12 text-center">#}
+{#                    <h2 class="section-heading">Services</h2>#}
+{#                    <h3 class="section-subheading text-muted">Lorem ipsum dolor sit amet consectetur.</h3>#}
+{#                </div>#}
+{#            </div>#}
+{#            <div class="row text-center">#}
+{#                <div class="col-md-4">#}
+{#                    <span class="fa-stack fa-4x">#}
+{#                        <i class="fa fa-circle fa-stack-2x text-primary"></i>#}
+{#                        <i class="fa fa-shopping-cart fa-stack-1x fa-inverse"></i>#}
+{#                    </span>#}
+{#                    <h4 class="service-heading">E-Commerce</h4>#}
+{#                    <p class="text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Minima maxime quam architecto quo inventore harum ex magni, dicta impedit.</p>#}
+{#                </div>#}
+{#                <div class="col-md-4">#}
+{#                    <span class="fa-stack fa-4x">#}
+{#                        <i class="fa fa-circle fa-stack-2x text-primary"></i>#}
+{#                        <i class="fa fa-laptop fa-stack-1x fa-inverse"></i>#}
+{#                    </span>#}
+{#                    <h4 class="service-heading">Responsive Design</h4>#}
+{#                    <p class="text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Minima maxime quam architecto quo inventore harum ex magni, dicta impedit.</p>#}
+{#                </div>#}
+{#                <div class="col-md-4">#}
+{#                    <span class="fa-stack fa-4x">#}
+{#                        <i class="fa fa-circle fa-stack-2x text-primary"></i>#}
+{#                        <i class="fa fa-lock fa-stack-1x fa-inverse"></i>#}
+{#                    </span>#}
+{#                    <h4 class="service-heading">Web Security</h4>#}
+{#                    <p class="text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Minima maxime quam architecto quo inventore harum ex magni, dicta impedit.</p>#}
+{#                </div>#}
+{#            </div>#}
+        </div>
+    </section>
+    <!-- Services Section -->
+    <section id="historical_">
         <div class="container">
 {#            <div id="plot-data" style="width:100%; height:100%;">#}
 {#               <img src="{{ plot }}" alt="" width="100%" height="100%"/>#}
@@ -742,13 +787,16 @@
         sites = [],
         fromTime = {{fromTime}},
         toTime = {{ toTime }},
-        lastTime = 0,
+        lastTime = {{ toTime }},
         popup = L.popup(),
         test = true,
 {#        data = {{ data }},#}
         data_cap = {{ data.cap }},
         data_data = {{ data.data }},
         data_distance = {{ data.distance }},
+        stream_cap = {{ stream.cap }},
+        stream_data = {{ stream.data }},
+        stream_distance = {{ stream.distance }},
         hist_cap = {{ histogram.avg_cap }},
         hist_freq = {{ histogram.records }},
         hist_distance = {{ histogram.distance }}
@@ -756,6 +804,8 @@
         path_lng = {{ path.lng }},
         path_lat = {{ path.lat }},
         path_time = {{ path.time }},
+        path_dist = {{ path.dist }},
+        path_cov = {{ path.cov }},
         site = '{{ site }}';
 
     var blackIcon = L.icon({
@@ -887,28 +937,54 @@
     }
 
 
-    function addCircle(lng, lat, cap, time) {
+    function addCircle(lng, lat, cap, time, dist, cov) {
         {#	if (!map) return;#}
         //clearPlacemarksAndLines(); // Remove old placemarks
         var color, circle,d ;
-        if (cap > 40) {
+        if (cov) {
+            if (cap > 40) {
                 color = '#0ca35f'
+            }
+            else if (cap > 30) {
+                color = '#3cb57e'
+            }
+            else if (cap > 20) {
+                color = '#6dc79f'
+            }
+            else if (cap > 10) {
+                color = '#9ddabf'
+            }
+            else if (cap > 5) {
+                color = '#ceecdf'
+            }
+            else {
+                color = '#d7efe5'
+            }
+        } else {
+            if (dist < TYPICAL_COVERAGE_MILES) {
+                color = 'red';
+            } else {
+                color = 'orange';
+            }
         }
-        else if (cap > 30) {
-            color = '#3cb57e'
-        }
-        else if (cap > 20) {
-            color = '#6dc79f'
-        }
-        else if (cap > 10) {
-            color = '#9ddabf'
-        }
-        else if (cap > 5) {
-            color = '#ceecdf'
-        }
-        else {
-            color = '#d7efe5'
-        }
+{#        if (cap > 40) {#}
+{#                color = '#0ca35f'#}
+{#        }#}
+{#        else if (cap > 30) {#}
+{#            color = '#3cb57e'#}
+{#        }#}
+{#        else if (cap > 20) {#}
+{#            color = '#6dc79f'#}
+{#        }#}
+{#        else if (cap > 10) {#}
+{#            color = '#9ddabf'#}
+{#        }#}
+{#        else if (cap > 5) {#}
+{#            color = '#ceecdf'#}
+{#        }#}
+{#        else {#}
+{#            color = '#d7efe5'#}
+{#        }#}
         circle = L.circle([lat, lng], 500, {
                 color: color,
                 fillColor: color,
@@ -916,10 +992,8 @@
             });
         circle.addTo(map2);
         d = new Date(time);
-        title = '<br> Lat: ' + lat;
-        title = title + '<br> Lng: ' + lng;
-        title = title + '<br> Capacity: ' + cap + ' Mbps';
-        title = title + '<br> Time: ' + d.toUTCString();
+        title = 'Lat: ' + lat + '<br> Lng: ' + lng + '<br> Distance: ' + dist
+                + '<br> Capacity: ' + cap + ' Mbps' + '<br> Time: ' + d.toUTCString();
         circle.bindPopup(title);
         circles.push(circle);
     }
@@ -970,7 +1044,7 @@
         map2.attributionControl.setPrefix(false);
         clearCircles();
         for (i=0; i< path_cap.length; i+=1) {
-            addCircle(path_lng[i], path_lat[i], path_cap[i], path_time[i])
+            addCircle(path_lng[i], path_lat[i], path_cap[i], path_time[i], path_dist[i], path_cov[i])
         }
 {#        map2.on('click', onMapClick2);#}
     }
@@ -1006,6 +1080,33 @@
         }
         getData();
     }
+    function streamData() {
+                            setInterval(function(){
+                                var stream = $('#stream').highcharts();
+                                aj = $.ajax({
+                                    type: "GET",
+                                    url: '{{ lastpoint_url }}',
+                                    async: true,
+                                    data: { site: site, lastTime: lastTime},
+                                    contentType: "application/json; charset=utf-8",
+                                    dataType: "json"});
+                                aj.done(function (response, textStatus, jqXHR) {
+                                    debugger;
+                                    var totalPoints = response.cap.length;
+                                    if (totalPoints > 0) {
+                                        lastTime = response.cap[totalPoints - 1][0];
+                                    }
+                                    for (i = 0; i < totalPoints; i++) {
+                                        stream.series[0].addPoint(response.data[i]);
+                                        stream.series[1].addPoint(response.cap[i]);
+                                        stream.series[2].addPoint(response.distance[i]);
+                                    }
+                                });
+                                aj.fail(function (jqXHR, textStatus, errorThrown) {
+                                    alert(textStatus);
+                                });
+                            }, 1000);
+        }
     function getData() {
         debugger;
         aj = $.ajax({
@@ -1066,7 +1167,8 @@
                 map2.panTo(medLatLng(response.lat, response.lng));
                 clearCircles();
                 for (i = 0; i < response.cap.length; i++) {
-                    addCircle(response.lng[i], response.lat[i], response.cap[i], response.time[i])
+                    addCircle(response.lng[i], response.lat[i], response.cap[i], response.time[i], response.dist[i],
+                    response.cov[i])
                 }
             }
             else clearCircles();
@@ -1075,76 +1177,192 @@
             alert(textStatus);
         });
     }
-    function getLastPoint() {
+
+{#    function getLastPoint() {#}
+{#        debugger;#}
+{#        aj = $.ajax({#}
+{#            type: "GET",#}
+{#            url: '{{ lastPoint_url }}',#}
+{#            async: true,#}
+{#            data: { site: site },#}
+{#            contentType: "application/json; charset=utf-8",#}
+{#            dataType: "json"});#}
+{#        aj.done(function (response, textStatus, jqXHR) {#}
+{#            debugger;#}
+{#            var chart = $('#chart').highcharts();#}
+{#            chart.series[0].addPoint(response.data);#}
+{#            chart.series[1].addPoint(response.cap);#}
+{#            chart.series[2].addPoint(response.distance);#}
+{#        });#}
+{#        aj.fail(function (jqXHR, textStatus, errorThrown) {#}
+{#            alert(textStatus);#}
+{#        });#}
+{#    }#}
+    function afterSetExtremes(e) {
         debugger;
-        aj = $.ajax({
-            type: "GET",
-            url: '{{ lastPoint_url }}',
-            async: true,
-            data: { site: site },
-            contentType: "application/json; charset=utf-8",
-            dataType: "json"});
-        aj.done(function (response, textStatus, jqXHR) {
-            debugger;
-            var chart = $('#chart').highcharts();
-            chart.series[0].addPoint(response.data);
-            chart.series[1].addPoint(response.cap);
-            chart.series[2].addPoint(response.distance);
-        });
-        aj.fail(function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus);
-        });
+        if (e.min) {
+            fromTime = Math.ceil(e.min);
+            toTime = Math.ceil(e.max);
+            getData();
+        }
     }
     $(function() {
         firstMap();
         secondMap();
-        function afterSetExtremes(e) {
-            debugger;
-            if (e.min) {
-                fromTime = Math.ceil(e.min);
-                toTime = Math.ceil(e.max);
-                getData();
-            }
-        }
+
+
         debugger;
         Highcharts.setOptions({
             global : {
                 useUTC : false
             }
         });
-
-        chartOptions = {
+        streamOptions = {
 
                 chart: {
-{#                    renderTo:'chart',#}
-                    zoomType: 'x',
+{#                    zoomType: 'x',#}
                     events : {
-                        load : function () {
-                            setInterval(function () {
-                                aj = $.ajax({
-                                    type: "GET",
-                                    url: '{{ lastPoint_url }}',
-                                    async: true,
-                                    data: { site: site },
-                                    contentType: "application/json; charset=utf-8",
-                                    dataType: "json"});
-                                aj.done(function (response, textStatus, jqXHR) {
-                                    debugger;
-                                    var chart = $('#chart').highcharts();
-                                    if (response.cap[0] != lastTime) {
-                                        chart.series[0].addPoint(response.data);
-                                        chart.series[1].addPoint(response.cap);
-                                        chart.series[2].addPoint(response.distance);
-                                        lastTime = response.cap[0];
-                                    }
-                                });
-                                aj.fail(function (jqXHR, textStatus, errorThrown) {
-{#                                    alert(textStatus);#}
-
-                                });
-                            }, 1000);
-                        }
+                        load : streamData()
                     }
+                },
+                title: {
+                    text: 'Streaming Traffic, Capacity, Distance'
+                },
+                subtitle: {
+                    text: site
+                },
+
+
+                rangeSelector : {
+                    buttons: [{
+                        count: 1,
+                        type: 'minute',
+                        text: '1M'
+                    }, {
+                        count: 5,
+                        type: 'minute',
+                        text: '5M'
+                    }, {
+                        type: 'all',
+                        text: 'All'
+                    }],
+                    inputEnabled: false, // it supports only days
+                    selected : 2 // all
+                },
+                xAxis: {
+                    type: 'datetime',
+                    minRange: 1000 // 1 s
+                },
+                yAxis: [{ // Secondary yAxis
+                    gridLineWidth: 0,
+                    title: {
+                        text: 'Capacity',
+                        style: {
+                            color: Highcharts.getOptions().colors[1]
+                        }
+                    },
+                    labels: {
+                        format: '{value} Mbps',
+                        style: {
+                            color: Highcharts.getOptions().colors[1]
+                        }
+                    },
+                    opposite: true,
+                    floor:0
+                }, { // Tertiary yAxis
+                    gridLineWidth: 0,
+                    title: {
+                        text: 'Distance',
+                        style: {
+                            color: Highcharts.getOptions().colors[2]
+                        }
+                    },
+                    labels: {
+                        format: '{value} miles',
+                        style: {
+                            color: Highcharts.getOptions().colors[2]
+                        }
+                    },
+                    opposite: false,
+                    floor:0
+                },{ // Primary yAxis
+                    labels: {
+                        format: '{value}Mbps',
+                        style: {
+                            color: Highcharts.getOptions().colors[0]
+                        }
+                    },
+                    title: {
+                        text: 'Traffic',
+                        style: {
+                            color: Highcharts.getOptions().colors[0]
+                        }
+                    },
+                    opposite: true,
+                    floor:0
+
+                }],
+                tooltip: {
+                    shared: true,
+                    valueDecimals: 2
+                },
+                exporting: false,
+                credits: false,
+                legend: {
+                    layout: 'vertical',
+                    align: 'left',
+                    x: 120,
+                    verticalAlign: 'top',
+                    y: 80,
+                    floating: true,
+                    backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF'
+                },
+                series:[{
+                    name: 'Traffic',
+                    type: 'spline',
+                    yAxis:2,
+                    data: stream_data,
+                    dashStyle: 'shortdot',
+{#                    color:'red',#}
+                    tooltip: {
+                        valueSuffix: ' Mbps'
+                    }
+                },
+                    {
+                    name: 'Capacity',
+                    type: 'spline',
+                    data: stream_cap,
+                    tooltip: {
+                        valueSuffix: ' Mbps'
+                    }
+{#                    marker : {#}
+{#                        enabled : true,#}
+{#                        radius : 3#}
+{#                    },#}
+{#                    shadow : true#}
+
+                }, {
+                    name: 'Distance',
+                    type: 'spline',
+                    yAxis: 1,
+                    data: stream_distance,
+                    marker: {
+                        enabled: false
+                    },
+{#                    lineWidth : 0,#}
+{#                    marker : {#}
+{#                        enabled : true,#}
+{#                        radius : 2#}
+{#                    },#}
+                    tooltip: {
+                        valueSuffix: ' miles'
+                    }
+
+                }]
+            };
+        chartOptions = {
+                chart: {
+                    zoomType: 'x'
                 },
                 title: {
                     text: 'Traffic, Capacity, Distance'
@@ -1200,46 +1418,10 @@
                     inputEnabled: false, // it supports only days
                     selected : 4 // all
                 },
-
-{#                 events: {#}
-{#                        load: function () {#}
-{#    #}
-{#                            // set up the updating of the chart each second#}
-{#                            var series0 = this.series[0];#}
-{#                            var series1 = this.series[1];#}
-{#                            var series2 = this.series[2];#}
-{#                            #}
-{#                            setInterval(function () {#}
-{#                                var x = newTime, // current time#}
-{#                                    y = Math.random();#}
-{#                                series.addPoint([x, y], true, true);#}
-{#                            }, 1000);#}
-{#                        }#}
-{#                    },#}
-{#                events: {#}
-{#                    selection: function (e) {#}
-{#                        if (e.min) {#}
-{#                            debugger;#}
-{#                            fromTime = Math.ceil(e.min);#}
-{#                            toTime = Math.ceil(e.max);#}
-{#                            getData();#}
-{#                        }#}
-{#                    }#}
-{#                },#}
                 xAxis: {
                     type: 'datetime',
                     minRange: 1000, // 1 s
                     tickInterval: 60000,  // 1 min
-{#                     events: {#}
-{#                        selection: function (e) {#}
-{#                            if (e.min) {#}
-{#                                debugger;#}
-{#                                fromTime = Math.ceil(e.min);#}
-{#                                toTime = Math.ceil(e.max);#}
-{#                                getData();#}
-{#                            }#}
-{#                        }#}
-{#                     }#}
                     events: {
                         afterSetExtremes: afterSetExtremes
                     }
@@ -1333,6 +1515,11 @@
                     tooltip: {
                         valueSuffix: ' Mbps'
                     }
+{#                    marker : {#}
+{#                        enabled : true,#}
+{#                        radius : 3#}
+{#                    },#}
+{#                    shadow : true#}
 
                 }, {
 {#                    pointInterval: 1000,#}
@@ -1344,6 +1531,11 @@
                     marker: {
                         enabled: false
                     },
+{#                    lineWidth : 0,#}
+{#                    marker : {#}
+{#                        enabled : true,#}
+{#                        radius : 2#}
+{#                    },#}
                     tooltip: {
                         valueSuffix: ' miles'
                     }
@@ -1451,6 +1643,7 @@
 
                 }]
             };
+        $('#stream').highcharts('StockChart',streamOptions);
         $('#chart').highcharts('StockChart',chartOptions);
         $('#histogram').highcharts(histOptions);
 
@@ -1472,6 +1665,19 @@
         $('#bigbutton').on('click', function () {
             getData();
         });
+    });
+
+/**
+ * Load new data depending on the selected min and max
+ */
+{#    function afterSetExtremes(e) {#}
+{#        debugger;#}
+{#        if (e.min) {#}
+{#            fromTime = Math.ceil(e.min);#}
+{#            toTime = Math.ceil(e.max);#}
+{#            getData();#}
+{#        }#}
+{#    }#}
 {#        $('a[href*=#]:not([href=#])').click(function() {#}
 {#            if (location.pathname.replace(/^\//,'') == this.pathname.replace(/^\//,'') && location.hostname == this.hostname) {#}
 {#              var target = $(this.hash);#}
@@ -1488,19 +1694,6 @@
 {#        setInterval(function() {#}
 {#            loadDevices();#}
 {#            }, (15 * 1000));#}
-    });
-/**
- * Load new data depending on the selected min and max
- */
-{#    function afterSetExtremes(e) {#}
-{#        debugger;#}
-{#        if (e.min) {#}
-{#            fromTime = Math.ceil(e.min);#}
-{#            toTime = Math.ceil(e.max);#}
-{#            getData();#}
-{#        }#}
-{#    }#}
-
     </script>
 </body>
 </html>

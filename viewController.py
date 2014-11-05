@@ -3,13 +3,13 @@ from flask.ext.security import login_required, current_user
 from flask.ext.admin import Admin
 from flask.ext.admin.contrib.mongoengine import ModelView
 import infinity
-import flask, datetime, time, subprocess, json,calendar
+import flask, time, subprocess, json,calendar
 from infinity import app, Site, Aggr_data
 from monary import Monary
 import numpy
 MAX_POINTS = 100
-start = datetime.datetime.utcnow() - datetime.timedelta(days=15)
-end = datetime.datetime.utcnow()
+start = int(time.time()) - 15*24*60*60
+end = int(time.time())
 site = 'ShipA'
 # import plotly.plotly as py
 # from plotly.graph_objs import *
@@ -97,61 +97,55 @@ def home():
         'chart_url':'/chart',
         'histogram_url':'/histogram',
         'path_url':'/path',
-        'lastPoint_url':'/lastpoint',
+        'lastpoint_url':'/lastpoint',
         'data'     :chart_view_init(),
         'histogram':generate_histogram_init(),
         'path'     :generate_path_init(),
-        'site'     :site
-
+        'stream'   :stream_view_init(),
+        'site'     :site,
+        'fromTime' :start*1000,
+        'toTime'   :end*1000,
+        'lastTime' :end*1000
     }
     if current_user.has_role('Root'):
         ctx['devices_url'] = '/devices'
     else:
         ctx['devices_url'] = '/devices?type=CPE'
-    fromTime = calendar.timegm(start.timetuple()) * 1000
-    toTime = calendar.timegm(end.timetuple()) * 1000
-    ctx['fromTime']= fromTime
-    ctx['toTime']= toTime
+    # fromTime = calendar.timegm(start.timetuple()) * 1000
+    # toTime = calendar.timegm(end.timetuple()) * 1000
+    # ctx['fromTime']= fromTime
+    # ctx['toTime']= toTime
     return render_template('index.html',**ctx)
 
 @app.route('/lastpoint', methods= ['POST','GET'])
 @login_required
 def lastPoint():
-    # toTime = datetime.datetime.utcfromtimestamp(int(flask.request.args.get('toTime'))/1000)
-    # fromTime = datetime.datetime.utcfromtimestamp(int(flask.request.args.get('fromTime'))/1000)
+    lastTime = int(flask.request.args.get('lastTime'))/1000
     site = flask.request.args.get('site')
-
-    ob = Aggr_data.objects(site = site ).\
-        only("time","data","cap","distance").order_by("-time").first()
-
+    start = int(time.time())-15*60  # 15 mins
+    if lastTime > start:
+        start = lastTime
+    end = int(time.time())
+    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).order_by("time")
+    # ob = Aggr_data.objects(site = site ).order_by("-time").first()
     data = {}
-    data["cap"]=[calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.cap))]
-    data["data"]=[calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.data))]
-    data["distance"]=[calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.distance))]
-    # data = []
-
-    # for ob in query_set:
-    #
-    #     # cap = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.cap)))
-    #     # # data.append(list(s))
-    #     # data = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.data)))
-    #     # distance = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.distance)))
-    #
-    #
-    #     data["cap"].append([calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.cap))])   # multiple by 1.5 to see if data is changing
-    #     data["data"].append([calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.data))])
-    #     data["distance"].append([calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.distance))])
-
-
+    data["cap"]=[]
+    data["data"]=[]
+    data["distance"]=[]
+    for ob in query_set:
+    # if ob:
+            t = ob.time*1000
+            data["cap"].append([t,float("{0:.2f}".format(ob.cap))])
+            data["data"].append([t,float("{0:.2f}".format(ob.data))])
+            data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
     data_dumps = Response(json.dumps(data),  mimetype='application/json')
-    # data_jsonify = flask.jsonify(**data)  # same as flask.Response but doesn't quite work
     return data_dumps
 
 @app.route('/chart', methods= ['POST','GET'])
 @login_required
 def chart_view():
-    toTime = datetime.datetime.utcfromtimestamp(int(flask.request.args.get('toTime'))/1000)
-    fromTime = datetime.datetime.utcfromtimestamp(int(flask.request.args.get('fromTime'))/1000)
+    toTime = int(flask.request.args.get('toTime'))/1000
+    fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
 
     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
@@ -170,7 +164,7 @@ def chart_view():
         # data = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.data)))
         # distance = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.distance)))
 
-        t = calendar.timegm(ob.time.timetuple()) * 1000
+        t = ob.time*1000
         data["cap"].append([t,float("{0:.2f}".format(ob.cap))])   # multiple by 1.5 to see if data is changing
         data["data"].append([t,float("{0:.2f}".format(ob.data))])
         data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
@@ -186,12 +180,13 @@ def chart_view_init():
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
         only("time","data","cap","distance").order_by("time")
     global start, end
-    start = query_set[0].time
-    end = query_set[len(query_set)-1].time
     data = {}
     data["cap"]=[]
     data["data"]=[]
     data["distance"]=[]
+    if query_set:
+        start = query_set[0].time
+        end = query_set[len(query_set)-1].time
     # data =[]
 
     for ob in query_set:
@@ -200,8 +195,29 @@ def chart_view_init():
         # s = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.data)))
 
         # data.append(list(s))
-        t = calendar.timegm(ob.time.timetuple()) * 1000
+        t = ob.time*1000
         data["cap"].append([t,float("{0:.2f}".format(ob.cap))])   # multiple by 1.5 to see if data is changing
+        data["data"].append([t,float("{0:.2f}".format(ob.data))])
+        data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
+
+    return data
+
+
+def stream_view_init():
+    start = int(time.time())-15*60*60  # 15 mins
+    end = int(time.time())
+
+    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
+        only("time","data","cap","distance").order_by("time")
+
+    data = {}
+    data["cap"]=[]
+    data["data"]=[]
+    data["distance"]=[]
+
+    for ob in query_set:
+        t = ob.time*1000
+        data["cap"].append([t,float("{0:.2f}".format(ob.cap))])
         data["data"].append([t,float("{0:.2f}".format(ob.data))])
         data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
 
@@ -218,9 +234,9 @@ def get_devices_and_data():
             record = Aggr_data.objects(site=site.name).order_by("-time").first()
             if record is not None:
                 response_data.append({"site":record.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
-                                      "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
-                                        "coverage":record.coverage,"distance":"{:.2f}".format(record.distance)
-                                        , "lat":record.geo[0], "lng":record.geo[1], "time":calendar.timegm(record.time.timetuple()) * 1000})
+                     "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
+                     "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
+                     "lat":record.geo[0], "lng":record.geo[1], "time":record.time * 1000})
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
 
@@ -253,13 +269,12 @@ def generate_histogram_init():
     return data
 
 
-
 @app.route('/histogram')
 @login_required
 def generate_histogram():
 
-    toTimeStamp = datetime.datetime.utcfromtimestamp(int(flask.request.args.get('toTime'))/1000)
-    fromTimeStamp = datetime.datetime.utcfromtimestamp(int(flask.request.args.get('fromTime'))/1000)
+    toTimeStamp = int(flask.request.args.get('toTime'))/1000
+    fromTimeStamp = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
 
     data = {}
@@ -285,8 +300,8 @@ def generate_histogram():
 @login_required
 def generate_path():
 
-    toTime = datetime.datetime.utcfromtimestamp(int(flask.request.args.get('toTime'))/1000)
-    fromTime = datetime.datetime.utcfromtimestamp(int(flask.request.args.get('fromTime'))/1000)
+    toTime = int(flask.request.args.get('toTime'))/1000
+    fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
     # start = 0
@@ -295,6 +310,8 @@ def generate_path():
     data["cap"]=[]
     data["lat"]=[]
     data["lng"]=[]
+    data["dist"]=[]
+    data["cov"]=[]
     data["time"]=[]
 
     for ob in query_set:
@@ -302,7 +319,10 @@ def generate_path():
             data["cap"].append(float("{0:.2f}".format(ob.cap)))
             data["lat"].append(float("{0:.2f}".format(ob.geo[0])))
             data["lng"].append(float("{0:.2f}".format(ob.geo[1])))
-            data["time"].append(calendar.timegm(ob.time.timetuple()) * 1000)
+            data["time"].append(ob.time*1000 )
+            data["cov"].append(int(ob.coverage))
+            data["dist"].append(float("{0:.2f}".format(ob.distance)))
+
         #     start +=1
         # else:
         #     if start > skip:
@@ -327,13 +347,17 @@ def generate_path_init():
     data["lat"]=[]
     data["lng"]=[]
     data["time"]=[]
+    data["dist"]=[]
+    data["cov"]=[]
 
     for ob in query_set:
         # if start == 0:
             data["cap"].append(float("{0:.2f}".format(ob.cap)))
             data["lat"].append(float("{0:.2f}".format(ob.geo[0])))
             data["lng"].append(float("{0:.2f}".format(ob.geo[1])))
-            data["time"].append(calendar.timegm(ob.time.timetuple()) * 1000)
+            data["time"].append(ob.time*1000 )
+            data["cov"].append(int(ob.coverage))
+            data["dist"].append(float("{0:.2f}".format(ob.distance)))
 
             # start +=1
         # else:

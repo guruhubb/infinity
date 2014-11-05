@@ -106,7 +106,7 @@ got_request_exception.connect(log_exception, app)
 
 class Audit(db.Document):
     user = db.ReferenceField(User)
-    timestamp = db.DateTimeField(default=datetime.now)
+    timestamp = db.DateTimeField(default=datetime.now())
     description = db.StringField(max_length=255)
 
     def __unicode__(self):
@@ -160,7 +160,7 @@ class Device(db.Document):
     operator = db.ReferenceField(Company)
     owner = db.ReferenceField(Company)
     tags = db.ListField(db.ReferenceField('Tag'), default=['all'])
-    time = db.DateTimeField(default=datetime.now)
+    time = db.DateTimeField(default=datetime.now())
     active = db.BooleanField(default=True)
     geo = db.GeoPointField(default=(33.7,-118.19))
     site = db.StringField()                 # TODO may need to reference this at some point
@@ -179,7 +179,7 @@ class Device(db.Document):
 class Data(db.Document):
     mac = db.StringField()
     connId = db.StringField()
-    time = db.DateTimeField(default=datetime.now)
+    time = db.IntField(default=int(time.time()))
     geo = db.GeoPointField()
     freqA = db.IntField()
     freqB = db.IntField()
@@ -200,7 +200,7 @@ class Data(db.Document):
 #derived data from Data
 class Aggr_data(db.Document):
     site = db.StringField()
-    time = db.DateTimeField()
+    time = db.IntField()
     tx = db.FloatField()
     rx = db.FloatField()
     cap = db.FloatField()
@@ -216,7 +216,7 @@ class Aggr_data(db.Document):
 #derived data from Aggr_Data
 class Sixty(db.Document):
     site = db.StringField()
-    time = db.DateTimeField()
+    time = db.IntField()
     tx = db.FloatField()
     rx = db.FloatField()
     cap = db.FloatField()
@@ -229,7 +229,7 @@ class Sixty(db.Document):
 
 class Hour(db.Document):
     site = db.StringField()
-    time = db.DateTimeField()
+    time = db.IntField()
     tx = db.FloatField()
     rx = db.FloatField()
     cap = db.FloatField()
@@ -242,7 +242,7 @@ class Hour(db.Document):
 
 class Router(db.Document):
     site = db.StringField()
-    time = db.DateTimeField()
+    time = db.IntField()
     ping = db.IntField()
     # geo = db.GeoPointField()
 
@@ -250,7 +250,7 @@ class Router(db.Document):
 
 class Beagle(db.Document):
     site = db.StringField()
-    time = db.DateTimeField()
+    time = db.IntField()
     latency = db.FloatField()
     download = db.FloatField()
     upload = db.FloatField()
@@ -319,7 +319,7 @@ class Event(db.Document):
     device = db.StringField()
     parameter = db.StringField()
     message = db.StringField()
-    timestamp = db.DateTimeField(default=datetime.now)
+    timestamp = db.IntField(default=int(time.time()))
     meta = {'indexes': ['device','parameter']}
 
 audit(Tag)
