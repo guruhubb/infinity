@@ -1,5 +1,6 @@
 from flask.ext.script import Manager, Server
 from infinity import app
+from dataController import dataLayer
 import commands
 
 manager = Manager(app)
@@ -22,3 +23,4 @@ manager.add_command("seedusers", commands.SeedUsersAndRoles())
 
 if __name__ == "__main__":
     manager.run()
+    dataLayer()

@@ -181,6 +181,7 @@ class Data(db.Document):
     connId = db.StringField()
     time = db.IntField(default=int(time.time()))
     geo = db.GeoPointField()
+    geo1 = db.GeoPointField()
     freqA = db.IntField()
     freqB = db.IntField()
     snrA = db.FloatField()
@@ -214,7 +215,7 @@ class Aggr_data(db.Document):
     # meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
 
 #derived data from Aggr_Data
-class Sixty(db.Document):
+class Minute(db.Document):
     site = db.StringField()
     time = db.IntField()
     tx = db.FloatField()
@@ -239,6 +240,33 @@ class Hour(db.Document):
     geo = db.GeoPointField()
 
     meta = {'indexes': ['site','time','distance']}
+
+class Day(db.Document):
+    site = db.StringField()
+    time = db.IntField()
+    tx = db.FloatField()
+    rx = db.FloatField()
+    cap = db.FloatField()
+    data = db.FloatField()
+    coverage = db.BooleanField()
+    distance = db.FloatField()
+    geo = db.GeoPointField()
+
+    meta = {'indexes': ['site','time','distance']}
+
+class Month(db.Document):
+    site = db.StringField()
+    time = db.IntField()
+    tx = db.FloatField()
+    rx = db.FloatField()
+    cap = db.FloatField()
+    data = db.FloatField()
+    coverage = db.BooleanField()
+    distance = db.FloatField()
+    geo = db.GeoPointField()
+
+    meta = {'indexes': ['site','time','distance']}
+
 
 class Router(db.Document):
     site = db.StringField()
@@ -281,6 +309,7 @@ class Site(db.Document):
     ssidList = db.ListField(db.StringField())
     deviceList = db.ListField(db.StringField())
     active = db.BooleanField(default=True)
+    tags = db.ListField(db.ReferenceField('Tag'))
 
     def __unicode__(self):
         return self.name
