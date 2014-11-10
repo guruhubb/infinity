@@ -7,11 +7,12 @@ import flask, time, subprocess, json,calendar
 from infinity import app, Site, Aggr_data, Device, Data, Minute, Hour, Day, Month
 from monary import Monary
 from collections import defaultdict
+from dataController import distance_in_miles
 import numpy
 MAX_POINTS = 100
 start = int(time.time()) - 15*24*60*60
 end = int(time.time())
-site = 'ShipA'
+site = 'btsA'
 link = 'S001'
 # import plotly.plotly as py
 # from plotly.graph_objs import *
@@ -70,6 +71,8 @@ def adminViews(app):
     admin.add_view(ModelView(infinity.Aggr_data))
     admin.add_view(ModelView(infinity.Minute))
     admin.add_view(ModelView(infinity.Hour))
+    admin.add_view(ModelView(infinity.Day))
+    admin.add_view(ModelView(infinity.Month))
     # admin.add_view(ModelView(infinity.Config))
     # admin.add_view(ModelView(infinity.Firmware))
     # admin.add_view(ModelView(infinity.Freq))
@@ -101,6 +104,7 @@ def home():
         'path_url':'/path',
         'lastpoint_url':'/lastpoint',
         'links_url':'/links',
+        'stream_url':'/stream',
         'data'     :chart_view_init(),
         'histogram':generate_histogram_init(),
         'path'     :generate_path_init(),
@@ -153,9 +157,8 @@ def chart_view():
     fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
     range = toTime - fromTime
-
     # 15 min range loads second data
-    if (range < 15 * 3600 ):
+    if (range < 15 * 60 ):
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only("time","data","cap","distance").order_by("time")
     # 1 day range loads minute data
@@ -163,7 +166,7 @@ def chart_view():
         query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only("time","data","cap","distance").order_by("time")
     # two month range loads hourly data
-    elif (range < 2*31 * 24 * 3600 ):
+    elif (range < 2 * 31 * 24 * 3600 ):
         query_set = Hour.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only("time","data","cap","distance").order_by("time")
     # two year range loads daily data
@@ -175,8 +178,6 @@ def chart_view():
         query_set = Month.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only("time","data","cap","distance").order_by("time")
 
-
-
     # query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
     #     only("time","data","cap","distance").order_by("time")
 
@@ -187,7 +188,6 @@ def chart_view():
     # data = []
 
     for ob in query_set:
-
         # cap = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.cap)))
         # # data.append(list(s))
         # data = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.data)))
@@ -197,7 +197,6 @@ def chart_view():
         data["cap"].append([t,float("{0:.2f}".format(ob.cap))])   # multiple by 1.5 to see if data is changing
         data["data"].append([t,float("{0:.2f}".format(ob.data))])
         data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
-
 
     data_dumps = Response(json.dumps(data),  mimetype='application/json')
     # data_jsonify = flask.jsonify(**data)  # same as flask.Response but doesn't quite work
@@ -231,6 +230,30 @@ def chart_view_init():
 
     return data
 
+@app.route('/stream', methods= ['POST','GET'])
+@login_required
+def stream_view():
+    start = int(time.time())-15*60*60  # 15 mins
+    end = int(time.time())
+    site = flask.request.args.get('site')
+
+    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
+        only("time","data","cap","distance").order_by("time")
+
+    data = {}
+    data["cap"]=[]
+    data["data"]=[]
+    data["distance"]=[]
+
+    for ob in query_set:
+        t = ob.time*1000
+        data["cap"].append([t,float("{0:.2f}".format(ob.cap))])
+        data["data"].append([t,float("{0:.2f}".format(ob.data))])
+        data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
+
+    data_dumps = Response(json.dumps(data),  mimetype='application/json')
+
+    return data_dumps
 
 def stream_view_init():
     start = int(time.time())-15*60*60  # 15 mins
@@ -260,8 +283,9 @@ def get_devices_and_data():
     response_data = []
     if device_type is None:
         for site in sites:
-            record = Aggr_data.objects(site=site.name).order_by("-time").first()
-            if record is not None:
+            record = Aggr_data.objects(site=site.name).order_by("-time")
+            if len(record) > 3:
+                record = record [2]
                 response_data.append({"site":record.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
                      "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
                      "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
@@ -275,13 +299,16 @@ def get_links():
     response_data = []
     for device in Device.objects:
         if device.type == 'CPE':
-            record = Data.objects(device.mac).order_by("-time").first()  # take latest CPE device data to draw the links
+            record = Data.objects(mac = device.mac).order_by("-time").first()
+            btsDevice = Device.objects(connId = record.connId, mac__ne = record.mac).order_by("-time").first()
+            btsRecord = Aggr_data.objects(site = btsDevice.site).order_by("-time").first()
+            distance = distance_in_miles(record.geo,btsRecord.geo)
             if record is not None:
                 response_data.append({"connId":record.connId,"tx":"{:.2f}".format(record.tx),
                  "rx":"{:.2f}".format(record.rx),"cap":"{:.2f}".format(record.cap),
-                 "data":"{:.2f}".format(record.data),
-                 "lat":record.geo[0], "lng":record.geo[1], "lat1":record.geo1[0], "lng2":record.geo1[1],
-                 "time":record.time * 1000})
+                 "data":"{:.2f}".format(record.rx+record.tx),
+                 "lat":record.geo[0], "lng":record.geo[1], "lat1":btsRecord.geo[0], "lng1":btsRecord.geo[1],
+                 "time":record.time * 1000, "distance":distance})
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
     # data_jsonify= flask.jsonify(*response_data)

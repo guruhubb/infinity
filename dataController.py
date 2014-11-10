@@ -4,11 +4,13 @@ import models, datetime, math, time, json, flask, requests,subprocess, spur, num
 from flask import Blueprint
 from mongoengine import Q
 from flask.ext.mail import Message
-from infinity import mail, app, Device, Data, Event, Site, Aggr_data, Beagle, Router, Minute, Hour, Day
+from infinity import mail, app, Device, Data, Event, Site, Aggr_data, Beagle, Router, Minute, Hour, Day, Month
 from math import radians, cos, sin, asin, sqrt
 from bson import Code
 from multiprocessing import Pool
 from collections import defaultdict
+from multiprocessing import Process
+from multiprocessing.pool import ThreadPool
 dataController = Blueprint('dataController', __name__, template_folder='templates')
 
 import pymongo
@@ -31,7 +33,8 @@ headers = {'Content-Type':'application/json'}
 
 def bg_cb(sess, resp):
     resp.data = resp.json()                     # parse the json storing the result on the response object
-
+def f(x):
+    return x*x
 def run_once(f):
     def wrapper(*args, **kwargs):
         if not wrapper.has_run:
@@ -44,16 +47,6 @@ def run_once(f):
 
 # run startdata once - could not implement the forever run logic at startup of the app
 
-def dataLayer():
-    pool = Pool(processes=6)
-    pool.apply_async(getData_())
-    pool.apply_async(processData_())
-    pool.apply_async(aggrData_())
-    pool.apply_async(sixtyData_())
-    pool.apply_async(hourData_())
-    pool.apply_async(dayData_())
-    pool.close()
-    pool.join()
 
 def getData_():
     try:
@@ -100,6 +93,21 @@ def dayData_():
     except Exception, msg:
             app.logger.error('error message from dayData is: %s, ' % msg)
 
+def get_beagle_():
+    try:
+        while True:
+            get_beagle()
+            time.sleep(60*15)
+    except Exception, msg:
+            app.logger.error('error message from get_beagle is: %s, ' % msg)
+
+def get_router_():
+    try:
+        while True:
+            get_router()
+            time.sleep(60*15)
+    except Exception, msg:
+            app.logger.error('error message from get_router is: %s, ' % msg)
 
 @app.route('/startdata')
 @login_required
@@ -112,6 +120,7 @@ def startdata():
             aggrData()
             minuteData()
             hourData()
+            monthData()
             # time.sleep(1)
 
     except Exception, msg:
@@ -181,7 +190,8 @@ def getData():
                     ssidList = obj["ssidList"].split()  # ordered list of available ssids channels separated by whitespace
 
                     geo = (lat,long)
-                    documents.append({"mac":mac,"connId":connId,"time":timeEntry, "geo":geo,"freqA":freqA,
+                    geo1=(0.,0.)
+                    documents.append({"mac":mac,"connId":connId,"time":timeEntry, "geo":geo,"geo1":geo1,"freqA":freqA,
                         "freqB":freqB,"snrA":snrA,"snrB":snrB, "tx":tx,"rx":rx,"cap":cap,"total_cap":0,
                         "distance":0, "freqList":freqList, "ssidList":ssidList,"process":False,"aggregate":False})
 
@@ -199,15 +209,14 @@ def getData():
             return "Some or all devices are down"
         else:
             return "No data from devices"
+    # time.sleep(1)
 
 @app.route('/processData')
 @login_required
 # @run_once
 def processData():
-
     # process CPE data continuously, calculate distance and coverage and update both CPE and BTS data
     # generate snr related events for CPE
-
     now = int(time.time())
     ssid_event_counter=0
     freq_event_counter=0
@@ -400,51 +409,54 @@ def aggrData():
                     app.logger.error("There is NO second device on site %s" % device.site)
 
     return "Done"
+    # time.sleep(1)
 
 @app.route('/siteData')
 @login_required
 def siteData():
     timeStamp=None
-    a=defaultdict(lambda :defaultdict())
-    records={}
-    documents=[]
+    # a=defaultdict(lambda :defaultdict())
     # go through all sites, go through device list for site, get Data for device with False aggregate and True process
     # order records by time.
     for site in Site.objects():
+        a = {}
         for device in site.deviceList:
-            now = int(time.time())
-            dataObjects = Data.objects(mac=device.mac, aggregate = False, process=True,
-                                       time__lt = now-AGGR_TIME_DELAY_IN_SECS,
-                                       time__gt = now - 24*60*60*MAX_DAYS).order("time")
+            dataObjects = Data.objects(mac = device, aggregate = False, process = True,
+                                       time__lt = time.time() - AGGR_TIME_DELAY_IN_SECS,
+                                       time__gt = time.time() - 24*60*60*MAX_DAYS).order_by("time")
             for data in dataObjects:
-                a[data.time][data.mac]= {'rx':data.rx, 'tx':data.tx,'cap':data.cap,'distance':data.distance,
-                                              'site':site.name, 'coverage':0, 'data':data.rx+data.tx, 'geo':data.geo}
+                # a[data.time][data.mac]= {'rx':data.rx, 'tx':data.tx,'cap':data.cap,'distance':data.distance,
+                #                               'site':site.name, 'coverage':0, 'data':data.rx+data.tx, 'geo':data.geo}
+                a= {data.time:{data.mac:{'rx':data.rx, 'tx':data.tx,'cap':data.cap,'distance':data.distance,
+                     'site':site.name, 'coverage':0, 'data':data.rx+data.tx, 'geo':data.geo, 'time':data.time}}}
                 Data.objects(id=data.id).update(set__aggregate=True)
 
         # go through data, add rx,tx,cap and minimize distance values for same site, and put it new list(dict) format
         # save the new list
-
-        for time, mac in a:
+        documents=[]
+        for t, mac in a.items():
             total_rx = 0
             total_tx = 0
             total_cap = 0
             distance=[]
+            records={}
 
-            for macId, value in mac:
-                total_rx += a[time][macId]['rx']
-                total_tx += a[time][macId]['tx']
-                total_cap += a[time][macId]['cap']
-                distance.append(a[time][macId]['distance'])
+            for macId, value in mac.items():
+                total_rx += a[t][macId]['rx']
+                total_tx += a[t][macId]['tx']
+                total_cap += a[t][macId]['cap']
+                distance.append(a[t][macId]['distance'])
                 if total_cap > CUTOFF_CAPACITY:
                     coverage = 1
-                records[time]={'rx':total_rx, 'tx':total_tx,'cap':total_cap,'distance':min(distance),
-                         'site':a[time][macId]['site'], 'coverage':coverage, 'data':total_rx+total_tx,
-                         'geo':a[time][macId]['geo'],'time':time}
+                records[t]={'rx':total_rx, 'tx':total_tx,'cap':total_cap,'distance':min(distance),
+                         'site':a[t][macId]['site'], 'coverage':coverage, 'data':total_rx+total_tx,
+                         'geo':a[t][macId]['geo'],'time':a[t][macId]['time']}
 
-            documents.append(records[time])
+            documents.append(records[t])
 
-        dbmongo.aggr_data.insert(documents)
-
+        if documents:
+            dbmongo.aggr_data.insert(documents)
+    # time.sleep(1)
     return "Done"
 
 
@@ -468,27 +480,28 @@ def minuteData():
             if firstRecord:
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60
-                while time1 < lastTime:
-                    dataObject = dbmongo.aggr_data.aggregate([
-                        {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
-                            , 'site':site.name}},
-                        # {'$limit' : 60 },
-                        {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
-                               'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
-                        }}
-                    ])
-                    if len(dataObject['result']) > 0:
-                        minute_data = Minute( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
-                                        rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
-                                        data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
-                                        distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
-                        minute_data.save()
-                    time1 = time1 + 60
-                    time2 = time1 + 60
-                    firstRecord = Aggr_data.objects(site = site.name, time__gte = time1).first()
+                if lastTime > time1+59:
+                    while time1 < lastTime:
+                        dataObject = dbmongo.aggr_data.aggregate([
+                            {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
+                                , 'site':site.name}},
+                            # {'$limit' : 60 },
+                            {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
+                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
+                            }}
+                        ])
+                        if len(dataObject['result']) > 0:
+                            minute_data = Minute( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
+                                            rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
+                                            data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
+                                            distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
+                            minute_data.save()
+                        time1 = time1 + 60
+                        time2 = time1 + 60
+                        firstRecord = Aggr_data.objects(site = site.name, time__gte = time1).first()
             else:
                 continue
-
+    # time.sleep(61)
     return "Done"
 
 @app.route('/hourData')
@@ -511,27 +524,28 @@ def hourData():
             if firstRecord:
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60*60
-                while time1 < lastTime:
-                    dataObject = dbmongo.minute.aggregate([
-                        {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
-                            , 'site':site.name}},
-                        # {'$limit' : 60 },
-                        {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
-                               'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
-                        }}
-                    ])
-                    if len(dataObject['result']) > 0:
-                        hour_data = Hour( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
-                                        rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
-                                        data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
-                                        distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
-                        hour_data.save()
-                    time1 = time1 + 60*60
-                    time2 = time1 + 60*60
-                    firstRecord = Minute.objects(site = site.name, time__gte = time1).first()
+                if lastTime > time1+59:
+                    while time1 < lastTime:
+                        dataObject = dbmongo.minute.aggregate([
+                            {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
+                                , 'site':site.name}},
+                            # {'$limit' : 60 },
+                            {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
+                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
+                            }}
+                        ])
+                        if len(dataObject['result']) > 0:
+                            hour_data = Hour( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
+                                            rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
+                                            data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
+                                            distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
+                            hour_data.save()
+                        time1 = time1 + 60*60
+                        time2 = time1 + 60*60
+                        firstRecord = Minute.objects(site = site.name, time__gte = time1).first()
             else:
                 continue
-
+    # time.sleep(60*60+1)
     return "Done"
 
 @app.route('/dayData')
@@ -554,27 +568,28 @@ def dayData():
             if firstRecord:
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60*60*24
-                while time1 < lastTime:
-                    dataObject = dbmongo.hour.aggregate([
-                        {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
-                            , 'site':site.name}},
-                        # {'$limit' : 60 },
-                        {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
-                               'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
-                        }}
-                    ])
-                    if len(dataObject['result']) > 0:
-                        hour_data = Hour( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
-                                        rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
-                                        data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
-                                        distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
-                        hour_data.save()
-                    time1 = time1 + 60*60*24
-                    time2 = time1 + 60*60*24
-                    firstRecord = Minute.objects(site = site.name, time__gte = time1).first()
+                if lastTime > time1+60*60*24-60:
+                    while time1 < lastTime:
+                        dataObject = dbmongo.hour.aggregate([
+                            {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
+                                , 'site':site.name}},
+                            # {'$limit' : 60 },
+                            {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
+                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
+                            }}
+                        ])
+                        if len(dataObject['result']) > 0:
+                            hour_data = Hour( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
+                                            rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
+                                            data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
+                                            distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
+                            hour_data.save()
+                        time1 = time1 + 60*60*24
+                        time2 = time1 + 60*60*24
+                        firstRecord = Minute.objects(site = site.name, time__gte = time1).first()
             else:
                 continue
-
+    # time.sleep(60*60*24+1)
     return "Done"
 
 @app.route('/monthData')
@@ -597,27 +612,29 @@ def monthData():
             if firstRecord:
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60*60*24*31
-                while time1 < lastTime:
-                    dataObject = dbmongo.day.aggregate([
-                        {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
-                            , 'site':site.name}},
-                        # {'$limit' : 60 },
-                        {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
-                               'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
-                        }}
-                    ])
-                    if len(dataObject['result']) > 0:
-                        hour_data = Hour( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
-                                        rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
-                                        data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
-                                        distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
-                        hour_data.save()
-                    time1 = time1 + 60*60*24*31
-                    time2 = time1 + 60*60*24*31
-                    firstRecord = Minute.objects(site = site.name, time__gte = time1).first()
+                if lastTime > time1+60*60*24*31:
+
+                    while time1 < lastTime:
+                        dataObject = dbmongo.day.aggregate([
+                            {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
+                                , 'site':site.name}},
+                            # {'$limit' : 60 },
+                            {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
+                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
+                            }}
+                        ])
+                        if len(dataObject['result']) > 0:
+                            hour_data = Hour( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
+                                            rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
+                                            data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
+                                            distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
+                            hour_data.save()
+                        time1 = time1 + 60*60*24*31
+                        time2 = time1 + 60*60*24*31
+                        firstRecord = Minute.objects(site = site.name, time__gte = time1).first()
             else:
                 continue
-
+    # time.sleep(60*60*24+31+1)
     return "Done"
 
 def get_ping(ip):
@@ -680,6 +697,7 @@ def get_beagle():
 
         beagle_data = Beagle(site=site, time = now, latency=latency, download=download, upload=upload)
         beagle_data.save()
+    # time.sleep(60*15)
 
 def get_router():
     urlList=[]
@@ -691,6 +709,7 @@ def get_router():
     for url, site in urlList, siteList:
         router_data = Router(site = site, time = now, ping = get_ping(url))
         router_data.save()
+    # time.sleep(60*15)
 
 def haversine(lon1, lat1, lon2, lat2):
     """
@@ -1768,3 +1787,69 @@ from flask_wtf import Form
 #     # )
 #     # result = dbmongo.aggr_data.map_reduce(map, reduce, finalize_f=finalize, out={'merge':"sixty"}, query={"time":{"$gt": gtTime})
 #     return "Done"
+@app.route('/getdata')
+@login_required
+# @run_once
+
+def dataLayer():
+    getDataTime=0
+    processTime =0
+    siteTime =0
+    minuteTime =0
+    hourTime =0
+    dayTime = 0
+    monthTime = 0
+    while True:
+        if time.time()-getDataTime >= 1:
+            getDataTime = time.time()
+            getData()
+        # if time.time()-processTime >= 1:
+        #     processTime = time.time()
+            processData()
+        # if time.time()-siteTime >= 1:
+        #     siteTime = time.time()
+        #     aggrData()
+            siteData()
+        if time.time()-minuteTime >= 60:
+            minuteTime = time.time()
+            minuteData()
+        if time.time()-hourTime >= 60*60:
+            hourTime = time.time()
+            hourData()
+        if time.time()-dayTime >= 60*60*24:
+            dayTime = time.time()
+            dayData()
+        if time.time()-monthTime >= 60*60*24*30:
+            monthTime = time.time()
+            monthData()
+
+    # backProc = Process(target=processData_, args=())
+    #
+    # backProc.start()
+    # pool = Pool(processes=8)
+    # app.run(debug=True, use_reloader=False)
+    # while True:
+    #     getData()
+    #     processData
+    #     siteData()
+    #     minuteData()
+    #     hourData()
+    #     dayData()
+    #     get_beagle()
+    #     get_router()
+
+        # pool = ThreadPool(8)              # start 4 worker processes
+        # # result = pool.apply_async(f, [10])
+        # pool.apply_async(getData())
+        # pool.apply_async(processData, ())
+        # pool.apply_async(siteData, ())
+        # pool.apply_async(minuteData, ())
+        # pool.apply_async(hourData, ())
+        # pool.apply_async(dayData, ())
+        # pool.apply_async(get_beagle, ())
+        # pool.apply_async(get_router, ())
+        # app.logger.info( " %s" % result.get())
+        # app.logger.info("ProcessData in progress...")
+
+        # pool.close()
+        # pool.join()

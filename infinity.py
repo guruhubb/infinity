@@ -6,6 +6,8 @@ from flask_mail import Mail
 from datetime import datetime
 import getpass, logging, memcache, time, json, pymongo, flask_security
 import mongoengine as dbmongo
+# from dataController import dataLayer
+
 
 TYPE = ('BTS', 'CPE', 'BEAGLE', 'ROUTER')
 session = FuturesSession(max_workers=10)
@@ -162,7 +164,7 @@ class Device(db.Document):
     tags = db.ListField(db.ReferenceField('Tag'), default=['all'])
     time = db.DateTimeField(default=datetime.now())
     active = db.BooleanField(default=True)
-    geo = db.GeoPointField(default=(33.7,-118.19))
+    geo = db.GeoPointField()
     site = db.StringField()                 # TODO may need to reference this at some point
     connId = db.StringField()
     # ssid = db.ReferenceField(Ssid)
@@ -269,6 +271,7 @@ class Month(db.Document):
 
 
 class Router(db.Document):
+    url = db.StringField(unique = True)
     site = db.StringField()
     time = db.IntField()
     ping = db.IntField()
@@ -277,6 +280,7 @@ class Router(db.Document):
     meta = {'indexes': ['site','time','ping']}
 
 class Beagle(db.Document):
+    url = db.StringField(unique = True)
     site = db.StringField()
     time = db.IntField()
     latency = db.FloatField()
@@ -369,4 +373,6 @@ def register_blueprints(app):
     from dataController import dataController
     app.register_blueprint(dataController)
 register_blueprints(app)
+
+# dataLayer()
 

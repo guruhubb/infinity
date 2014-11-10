@@ -778,9 +778,10 @@
 
 <!-- Scripts follow -->
     <script type="text/javascript">
-    debugger;
+{#    debugger;#}
     var	map1,
         map2,
+        refreshIntervalId,
         markers = [],
         circles = [],
 	    lines = [],
@@ -810,6 +811,7 @@
         path_cov = {{ path.cov }},
         site = '{{ site }}',
         link = '{{ link }}';
+
 
     var blackIcon = L.icon({
         iconUrl: '/static/img/ships/ship-black.png',
@@ -854,6 +856,7 @@
 {#                var noDevicePosition = true;#}
                 for (var i=0; i<length; i++) {
                     var link = data[i];
+                    debugger;
 {#                    var lat = link.lat;#}
 {#                    var lng = link.lng;#}
 {#                    var lat1 = device.lat1;#}
@@ -993,6 +996,7 @@
                 color = 'orange';
             }
         }
+        debugger;
         var pointA = new L.LatLng(link.lat, link.lng);
         var pointB = new L.LatLng(link.lat1,link.lng1);
         var pointList = [pointA, pointB];
@@ -1003,7 +1007,7 @@
                                     opacity: 0.5,
                                     smoothFactor: 1
                                 });
-        line.addTo(map);
+        line.addTo(map1);
         lines.push(line);
 {#        marker = L.circle([lat, lng], 10000, {#}
 {#                color: color,#}
@@ -1029,7 +1033,7 @@
 {#            }#}
 {#        }#}
         line.bindPopup(title);
-        line.on('click', onLineClick);
+        line.on('click', onLinkClick);
 {#        markers.push(marker);#}
         links.push(link.connId);
     }
@@ -1112,8 +1116,13 @@
             });
         circle.addTo(map2);
         d = new Date(time);
-        title = 'Lat: ' + lat + '<br> Lng: ' + lng + '<br> Distance: ' + dist
-                + '<br> Capacity: ' + cap + ' Mbps' + '<br> Time: ' + d.toUTCString();
+{#        debugger;#}
+        title = site;
+        title = title + '<br> Lat: ' + lat ;
+        title = title + '<br> Lng: ' + lng ;
+        title = title + '<br> Distance: ' + dist + " miles ";
+        title = title + '<br> Capacity: ' + cap + " Mbps ";
+        title = title + '<br> Time: ' + d.toUTCString();
         circle.bindPopup(title);
         circles.push(circle);
     }
@@ -1210,46 +1219,78 @@
                 site = sites[i];
             }
         }
+{#        debugger;#}
+        window.clearInterval(refreshIntervalId);
         getData();
+
+        streamData();
     }
     function onLinkClick(e) {
         map1.panTo(e.latlng);
-        for (i = 0; i < lines.length; i++) {
-            if (lines[i]._leaflet_id == this._leaflet_id) {
-                site = sites[i];
-            }
-        }
-        getData();
+{#        for (i = 0; i < lines.length; i++) {#}
+{#            if (lines[i]._leaflet_id == this._leaflet_id) {#}
+{#                site = sites[i];#}
+{#            }#}
+{#        }#}
+{#        getData();#}
     }
     function streamData() {
-                            setInterval(function(){
-                                var stream = $('#stream').highcharts();
-                                aj = $.ajax({
-                                    type: "GET",
-                                    url: '{{ lastpoint_url }}',
-                                    async: true,
-                                    data: { site: site, lastTime: lastTime},
-                                    contentType: "application/json; charset=utf-8",
-                                    dataType: "json"});
-                                aj.done(function (response, textStatus, jqXHR) {
+        refreshIntervalId = window.setInterval(function(){
+            var stream = $('#stream').highcharts();
+            aj = $.ajax({
+                type: "GET",
+                url: '{{ lastpoint_url }}',
+                async: true,
+                data: { site: site, lastTime: lastTime},
+                contentType: "application/json; charset=utf-8",
+                dataType: "json"});
+            aj.done(function (response, textStatus, jqXHR) {
                                     debugger;
-                                    var totalPoints = response.cap.length;
-                                    if (totalPoints > 0) {
-                                        lastTime = response.cap[totalPoints - 1][0];
-                                    }
-                                    for (i = 0; i < totalPoints; i++) {
-                                        stream.series[0].addPoint(response.data[i]);
-                                        stream.series[1].addPoint(response.cap[i]);
-                                        stream.series[2].addPoint(response.distance[i]);
-                                    }
-                                });
-                                aj.fail(function (jqXHR, textStatus, errorThrown) {
-                                    alert(textStatus);
-                                });
-                            }, 1000);
+                var totalPoints = response.cap.length;
+                if (totalPoints > 0) {
+                    lastTime = response.cap[totalPoints - 1][0];
+                }
+                for (i = 0; i < totalPoints; i++) {
+                    stream.series[0].addPoint(response.data[i]);
+                    stream.series[1].addPoint(response.cap[i]);
+                    stream.series[2].addPoint(response.distance[i]);
+                }
+{#                                    stream.setTitle(null, { text: site });#}
+            });
+            aj.fail(function (jqXHR, textStatus, errorThrown) {
+{#                                    alert(textStatus);#}
+            });
+        }, 1000);
         }
     function getData() {
-        debugger;
+{#        debugger;#}
+        aj = $.ajax({
+                type: "GET",
+                url: '{{ stream_url }}',
+                async: true,
+                data: { site:site },
+                contentType: "application/json; charset=utf-8",
+                dataType: "json"});
+        aj.done(function (response, textStatus, jqXHR) {
+                        debugger;
+                var stream = $('#stream').highcharts();
+{#                chart.series[0].setData(response.cap, true);#}
+{#                chart.series[1].setData(response.distance, true);#}
+{#                chart.series[2].setData(response.data, true);#}
+{#                chart.setData(response,true);#}
+
+                stream.series[0].setData(response.data);
+                stream.series[1].setData(response.cap);
+                stream.series[2].setData(response.distance);
+{#                fromTime = response.cap[0][0];#}
+{#                toTime = response.cap[]#}
+                stream.setTitle(null, { text: site });
+
+        });
+        aj.fail(function (jqXHR, textStatus, errorThrown) {
+{#            alert(textStatus);#}
+        });
+
         aj = $.ajax({
                 type: "GET",
                 url: '{{ chart_url }}',
@@ -1258,7 +1299,7 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
         aj.done(function (response, textStatus, jqXHR) {
-                        debugger;
+{#                        debugger;#}
                 var chart = $('#chart').highcharts();
 {#                chart.series[0].setData(response.cap, true);#}
 {#                chart.series[1].setData(response.distance, true);#}
@@ -1273,7 +1314,7 @@
 
         });
         aj.fail(function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus);
+{#            alert(textStatus);#}
         });
 
         aj1 = $.ajax({
@@ -1284,7 +1325,7 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
         aj1.done(function (response, textStatus, jqXHR) {
-            debugger;
+{#            debugger;#}
                 var hist = $('#histogram').highcharts();
                 hist.xAxis[0].setCategories(response.distance, true);
                 hist.series[0].setData(response.avg_cap, true);
@@ -1293,7 +1334,7 @@
 
         });
         aj1.fail(function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus);
+{#            alert(textStatus);#}
         });
 
         aj2 = $.ajax({
@@ -1315,7 +1356,7 @@
             else clearCircles();
         });
         aj2.fail(function (jqXHR, textStatus, errorThrown) {
-            alert(textStatus);
+{#            alert(textStatus);#}
         });
     }
 
@@ -1340,7 +1381,7 @@
 {#        });#}
 {#    }#}
     function afterSetExtremes(e) {
-        debugger;
+{#        debugger;#}
         if (e.min) {
             fromTime = Math.ceil(e.min);
             toTime = Math.ceil(e.max);
@@ -1352,7 +1393,7 @@
         secondMap();
 
 
-        debugger;
+{#        debugger;#}
         Highcharts.setOptions({
             global : {
                 useUTC : false
@@ -1815,7 +1856,7 @@
               format:'unixtime',
               inline:true,
               onChangeDateTime:function(dp,$input){
-                  debugger;
+{#                  debugger;#}
                  fromTime = Number($input.val()*1000)
                 }
             });

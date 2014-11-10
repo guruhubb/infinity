@@ -12,7 +12,7 @@ manager = Manager(app)
 manager.add_command("runserver", Server(
     threaded=True,
     use_debugger=True,
-    use_reloader=True,
+    use_reloader=False,
     host='127.0.0.1',
     port = 5000),
     # host='192.168.55.84', port=5000)
@@ -22,5 +22,5 @@ manager.add_command("runserver", Server(
 manager.add_command("seedusers", commands.SeedUsersAndRoles())
 
 if __name__ == "__main__":
+    # dataLayer()
     manager.run()
-    dataLayer()
