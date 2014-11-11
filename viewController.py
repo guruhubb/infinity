@@ -287,9 +287,9 @@ def get_devices_and_data():
             if len(record) > 3:
                 record = record [2]
                 response_data.append({"site":record.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
-                     "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
-                     "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
-                     "lat":record.geo[0], "lng":record.geo[1], "time":record.time * 1000})
+                 "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
+                 "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
+                 "lat":record.geo[0], "lng":record.geo[1], "time":record.time * 1000})
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
 
@@ -308,7 +308,7 @@ def get_links():
                  "rx":"{:.2f}".format(record.rx),"cap":"{:.2f}".format(record.cap),
                  "data":"{:.2f}".format(record.rx+record.tx),
                  "lat":record.geo[0], "lng":record.geo[1], "lat1":btsRecord.geo[0], "lng1":btsRecord.geo[1],
-                 "time":record.time * 1000, "distance":distance})
+                 "time":record.time * 1000, "distance":"{:.2f}".format(record.distance)})
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
     # data_jsonify= flask.jsonify(*response_data)

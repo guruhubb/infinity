@@ -22,13 +22,13 @@ CUTOFF_CAPACITY = 2
 LOW_SNR = 5
 CUTOFF_SNR = 3
 OUT_OF_NETWORK_SNR = 2
-NUM_OF_EVENTS = 4
-EVENT_TIME_INTERVAL = 4
+NUM_OF_EVENTS = 10
+EVENT_TIME_INTERVAL = 60
 MAX_DAYS=1
 PROCESS_TIME_DELAY_IN_SECS = 1
 AGGR_TIME_DELAY_IN_SECS = 1
 SIXTY_TIME_DELAY = 61
-session = FuturesSession(max_workers=1000)        #increase the number of workers based on number of processes we can run
+session = FuturesSession(max_workers=500)        #increase the number of workers based on number of processes we can run
 headers = {'Content-Type':'application/json'}
 
 def bg_cb(sess, resp):
@@ -480,7 +480,7 @@ def minuteData():
             if firstRecord:
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60
-                if lastTime > time1+59:
+                if lastTime > time1+60-1:
                     while time1 < lastTime:
                         dataObject = dbmongo.aggr_data.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
@@ -524,7 +524,7 @@ def hourData():
             if firstRecord:
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60*60
-                if lastTime > time1+59:
+                if lastTime > time1+60*60-60:
                     while time1 < lastTime:
                         dataObject = dbmongo.minute.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
@@ -568,7 +568,7 @@ def dayData():
             if firstRecord:
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60*60*24
-                if lastTime > time1+60*60*24-60:
+                if lastTime > time1+60*60*24-60*60:
                     while time1 < lastTime:
                         dataObject = dbmongo.hour.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
@@ -612,7 +612,7 @@ def monthData():
             if firstRecord:
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60*60*24*31
-                if lastTime > time1+60*60*24*31:
+                if lastTime > time1+60*60*24*31-60*60*24:
 
                     while time1 < lastTime:
                         dataObject = dbmongo.day.aggregate([

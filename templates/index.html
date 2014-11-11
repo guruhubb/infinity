@@ -882,7 +882,7 @@
             title = title + '<br> Distance: ' + device.distance + " miles ";
             title = title + '<br> Capacity: ' + device.cap + " Mbps ";
             title = title + '<br> Traffic: ' + device.data + " Mbps ";
-            title = title + '<br> Time: ' + d.toUTCString();
+            title = title + '<br> Time: ' + d.toLocaleString();
 
         }
         else { // the device is not online
@@ -959,7 +959,7 @@
             title = title + '<br> Distance: ' + link.distance + " miles ";
             title = title + '<br> Capacity: ' + link.cap + " Mbps ";
             title = title + '<br> Traffic: ' + link.data + " Mbps ";
-            title = title + '<br> Time: ' + d.toUTCString();
+            title = title + '<br> Time: ' + d.toLocaleString();
 
         }
         else { // the device is not online
@@ -1122,7 +1122,7 @@
         title = title + '<br> Lng: ' + lng ;
         title = title + '<br> Distance: ' + dist + " miles ";
         title = title + '<br> Capacity: ' + cap + " Mbps ";
-        title = title + '<br> Time: ' + d.toUTCString();
+        title = title + '<br> Time: ' + d.toLocaleString();
         circle.bindPopup(title);
         circles.push(circle);
     }
@@ -1433,7 +1433,7 @@
                 },
                 xAxis: {
                     type: 'datetime',
-                    minRange: 5000, // 1 s
+                    minRange: 1000, // 1 s
                     tickInterval: 60000  // 1 min
                 },
                 yAxis: [
@@ -1896,9 +1896,10 @@
 {#            }#}
 {#        });#}
 {#        $('#path').highcharts(heatOptions);#}
-{#        setInterval(function() {#}
-{#            loadDevices();#}
-{#            }, (15 * 1000));#}
+        setInterval(function() {
+            loadDevices();
+            loadLinks();
+            }, (15 * 1000));
     </script>
 </body>
 </html>
