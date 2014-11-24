@@ -165,6 +165,8 @@ class Device(db.Document):
     time = db.DateTimeField(default=datetime.now())
     active = db.BooleanField(default=True)
     geo = db.GeoPointField()
+
+    # geo = db.GeoPointField(default = (31.86,116.6))
     site = db.StringField()                 # TODO may need to reference this at some point
     connId = db.StringField()
     # ssid = db.ReferenceField(Ssid)

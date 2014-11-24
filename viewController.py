@@ -10,9 +10,12 @@ from collections import defaultdict
 from dataController import distance_in_miles
 import numpy
 MAX_POINTS = 100
+DISTANCE_STEP = 10
+DISTANCE_MAX = 51
 start = int(time.time()) - 15*24*60*60
 end = int(time.time())
-site = 'btsA'
+# site = 'btsA'
+site = 'ShipA'
 link = 'S001'
 # import plotly.plotly as py
 # from plotly.graph_objs import *
@@ -130,9 +133,9 @@ def lastPoint():
     lastTime = int(flask.request.args.get('lastTime'))/1000
     site = flask.request.args.get('site')
     start = int(time.time())-15*60  # 15 mins
-    if lastTime > start:
+    if lastTime > start:   # if lastTime is less than 15 mins, use it for start time
         start = lastTime
-    end = int(time.time())
+    end = int(time.time())  # end time = current time
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).order_by("time")
     # ob = Aggr_data.objects(site = site ).order_by("-time").first()
     # data = defaultdict(lambda :defaultdict)  # one-liner to initialize dictionary containing lists
@@ -148,7 +151,7 @@ def lastPoint():
             data["data"].append([t,float("{0:.2f}".format(ob.data))])
             data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
     data_dumps = Response(json.dumps(data),  mimetype='application/json')
-    return data_dumps
+    return data_dumps       # if there is no data it will return zero
 
 @app.route('/chart', methods= ['POST','GET'])
 @login_required
@@ -174,13 +177,17 @@ def chart_view():
         query_set = Day.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only("time","data","cap","distance").order_by("time")
     # greater range loads monthly data
-    else:
+    elif (range >= 3 * 12 * 31 * 24 * 3600 ):
         query_set = Month.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only("time","data","cap","distance").order_by("time")
-
+    else :
+        query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+        only("time","data","cap","distance").order_by("time")
     # query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
     #     only("time","data","cap","distance").order_by("time")
-
+    if len(query_set) < 500 :
+        query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+        only("time","data","cap","distance").order_by("time")
     data = {}
     data["cap"]=[]
     data["data"]=[]
@@ -204,10 +211,9 @@ def chart_view():
 
 
 def chart_view_init():
-
+    global start, end
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
         only("time","data","cap","distance").order_by("time")
-    global start, end
     data = {}
     data["cap"]=[]
     data["data"]=[]
@@ -256,8 +262,8 @@ def stream_view():
     return data_dumps
 
 def stream_view_init():
-    start = int(time.time())-15*60*60  # 15 mins
-    end = int(time.time())
+    # start = int(time.time())-15*60*60  # 15 mins
+    # end = int(time.time())
 
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
         only("time","data","cap","distance").order_by("time")
@@ -300,15 +306,16 @@ def get_links():
     for device in Device.objects:
         if device.type == 'CPE':
             record = Data.objects(mac = device.mac).order_by("-time").first()
-            btsDevice = Device.objects(connId = record.connId, mac__ne = record.mac).order_by("-time").first()
-            btsRecord = Aggr_data.objects(site = btsDevice.site).order_by("-time").first()
-            distance = distance_in_miles(record.geo,btsRecord.geo)
+            if record:
+                btsDevice = Device.objects(connId = record.connId, mac__ne = record.mac).order_by("-time").first()
+                btsRecord = Aggr_data.objects(site = btsDevice.site).order_by("-time").first()
+                distance = distance_in_miles(record.geo,btsRecord.geo)
             if record is not None:
                 response_data.append({"connId":record.connId,"tx":"{:.2f}".format(record.tx),
                  "rx":"{:.2f}".format(record.rx),"cap":"{:.2f}".format(record.cap),
                  "data":"{:.2f}".format(record.rx+record.tx),
                  "lat":record.geo[0], "lng":record.geo[1], "lat1":btsRecord.geo[0], "lng1":btsRecord.geo[1],
-                 "time":record.time * 1000, "distance":"{:.2f}".format(record.distance)})
+                 "time":record.time * 1000, "distance":"{:.2f}".format(distance)})
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
     # data_jsonify= flask.jsonify(*response_data)
@@ -329,8 +336,8 @@ def generate_histogram_init():
     total_records = len(Aggr_data.objects(time__gt = start, time__lt = end, site = site ))
     if total_records == 0:
         total_records=1
-    step=50
-    for x in range(step,251,step):
+    step=DISTANCE_STEP
+    for x in range(step,DISTANCE_MAX,step):
         data["records"].append( len( Aggr_data.objects(time__gt = start, time__lt = end,
                                    site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
         data["avg_cap"].append(float("{0:.2f}".format(Aggr_data.objects(time__gt = start, time__lt = end, site = site
@@ -356,8 +363,8 @@ def generate_histogram():
     total_records = len(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
     if total_records == 0:
         total_records=1
-    step=50
-    for x in range(step,251,step):
+    step=DISTANCE_STEP
+    for x in range(step,DISTANCE_MAX,step):
         data["records"].append( len( Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
                                      site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
         data["avg_cap"].append(float("{0:.2f}".format(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site

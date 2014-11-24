@@ -28,7 +28,7 @@ MAX_DAYS=1
 PROCESS_TIME_DELAY_IN_SECS = 1
 AGGR_TIME_DELAY_IN_SECS = 1
 SIXTY_TIME_DELAY = 61
-session = FuturesSession(max_workers=500)        #increase the number of workers based on number of processes we can run
+session = FuturesSession(max_workers=10)        #increase the number of workers based on number of processes we can run
 headers = {'Content-Type':'application/json'}
 
 def bg_cb(sess, resp):
@@ -217,6 +217,132 @@ def getData():
 def processData():
     # process CPE data continuously, calculate distance and coverage and update both CPE and BTS data
     # generate snr related events for CPE
+    now = int(time.time())
+    ssid_event_counter=0
+    freq_event_counter=0
+    out_of_network_counter=0
+    start=time.time()
+    distance = 0
+
+    dataObjects = Data.objects(process = False, time__lt = now-PROCESS_TIME_DELAY_IN_SECS,
+                               time__gt = now-MAX_DAYS*24*60*60)
+    for data in dataObjects:
+        device = Device.objects(mac=data.mac).first()
+        if device.type == 'CPE':
+            # get the other device data to calculate total capacity and distance of link
+            bts_device = Data.objects(connId=data.connId, mac__ne=data.mac,time = data.time ).first()
+            if bts_device:
+                # total_cap = data.cap + cap_of_bts_device
+                total_cap = (data.cap*data.tx + bts_device.cap*data.rx)/(data.tx + data.rx)
+                distance = distance_in_miles(bts_device.geo,data.geo)
+                Data.objects(id=data.id).update(set__distance=distance, set__total_cap=total_cap, set__process=True,
+                                                set__geo1=bts_device.geo)
+                Data.objects(id=bts_device.id).update(set__distance=distance, set__total_cap=total_cap,
+                                                      set__process=True, set__geo1=data.geo)
+                # check CPE SNR and generate alarm if necessary
+                snr = min(data.snrA,data.snrB)
+                # if snr is less than cutoff_snr, change ssid else change frequency
+                if snr < OUT_OF_NETWORK_SNR:
+                    if out_of_network_counter == 0:
+                        start = time.time()
+                    out_of_network_counter += 1
+                    stop = time.time()
+                    delta = stop-start
+                    if out_of_network_counter >= NUM_OF_EVENTS-2 and delta <= EVENT_TIME_INTERVAL-2:
+                        event=Event(device=data.mac, parameter='SNR='+ str(snr), message='Going out of network')
+                        event.save()
+                    out_of_network_counter = 0
+                    start = time.time()
+
+                elif snr < CUTOFF_SNR:
+                    if ssid_event_counter == 0:
+                        start = time.time()
+                    ssid_event_counter += 1
+                    stop = time.time()
+                    delta = stop-start
+                    if ssid_event_counter >= NUM_OF_EVENTS-1 and delta <= EVENT_TIME_INTERVAL-1:
+                        event=Event(device=data.mac, parameter='SNR='+ str(snr), message='Changing SSID')
+                        event.save()
+                        url = device.url+'/api/config'
+
+                        # remove all ssids of bts_site that 2nd device is connected to
+
+                        second_device = Device.objects(site=device.site, mac__ne=device.mac).first()
+                        if second_device:
+                            # if second_device.connId in ssidList:
+                            #     ssidList.remove(second_device.connId)
+                            bts_device = Device.objects(connId=second_device.connId, type='BTS').first()
+                            if bts_device:
+                                bts_site = Site.objects(name=bts_device.site).first()
+                                if bts_site:
+                                    bts_ssids = bts_site.ssidList
+                                    ssidList=[x for x in data.ssidList if x not in bts_ssids]
+                                else:
+                                    app.logger.error("BTS site %s does not exist" % bts_device.site)
+                            else:
+                                app.logger.error("There is NO BTS site for ssid %s" % second_device.connId)
+                        else:
+                            app.logger.error("There is NO second device on site %s" % device.site)
+
+                        if ssidList:
+                            new_ssid = ssidList[0]
+                            payload = {'connId': new_ssid}
+                            # putRequest = requests.put(url, data=json.dumps(payload), headers=headers) #TODO uncomment this after test
+
+                            # update Device info - is this needed?
+                            # device.connId = new_ssid
+                            # device.save()
+
+                        # reset counter
+
+                        ssid_event_counter = 0
+                        start = time.time()
+
+                elif snr < LOW_SNR:
+                    if freq_event_counter == 0:
+                        start = time.time()
+                    freq_event_counter += 1
+                    stop = time.time()
+                    delta = stop-start
+                    if freq_event_counter >= NUM_OF_EVENTS and delta <= EVENT_TIME_INTERVAL:
+                        event=Event(device=data.mac, parameter='SNR='+ str(snr), message='Changing Frequency')
+                        event.save()
+                        # other_connected_device = Data.objects(connId=data.connId, mac__ne=data.mac,
+                        #                 time__lt = data.time + datetime.timedelta(seconds = 1),
+                        #                 time__gt = data.time - datetime.timedelta(seconds = 1)).first()
+                        # bts_device = Data.objects(connId=data.connId, mac__ne=data.mac,time = data.time ).first()
+                        #
+                        # if bts_device:
+                        url = Device.objects(mac = bts_device.mac).first().url + '/api/config'
+                        # else:
+                        #     app.logger.error("No freq changed because bts is not connected to %s" % data.mac)
+                        # else:# Todo remove this test code
+                        #     url = device.url+'/api/config' # todo remove this test code
+                            # remove freqA and freqB from freqlist choices
+
+                        current_freq = [str(data.freqA),str(data.freqB)]
+                        freqList=[x for x in data.freqList if x not in current_freq]
+
+                        if freqList:
+                            new_freq = freqList[0]
+                            if data.snrA < data.snrB:
+                                payload = {'freqA': new_freq}
+                            else:
+                                payload = {'freqB': new_freq}
+                            putRequest = requests.put(url, data=json.dumps(payload), headers=headers)
+                        freq_event_counter = 0
+                        start = time.time()
+
+            else:
+                app.logger.error("There is no bts device connected to CPE %s" % data.mac)
+
+    return "Done"
+
+@app.route('/beagleData')
+@login_required
+# @run_once
+def beagleData():
+    # get snr data from device 1 and device 2 and change SSID
     now = int(time.time())
     ssid_event_counter=0
     freq_event_counter=0

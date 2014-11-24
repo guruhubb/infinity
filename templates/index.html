@@ -856,7 +856,7 @@
 {#                var noDevicePosition = true;#}
                 for (var i=0; i<length; i++) {
                     var link = data[i];
-                    debugger;
+{#                    debugger;#}
 {#                    var lat = link.lat;#}
 {#                    var lng = link.lng;#}
 {#                    var lat1 = device.lat1;#}
@@ -996,7 +996,7 @@
                 color = 'orange';
             }
         }
-        debugger;
+{#        debugger;#}
         var pointA = new L.LatLng(link.lat, link.lng);
         var pointB = new L.LatLng(link.lat1,link.lng1);
         var pointList = [pointA, pointB];
@@ -1245,7 +1245,7 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
             aj.done(function (response, textStatus, jqXHR) {
-                                    debugger;
+{#                                    debugger;#}
                 var totalPoints = response.cap.length;
                 if (totalPoints > 0) {
                     lastTime = response.cap[totalPoints - 1][0];
@@ -1272,7 +1272,7 @@
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
         aj.done(function (response, textStatus, jqXHR) {
-                        debugger;
+{#                        debugger;#}
                 var stream = $('#stream').highcharts();
 {#                chart.series[0].setData(response.cap, true);#}
 {#                chart.series[1].setData(response.distance, true);#}
