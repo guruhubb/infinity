@@ -12,7 +12,7 @@ import numpy
 MAX_POINTS = 100
 DISTANCE_STEP = 10
 DISTANCE_MAX = 51
-start = int(time.time()) - 15*24*60*60
+start = int(time.time()) - 100*24*60*60
 end = int(time.time())
 # site = 'btsA'
 site = 'ShipA'

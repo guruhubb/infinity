@@ -154,8 +154,129 @@ class Tag(db.Document):
         return self.name
 
 
+# class Device(db.Document):
+#     name = db.StringField(max_length=64, unique=True)
+#     mac = db.StringField(max_length=32, unique = True)
+#     url = db.StringField(unique = True)
+#     type = db.StringField(max_length=10, choices=TYPE)
+#     operator = db.ReferenceField(Company)
+#     owner = db.ReferenceField(Company)
+#     tags = db.ListField(db.ReferenceField('Tag'), default=['all'])
+#     time = db.DateTimeField(default=datetime.now())
+#     active = db.BooleanField(default=True)
+#     geo = db.GeoPointField()
+#
+#     # geo = db.GeoPointField(default = (31.86,116.6))
+#     site = db.StringField()                 # TODO may need to reference this at some point
+#     connId = db.StringField()
+#     # ssid = db.ReferenceField(Ssid)
+#     # power = db.ReferenceField(Power)
+#     # firmware = db.ReferenceField('Firmware')
+#     # config = db.ReferenceField('Config')
+#
+#     meta = {'indexes': ['mac','operator','owner','tags','geo']}
+#
+#     def __unicode__(self):
+#         return self.name
+#
+#
+# class Data(db.Document):
+#     mac = db.StringField()
+#     connId = db.StringField()
+#     time = db.IntField(default=int(time.time()))
+#     geo = db.GeoPointField()
+#     geo1 = db.GeoPointField()
+#     freqA = db.IntField()
+#     freqB = db.IntField()
+#     snrA = db.FloatField()
+#     snrB = db.FloatField()
+#     tx = db.FloatField()
+#     rx = db.FloatField()
+#     cap = db.FloatField()
+#     total_cap = db.FloatField()
+#     distance = db.FloatField()
+#     freqList = db.StringField()
+#     ssidList = db.StringField()
+#     process = db.BooleanField(default=False)
+#     aggregate = db.BooleanField(default=False)
+#
+#     meta = {'indexes': ['geo', 'connId','mac','time','distance','process','aggregate']}
+#
+# #derived data from Data
+# class Aggr_data(db.Document):
+#     site = db.StringField()
+#     time = db.IntField()
+#     tx = db.FloatField()
+#     rx = db.FloatField()
+#     cap = db.FloatField()
+#     data = db.FloatField()
+#     coverage = db.BooleanField()
+#     distance = db.FloatField()
+#     geo = db.GeoPointField()
+#
+#     meta = {'indexes': ['site','time','distance']}
+#
+#     # meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
+#
+# #derived data from Aggr_Data
+# class Minute(db.Document):
+#     site = db.StringField()
+#     time = db.IntField()
+#     tx = db.FloatField()
+#     rx = db.FloatField()
+#     cap = db.FloatField()
+#     data = db.FloatField()
+#     coverage = db.BooleanField()
+#     distance = db.FloatField()
+#     geo = db.GeoPointField()
+#
+#     meta = {'indexes': ['site','time','distance']}
+#
+# class Hour(db.Document):
+#     site = db.StringField()
+#     time = db.IntField()
+#     tx = db.FloatField()
+#     rx = db.FloatField()
+#     cap = db.FloatField()
+#     data = db.FloatField()
+#     coverage = db.BooleanField()
+#     distance = db.FloatField()
+#     geo = db.GeoPointField()
+#
+#     meta = {'indexes': ['site','time','distance']}
+#
+# class Day(db.Document):
+#     site = db.StringField()
+#     time = db.IntField()
+#     tx = db.FloatField()
+#     rx = db.FloatField()
+#     cap = db.FloatField()
+#     data = db.FloatField()
+#     coverage = db.BooleanField()
+#     distance = db.FloatField()
+#     geo = db.GeoPointField()
+#
+#     meta = {'indexes': ['site','time','distance']}
+#
+# class Month(db.Document):
+#     site = db.StringField()
+#     time = db.IntField()
+#     tx = db.FloatField()
+#     rx = db.FloatField()
+#     cap = db.FloatField()
+#     data = db.FloatField()
+#     coverage = db.BooleanField()
+#     distance = db.FloatField()
+#     geo = db.GeoPointField()
+#
+#     meta = {'indexes': ['site','time','distance']}
+
+
 class Device(db.Document):
     name = db.StringField(max_length=64, unique=True)
+    model = db.StringField(max_length=32)
+    version = db.StringField(max_length=32)
+    serial = db.StringField(max_length=32)
     mac = db.StringField(max_length=32, unique = True)
     url = db.StringField(unique = True)
     type = db.StringField(max_length=10, choices=TYPE)
@@ -181,26 +302,44 @@ class Device(db.Document):
 
 
 class Data(db.Document):
-    mac = db.StringField()
-    connId = db.StringField()
-    time = db.IntField(default=int(time.time()))
-    geo = db.GeoPointField()
-    geo1 = db.GeoPointField()
-    freqA = db.IntField()
-    freqB = db.IntField()
-    snrA = db.FloatField()
-    snrB = db.FloatField()
-    tx = db.FloatField()
-    rx = db.FloatField()
-    cap = db.FloatField()
-    total_cap = db.FloatField()
-    distance = db.FloatField()
-    freqList = db.StringField()
-    ssidList = db.StringField()
-    process = db.BooleanField(default=False)
-    aggregate = db.BooleanField(default=False)
-
-    meta = {'indexes': ['geo', 'connId','mac','time','distance','process','aggregate']}
+    Time = db.IntField(default=int(time.time()))
+    SignalStrength = db.FloatField()
+    TxRate = db.FloatField()
+    RxRate = db.FloatField()
+    Noise = db.FloatField()
+    Chains_1_2 = db.IntField()
+    Chains_3_4 = db.IntField()
+    Tx_Power = db.FloatField()
+    Tx_Phys_Rate = db.FloatField()
+    Rx_Phys_Rate = db.FloatField()
+    Rx_MCS = db.IntField()
+    DeviceName = db.StringField()
+    Location = db.GeoPointField()
+    LinkName = db.StringField()
+    MaxCapacity = db.FloatField()
+    # total_cap = db.FloatField()
+    Distance = db.FloatField()
+    # freqList = db.StringField()
+    # ssidList = db.StringField()
+    Tx0 = db.FloatField()
+    Rx0 = db.FloatField()
+    Noise0 = db.FloatField()
+    Encoding0 = db.IntField()
+    Tx1 = db.FloatField()
+    Rx1 = db.FloatField()
+    Noise1 = db.FloatField()
+    Encoding1 = db.IntField()
+    Tx2 = db.FloatField()
+    Rx2 = db.FloatField()
+    Noise2 = db.FloatField()
+    Encoding2 = db.IntField()
+    Tx3 = db.FloatField()
+    Rx3 = db.FloatField()
+    Noise3 = db.FloatField()
+    Encoding3 = db.IntField()
+    Process = db.BooleanField(default=False)
+    Aggregate = db.BooleanField(default=False)
+    meta = {'indexes': ['Location', 'LinkName','DeviceName','Time','Distance','Process','Aggregate']}
 
 #derived data from Data
 class Aggr_data(db.Document):
@@ -270,7 +409,6 @@ class Month(db.Document):
     geo = db.GeoPointField()
 
     meta = {'indexes': ['site','time','distance']}
-
 
 class Router(db.Document):
     url = db.StringField(unique = True)

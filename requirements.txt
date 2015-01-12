@@ -14,3 +14,6 @@ python-memcached
 pytz
 pillow
 requests
+flask-restful
+python-simplexml
+xmltodict
