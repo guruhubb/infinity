@@ -6,22 +6,30 @@ from mongoengine import Q
 from flask.ext.mail import Message
 from infinity import mail, app, Device, Data, Event, Site, Aggr_data, Beagle, Router, Minute, Hour, Day, Month
 from math import radians, cos, sin, asin, sqrt
-from bson import Code
-from multiprocessing import Pool
-from collections import defaultdict
-from multiprocessing import Process
-from multiprocessing.pool import ThreadPool
-from simplexml import dumps
-from flask import make_response, Flask
-from flask.ext.restful import Api, Resource
-from requests import get
-import xml.etree.ElementTree as ET
+import eventlet
+
+from eventlet.green import urllib2
+# from bson import Code
+# from multiprocessing import Pool
+# from collections import defaultdict
+# from multiprocessing import Process
+# from multiprocessing.pool import ThreadPool
+# from simplexml import dumps
+# from flask import make_response, Flask
+# from flask.ext.restful import Api, Resource
+# from requests import get
+# import xml.etree.ElementTree as ET
 # from xml2json import json2xml, xml2json
 # from xmlutils.xml2json import xml2json
 # from xmltodict import parse, unparse, OrderedDict
 import xmltodict
 import re
-import sys
+import urllib2
+# import sys
+# import httplib
+# import socket
+# from urllib2 import URLError, HTTPPasswordMgrWithDefaultRealm, HTTPBasicAuthHandler, install_opener, build_opener
+
 
 dataController = Blueprint('dataController', __name__, template_folder='templates')
 
@@ -43,10 +51,11 @@ MAX_DAYS=1
 PROCESS_TIME_DELAY_IN_SECS = 1
 AGGR_TIME_DELAY_IN_SECS = 1
 SIXTY_TIME_DELAY = 61
+TIMEOUT = 10
 session = FuturesSession(max_workers=10)        #increase the number of workers based on number of processes we can run
 headers = {'Content-Type':'application/json'}
 headersXml = {'Content-Type':'application/xml'}
-
+initial_time = 0
 
 def bg_cb(sess, resp):
     resp.data = resp.json()                     # parse the json storing the result on the response object
@@ -65,26 +74,26 @@ def run_once(f):
 # run startdata once - could not implement the forever run logic at startup of the app
 
 
-def getData_():
-    try:
-        while True:
-            getData()
-    except Exception, msg:
-            app.logger.error('error message from getData is: %s, ' % msg)
+# def getData_():
+#     try:
+#         while True:
+#             getData()
+#     except Exception, msg:
+#             app.logger.error('error message from getData is: %s, ' % msg)
 
-def processData_():
-    try:
-        while True:
-            processData()
-    except Exception, msg:
-            app.logger.error('error message from processData is: %s, ' % msg)
+# def processData_():
+#     try:
+#         while True:
+#             processData()
+#     except Exception, msg:
+#             app.logger.error('error message from processData is: %s, ' % msg)
 
-def aggrData_():
-    try:
-        while True:
-            aggrData()
-    except Exception, msg:
-            app.logger.error('error message from aggrData is: %s, ' % msg)
+# def aggrData_():
+#     try:
+#         while True:
+#             aggrData()
+#     except Exception, msg:
+#             app.logger.error('error message from aggrData is: %s, ' % msg)
 
 def sixtyData_():
     try:
@@ -132,17 +141,25 @@ def get_router_():
 def startdata():
     try:
         while True:
-            getData()
-            processData()
-            aggrData()
-            minuteData()
-            hourData()
-            monthData()
+            # getData()
+            # processData()
+            # aggrData()
+            get_data()      # get data from all 'CPE' devices; CPE devices are connected to BTS and has a linkname
+            site_data()     # SITE data based on all the CPE devices on that site
+            minuteData()    # per minute data of SITE
+            hourData()      # per hour data of SITE
+            dayData()      # per day data of SITE
+            monthData()     # per month data of SITE
             # time.sleep(1)
 
     except Exception, msg:
             app.logger.error('error message is: %s, ' % msg)
     return "Start getting data from device"
+
+
+def fetch(url):
+    return urllib2.urlopen(url,None,TIMEOUT).read()
+
 
 @app.route('/data/getData', methods=['GET'])
 def get_data():
@@ -151,96 +168,163 @@ def get_data():
     # estimate 5-7kB per get call every 5s or 1kB/s or 8kbps data used for monitoring each device; 100 cpes = 200x 8~1.6Mbps hitting server
     # initial_time = time.now
     #
-    initial_time = 0
-    while True:
-        if ((int(time.time()) - initial_time) > 4):
-            initial_time = int(time.time())
-            # get data
-            url_status = []
-            url_device = []
-            url_link = []
-            url_list =[]
-            for object in Device.objects(active = True, type = 'CPE'):
-                url_list.append(object.url)
-                url_status.append(object.url+'/core/api/service/status.php?management-id=mimosa&management-password=pass123')
-                url_device.append(object.url + '/core/api/service/device-info.php?management-id=mimosa&management-password=pass123')
-                url_link.append(object.url + '/core/api/service/link-info.php?management-id=mimosa&management-password=pass123')
+    # initial_time = 0
+    # while True:
+    global  initial_time
+    if ((int(time.time()) - initial_time) > 4):
+        initial_time = int(time.time())
+        # get data
+        url_status = []
+        url_device = []
+        url_link = []
+        url_list =[]
+        for object in Device.objects(active = True, type = 'CPE'):
+            url_list.append(object.url)
 
+            # url_status.append('https://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
+            # url_device.append('https://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
+            # url_link.append('https://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
-                # url_status = 'http://127.0.0.1:5001/core/api/service/status.php?management-id=mimosa&management-password=pass123'
-                # url_device = 'http://127.0.0.1:5001/core/api/service/device-info.php?management-id=mimosa&management-password=pass123'
-                # url_link = 'http://127.0.0.1:5001/core/api/service/link-info.php?management-id=mimosa&management-password=pass123'
-            for url, urlStatus, urlDevice, urlLink in zip(url_list,url_status,url_device,url_link):
-                try :
-                    response_status = session.get(urlStatus, headers=headersXml,timeout=2).result()
-                    response_device = session.get(urlDevice, headers=headersXml,timeout=2).result()
-                    response_link = session.get(urlLink, headers=headersXml,timeout=2).result()
+            url_status.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
+            url_device.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
+            url_link.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
-                    doc_status = xmltodict.parse(response_status.content)
-                    doc_device = xmltodict.parse(response_device.content)
-                    doc_link = xmltodict.parse(response_link.content)
+            # url_status = 'https://192.168.1.20:5001/core/api/service/status.php?management-id=mimosa&management-password=pass123'
+            # url_device = 'http://127.0.0.1:5001/core/api/service/device-info.php?management-id=mimosa&management-password=pass123'
+            # url_link = 'http://127.0.0.1:5001/core/api/service/link-info.php?management-id=mimosa&management-password=pass123'
+        for url, urlStatus, urlDevice, urlLink in zip(url_list,url_status,url_device,url_link):
+            try :
 
-                    status = doc_status['response']['mimosaContent']['values']
-                    device = doc_device['response']['mimosaContent']['values']
-                    link = doc_link['response']['mimosaContent']['values']
-                    # add only DeviceName and Location from device-info API
-                    for k,v in device.items():
-                        if k in ['DeviceName','Location']:
+                # password_mgr = HTTPPasswordMgrWithDefaultRealm()
+                # # Add the username and password.
+                # feed_url = 'https://192.168.1.20/core/api/service/status.php'
+                # password_mgr.add_password(None, feed_url, "username=infinity", "password=123")
+                # opener = build_opener(HTTPBasicAuthHandler(password_mgr))
+                # file = opener.open(feed_url)
+                # conn = httplib.HTTPSConnection(str(url))
+                # conn.request("GET","/core/api/service/status.php?username=infinity&password=123")
+                # r1 = conn.getresponse()
+                # response_status= r1.read()
+                # conn.request("GET","/core/api/service/device-info.php?username=infinity&password=123")
+                # r1 = conn.getresponse()
+                # response_device= r1.read()
+                # conn.request("GET","/core/api/service/link-info.php?username=infinity&password=123")
+                # r1 = conn.getresponse()
+                # response_link= r1.read()
+
+                # response_status = session.get(urlStatus, headers=headersXml,timeout=2).result()
+                # response_device = session.get(urlDevice, headers=headersXml,timeout=2).result()
+                # response_link = session.get(urlLink, headers=headersXml,timeout=2).result()
+                # response_status = urllib2.urlopen('https://192.168.1.20/core/api/service/status.php?username=infinity&password=123')
+                # response_device = urllib2.urlopen('https://192.168.1.20/core/api/service/device-info.php?username=infinity&password=123')
+                # response_link = urllib2.urlopen('https://192.168.1.20/core/api/service/link-info.php?username=infinity&password=123')
+
+                # r=requests.get(urlStatus,verify=False)  #same as urllib2
+                urls = [urlStatus,urlDevice,urlLink]
+                doc_=[]
+                pool = eventlet.GreenPool()
+                for body in pool.imap(fetch, urls):
+                    doc_.append(xmltodict.parse(body))
+                    # print("got body", len(body))
+
+                # response_status = urllib2.urlopen(urlStatus, None,TIMEOUT)
+                # response_device = urllib2.urlopen(urlDevice, None, TIMEOUT)
+                # response_link = urllib2.urlopen(urlLink, None, TIMEOUT)
+
+                # doc_status = xmltodict.parse(response_status.read())
+                # doc_device = xmltodict.parse(response_device.read())
+                # doc_link = xmltodict.parse(response_link.read())
+
+                # doc_status = xmltodict.parse(response_status.content)
+                # doc_device = xmltodict.parse(response_device.content)
+                # doc_link = xmltodict.parse(response_link.content)
+
+                # status = doc_status['response']['mimosaContent']['values']
+                # device = doc_device['response']['mimosaContent']['values']
+                # link = doc_link['response']['mimosaContent']['values']
+
+                status = doc_[0]['response']['mimosaContent']['values']
+                device = doc_[1]['response']['mimosaContent']['values']
+                link = doc_[2]['response']['mimosaContent']['values']
+
+                # add only DeviceName and Location from device-info API
+                for k,v in device.items():
+                    if k in ['DeviceName','Location']:
+                        if device[k]:
                             status[k] = device[k]
-                    # add only LinkName, MaxCapacity, and Distance from link-info API
-                    for k,v in link.items():
-                        if k in ['LinkName','MaxCapacity','Distance']:
+                # add only LinkName, MaxCapacity, and Distance from link-info API
+                for k,v in link.items():
+                    if k in ['LinkName','MaxCapacity','Distance']:
+                        if link[k]:
                             status[k] = link[k]
-                    for k,v in status.items():
-                        if k not in ['Chains_1_2', 'Chains_3_4','Details','Rx_MCS','Location','DeviceName','LinkName']:
-                            if status[k]:
-                                status[k] = float(status[k])
-                        elif k == 'Rx_MCS':
-                            if status[k]:
-                                status [k]=int(status[k])
-                        elif k == 'Location':
-                            if status[k]:
-                                status [k] = tuple([float(x) for x in re.split(' |---',status [k])])
+                        else:
+                            status[k] = 0.0
+                for k,v in status.items():
+                    if k not in ['Chains_1_2', 'Chains_3_4','Details','Rx_MCS','Location','DeviceName','LinkName']:
+                        if status[k]:
+                            status[k] = float(status[k])
+                        else: status[k] = 0.0
+                    elif k == 'Rx_MCS':
+                        if status[k]:
+                            status [k]=int(status[k])
+                        else: status[k] = 0.0
+                    elif k == 'Location':
+                        if status[k]:
+                            status [k] = tuple([float(x) for x in re.split(' -- ',status [k])])
+                        else: status[k] = (0.,0.)
+                    else:
+                        if status[k]:
+                            status[k] = status[k]
+                        else: status[k] = 0.
+                if status['SignalStrength'] == float('-inf'):
+                    status['SignalStrength'] = -100.0
+                # status.update(device)
+                # status.update(link)
 
-                    # status.update(device)
-                    # status.update(link)
+                # convert string to float, mcs/encoding to int, lat-long to geo
+                # add checks for Null data, convert Details to flat dict, remove Details
 
-                    # convert string to float, mcs/encoding to int, lat-long to geo
-                    # add checks for Null data, convert Details to flat dict, remove Details
+                details = status['Details']['_ELEMENT']
+                for x in range(len(details)):
+                    if details[x]['Tx']:
+                        status['Tx'+str(x)] = float(details[x]['Tx'])
+                    else:
+                        status['Tx'+str(x)] = 0.0
+                    if details[x]['Rx']:
+                        status['Rx'+str(x)] = float(details[x]['Rx'])
+                    else:
+                        status['Rx'+str(x)] = 0.0
+                    if details[x]['Noise']:
+                        status['Noise'+str(x)] = float(details[x]['Noise'])
+                    else:
+                        status['Noise'+str(x)] = 0.0
+                    if details[x]['Encoding']:
+                        status['Encoding'+str(x)] = int(details[x]['Encoding'])
+                    else:
+                        status['Encoding'+str(x)] = 0.0
 
-                    details = status['Details']['_ELEMENT']
-                    for x in range(len(details)):
-                        if details[x]['Tx']:
-                            status['Tx'+str(x)] = float(details[x]['Tx'])
-                        if details[x]['Rx']:
-                            status['Rx'+str(x)] = float(details[x]['Rx'])
-                        if details[x]['Noise']:
-                            status['Noise'+str(x)] = float(details[x]['Noise'])
-                        if details[x]['Encoding']:
-                            status['Encoding'+str(x)] = int(details[x]['Encoding'])
+                del status['Details']
+                # status ['Time'] = initial_time
+                status ['Process'] = False
+                status ['Aggregate'] = False
 
-                    del status['Details']
-                    # status ['Time'] = initial_time
-                    status ['Process'] = False
-                    status ['Aggregate'] = False
+                status_=collections.OrderedDict()
+                status_['Time']=initial_time
+                for k,v in status.items():
+                    status_[k]=status[k]
+                app.logger.info('Data from %s'  % url)
+                dataCollection.insert(status_)
 
-                    status_=collections.OrderedDict()
-                    status_['Time']=initial_time
-                    for k,v in status.items():
-                        status_[k]=status[k]
-                    app.logger.info('Data from %s'  % url)
-                    dataCollection.insert(status_)
+                # status ['statusSize'] = sys.getsizeof(response_status.content)
+                # from pymongo import Connection
+                # app.logger.info('data from %s - status_ is %s and dumps is %s' % (url, status_,json.dumps(status_)))
+                # return Response(json.dumps(status),  mimetype='application/json')
 
-                    # status ['statusSize'] = sys.getsizeof(response_status.content)
-                    # from pymongo import Connection
-                    # app.logger.info('data from %s - status_ is %s and dumps is %s' % (url, status_,json.dumps(status_)))
-                    # return Response(json.dumps(status),  mimetype='application/json')
+            except :
+                app.logger.info("Bad Access API")
 
-                except :
-                    app.logger.info("Bad Access API")
-
-        else:
-            continue
+    # else:
+    #     continue
 
 @app.route('/data/siteData')
 @login_required
@@ -248,67 +332,78 @@ def site_data():
 
     # aggregate cpe devices on a ship, and bts devices at a port
     now = int(time.time())
-    dataObjects = Data.objects(aggregate = False, process = True, time__lt = now-AGGR_TIME_DELAY_IN_SECS,time__gt = now
+    dataObjects = Data.objects(Aggregate = False, Process = False, Time__lt = now-AGGR_TIME_DELAY_IN_SECS,Time__gt = now
                                                                           -24*60*60*MAX_DAYS)
     for data in dataObjects:
-        device = Device.objects(mac=data.mac).first()
-        if device.type == 'CPE':
-            # if Aggr_data.objects(time__lt = data.time + datetime.timedelta(seconds = 0.5),
-            #                         time__gt = data.time - datetime.timedelta(seconds = 0.5),
-            #                         site = device.site).first() is None:
-            if Aggr_data.objects(time = data.time,site = device.site).first() is None:
+        device = Device.objects(name=data.DeviceName).first()
+        if device:
+            if device.type == 'CPE':
+                # if Aggr_data.objects(time__lt = data.time + datetime.timedelta(seconds = 0.5),
+                #                         time__gt = data.time - datetime.timedelta(seconds = 0.5),
+                #                         site = device.site).first() is None:
+                if Aggr_data.objects(time = data.Time,site = device.site).first() is None:
 
-                # get data from the second device
+                    # get data from the second device
 
-                second_device = Device.objects(site=device.site, mac__ne=device.mac).first()
-                if second_device:
-                    # second_device_data = Data.objects(mac=second_device.mac,
-                    #         time__lt= data.time+datetime.timedelta(seconds=1),
-                    #         time__gt= data.time-datetime.timedelta(seconds=1)).first()
-                    second_device_data = Data.objects(mac=second_device.mac,time= data.time).first()
+                    second_device = Device.objects(site=device.site, name__ne=device.name).first()
+                    if second_device:
+                        # second_device_data = Data.objects(mac=second_device.mac,
+                        #         time__lt= data.time+datetime.timedelta(seconds=1),
+                        #         time__gt= data.time-datetime.timedelta(seconds=1)).first()
+                        second_device_data = Data.objects(DeviceName=second_device.name,Time= data.Time).first()
 
-                    # add aggr_data record with tx, rx, total_cap, minimum distance;
-                    # if total_cap > cutoff_capacity then cov = YES
+                        # add aggr_data record with tx, rx, total_cap, minimum distance;
+                        # if total_cap > cutoff_capacity then cov = YES
 
-                    if second_device_data:
-                        total_tx = second_device_data.tx + data.tx
-                        total_rx = second_device_data.rx + data.rx
-                        total_total_cap = second_device_data.total_cap + data.total_cap
-                        if second_device_data.distance > data.distance :
-                            min_distance = data.distance
-                        else :
-                            min_distance = second_device_data.distance
+                        if second_device_data:
+                            total_tx = second_device_data.TxRate + data.TxRate
+                            total_rx = second_device_data.RxRate + data.RxRate
+                            total_total_cap = second_device_data.MaxCapacity + data.MaxCapacity
+                            if second_device_data.Distance > data.Distance :
+                                min_distance = data.Distance
+                            else :
+                                min_distance = second_device_data.Distance
 
-                        # prevent zero distance condition
+                            # prevent zero distance condition
 
-                        if second_device_data.distance == 0:
-                            min_distance = data.distance
-                        if data.distance == 0:
-                            min_distance = second_device_data.distance
+                            if second_device_data.Distance == 0:
+                                min_distance = data.Distance
+                            if data.Distance == 0:
+                                min_distance = second_device_data.Distance
 
-                        if total_total_cap > CUTOFF_CAPACITY:
-                            coverage = True
+                            if total_total_cap > CUTOFF_CAPACITY:
+                                coverage = True
+                            else:
+                                coverage = False
+                            aggr_data = Aggr_data(site=device.site, time = data.Time, tx=total_tx, rx=total_rx,
+                                 cap = total_total_cap, data = total_rx+total_tx, coverage = coverage,
+                                 distance = min_distance, geo = data.Location)
+                            aggr_data.save()
+                            Data.objects(id=data.id).update(set__Aggregate=True)
                         else:
-                            coverage = False
-                        aggr_data = Aggr_data(site=device.site, time = data.time, tx=total_tx, rx=total_rx,
-                             cap = total_total_cap, data = total_rx+total_tx, coverage = coverage,
-                             distance = min_distance, geo = data.geo)
-                        aggr_data.save()
-                        Data.objects(id=data.id).update(set__aggregate=True)
+                            if data.MaxCapacity > CUTOFF_CAPACITY:
+                                coverage = True
+                            else:
+                                coverage = False
+                            aggr_data = Aggr_data(site=device.site, time = data.Time, tx=data.TxRate, rx=data.RxRate,
+                                 cap = data.MaxCapacity, data = data.TxRate+data.RxRate, coverage = coverage,
+                                 distance = data.Distance, geo = data.Location)
+                            aggr_data.save()
+                            Data.objects(id=data.id).update(set__Aggregate=True)
+                            app.logger.error("There is NO data from second device %s on site %s" %
+                                             (second_device.name, device.site))
                     else:
-                        if data.total_cap > CUTOFF_CAPACITY:
-                            coverage = True
+                        if data.MaxCapacity > CUTOFF_CAPACITY:
+                                coverage = True
                         else:
-                            coverage = False
-                        aggr_data = Aggr_data(site=device.site, time = data.time, tx=data.tx, rx=data.rx,
-                             cap = data.total_cap, data = data.tx+data.rx, coverage = coverage,
-                             distance = data.distance, geo = data.geo)
+                                coverage = False
+                        aggr_data = Aggr_data(site=device.site, time = data.Time, tx=data.TxRate, rx=data.RxRate,
+                                 cap = data.MaxCapacity, data = data.TxRate+data.RxRate, coverage = coverage,
+                                 distance = data.Distance, geo = data.Location)
                         aggr_data.save()
-                        Data.objects(id=data.id).update(set__aggregate=True)
-                        app.logger.error("There is NO data from second device %s on site %s" %
-                                         (second_device.name, device.site))
-                else:
-                    app.logger.error("There is NO second device on site %s" % device.site)
+                        Data.objects(id=data.id).update(set__Aggregate=True)
+                        app.logger.error("There is NO second device on site %s" % device.site)
+
 
     return "Done"
     # time.sleep(1)
@@ -387,218 +482,218 @@ def site_data():
 #     # time.sleep(1)
 # @app.route('/getData')
 # @login_required
-def getData():
-    urlList = []
-    urlListXml = []
-    macList = []
-    timeList = []
-    totaldocuments = []
-    msg = ""
+# def getData():
+#     urlList = []
+#     urlListXml = []
+#     macList = []
+#     timeList = []
+#     totaldocuments = []
+#     msg = ""
+#
+#     # go through all the devices and make a list of url, mac, latest timestamp of data
+#
+#     for object in Device.objects(active = True):
+#         urlList.append(object.url+'/api/device')   # need /api/device affix in the url
+#         macList.append(object.mac) #https://192.168.20.1/core/api/service/status.php?managementid=
+# #mimosa&management-password=pass123
+#         urlListXml.append(object.url+'/core/api/service/status.php?management-id=mimosa&management-password=pass123')   # need /api/device affix in the url
+#
+#         timeStamp = Data.objects(mac = object.mac).order_by('-time').only ('time').first()
+#
+#         # validate if timestamp is null and format it for the device timestamp if necessary
+#
+#         if timeStamp:
+#             # timeStamp = timeStamp.time
+#             # timeStamp = datetime.datetime.strptime(timeStamp,"%Y-%m-%dT%H:%M:%S.%f")
+#             # timeStamp = timeStamp.strftime('%Y-%m-%d %H:%M:%S.%f')
+#             # timeStamp = timeStamp.strftime('%Y-%m-%d %H:%M:%S')
+#             timeList.append(timeStamp.time)
+#         else:
+#             timeList.append(time.time()-2*60)    # append 2 minutes from now ghl;'
+#
+#     # do REST calls and get new data
+#
+#     for url, timeItem in zip(urlList,timeList):
+#
+#         # get new data gt (time.now - 1 hr), make sure time is in string format
+#
+#         filters = [dict(name='time', op='>', val=str(timeItem))]
+#         params = dict(q=json.dumps(dict(filters=filters)))
+#         try:  #try with timeout=2 instead of timeout =5
+#             response = session.get(url,params=params, headers=headers,timeout=2,background_callback=bg_cb).result()
+#             if len(response.data["objects"]) is 0:
+#                 continue
+#             documents=[]
+#             count=0
+#             for obj in response.data["objects"]:
+#                 count += 1
+#                 if count == 1:   # remove redundant first object
+#                     continue
+#                 else:
+#                     mac = obj["mac"]
+#                     connId = obj["connId"]
+#                     timeEntry = obj["time"]
+#                     # timeEntry = datetime.datetime.strptime(obj["time"],"%Y-%m-%dT%H:%M:%S.%f").replace(microsecond=0)
+#                     lat = obj["lat"]
+#                     long = obj["long"]
+#                     freqA = obj["freqA"]
+#                     freqB = obj["freqB"]
+#                     snrA = obj["snrA"]
+#                     snrB = obj["snrB"]
+#                     tx = obj["tx"]
+#                     rx = obj["rx"]
+#                     cap = obj["cap"]
+#                     freqList = obj["freqList"].split()  # ordered list of available clear channels separated by whitespace
+#                     ssidList = obj["ssidList"].split()  # ordered list of available ssids channels separated by whitespace
+#
+#                     geo = (lat,long)
+#                     geo1=(0.,0.)
+#                     documents.append({"mac":mac,"connId":connId,"time":timeEntry, "geo":geo,"geo1":geo1,"freqA":freqA,
+#                         "freqB":freqB,"snrA":snrA,"snrB":snrB, "tx":tx,"rx":rx,"cap":cap,"total_cap":0,
+#                         "distance":0, "freqList":freqList, "ssidList":ssidList,"process":False,"aggregate":False})
+#
+#             if documents:   # bulk insert
+#                 totaldocuments.append(documents)
+#                 dbmongo.data.insert(documents)
+#
+#         except Exception, msg:
+#             app.logger.error('error message is: %s, ' % msg)
+#             pass
+#     if totaldocuments:
+#         return str(totaldocuments)
+#     else:
+#         if msg:
+#             return "Some or all devices are down"
+#         else:
+#             return "No data from devices"
+#     # time.sleep(1)
 
-    # go through all the devices and make a list of url, mac, latest timestamp of data
-
-    for object in Device.objects(active = True):
-        urlList.append(object.url+'/api/device')   # need /api/device affix in the url
-        macList.append(object.mac) #https://192.168.20.1/core/api/service/status.php?managementid=
-#mimosa&management-password=pass123
-        urlListXml.append(object.url+'/core/api/service/status.php?management-id=mimosa&management-password=pass123')   # need /api/device affix in the url
-
-        timeStamp = Data.objects(mac = object.mac).order_by('-time').only ('time').first()
-
-        # validate if timestamp is null and format it for the device timestamp if necessary
-
-        if timeStamp:
-            # timeStamp = timeStamp.time
-            # timeStamp = datetime.datetime.strptime(timeStamp,"%Y-%m-%dT%H:%M:%S.%f")
-            # timeStamp = timeStamp.strftime('%Y-%m-%d %H:%M:%S.%f')
-            # timeStamp = timeStamp.strftime('%Y-%m-%d %H:%M:%S')
-            timeList.append(timeStamp.time)
-        else:
-            timeList.append(time.time()-2*60)    # append 2 minutes from now ghl;'
-
-    # do REST calls and get new data
-
-    for url, timeItem in zip(urlList,timeList):
-
-        # get new data gt (time.now - 1 hr), make sure time is in string format
-
-        filters = [dict(name='time', op='>', val=str(timeItem))]
-        params = dict(q=json.dumps(dict(filters=filters)))
-        try:  #try with timeout=2 instead of timeout =5
-            response = session.get(url,params=params, headers=headers,timeout=2,background_callback=bg_cb).result()
-            if len(response.data["objects"]) is 0:
-                continue
-            documents=[]
-            count=0
-            for obj in response.data["objects"]:
-                count += 1
-                if count == 1:   # remove redundant first object
-                    continue
-                else:
-                    mac = obj["mac"]
-                    connId = obj["connId"]
-                    timeEntry = obj["time"]
-                    # timeEntry = datetime.datetime.strptime(obj["time"],"%Y-%m-%dT%H:%M:%S.%f").replace(microsecond=0)
-                    lat = obj["lat"]
-                    long = obj["long"]
-                    freqA = obj["freqA"]
-                    freqB = obj["freqB"]
-                    snrA = obj["snrA"]
-                    snrB = obj["snrB"]
-                    tx = obj["tx"]
-                    rx = obj["rx"]
-                    cap = obj["cap"]
-                    freqList = obj["freqList"].split()  # ordered list of available clear channels separated by whitespace
-                    ssidList = obj["ssidList"].split()  # ordered list of available ssids channels separated by whitespace
-
-                    geo = (lat,long)
-                    geo1=(0.,0.)
-                    documents.append({"mac":mac,"connId":connId,"time":timeEntry, "geo":geo,"geo1":geo1,"freqA":freqA,
-                        "freqB":freqB,"snrA":snrA,"snrB":snrB, "tx":tx,"rx":rx,"cap":cap,"total_cap":0,
-                        "distance":0, "freqList":freqList, "ssidList":ssidList,"process":False,"aggregate":False})
-
-            if documents:   # bulk insert
-                totaldocuments.append(documents)
-                dbmongo.data.insert(documents)
-
-        except Exception, msg:
-            app.logger.error('error message is: %s, ' % msg)
-            pass
-    if totaldocuments:
-        return str(totaldocuments)
-    else:
-        if msg:
-            return "Some or all devices are down"
-        else:
-            return "No data from devices"
-    # time.sleep(1)
-
-@app.route('/processData')
-@login_required
-# @run_once
-def processData():
-    # process CPE data continuously, calculate distance and coverage and update both CPE and BTS data
-    # generate snr related events for CPE
-    now = int(time.time())
-    ssid_event_counter=0
-    freq_event_counter=0
-    out_of_network_counter=0
-    start=time.time()
-    distance = 0
-
-    dataObjects = Data.objects(process = False, time__lt = now-PROCESS_TIME_DELAY_IN_SECS,
-                               time__gt = now-MAX_DAYS*24*60*60)
-    for data in dataObjects:
-        device = Device.objects(mac=data.mac).first()
-        if device.type == 'CPE':
-            # get the other device data to calculate total capacity and distance of link
-            bts_device = Data.objects(connId=data.connId, mac__ne=data.mac,time = data.time ).first()
-            if bts_device:
-                # total_cap = data.cap + cap_of_bts_device
-                total_cap = (data.cap*data.tx + bts_device.cap*data.rx)/(data.tx + data.rx)
-                distance = distance_in_miles(bts_device.geo,data.geo)
-                Data.objects(id=data.id).update(set__distance=distance, set__total_cap=total_cap, set__process=True,
-                                                set__geo1=bts_device.geo)
-                Data.objects(id=bts_device.id).update(set__distance=distance, set__total_cap=total_cap,
-                                                      set__process=True, set__geo1=data.geo)
-                # check CPE SNR and generate alarm if necessary
-                snr = min(data.snrA,data.snrB)
-                # if snr is less than cutoff_snr, change ssid else change frequency
-                if snr < OUT_OF_NETWORK_SNR:
-                    if out_of_network_counter == 0:
-                        start = time.time()
-                    out_of_network_counter += 1
-                    stop = time.time()
-                    delta = stop-start
-                    if out_of_network_counter >= NUM_OF_EVENTS-2 and delta <= EVENT_TIME_INTERVAL-2:
-                        event=Event(device=data.mac, parameter='SNR='+ str(snr), message='Going out of network')
-                        event.save()
-                    out_of_network_counter = 0
-                    start = time.time()
-
-                elif snr < CUTOFF_SNR:
-                    if ssid_event_counter == 0:
-                        start = time.time()
-                    ssid_event_counter += 1
-                    stop = time.time()
-                    delta = stop-start
-                    if ssid_event_counter >= NUM_OF_EVENTS-1 and delta <= EVENT_TIME_INTERVAL-1:
-                        event=Event(device=data.mac, parameter='SNR='+ str(snr), message='Changing SSID')
-                        event.save()
-                        url = device.url+'/api/config'
-
-                        # remove all ssids of bts_site that 2nd device is connected to
-
-                        second_device = Device.objects(site=device.site, mac__ne=device.mac).first()
-                        if second_device:
-                            # if second_device.connId in ssidList:
-                            #     ssidList.remove(second_device.connId)
-                            bts_device = Device.objects(connId=second_device.connId, type='BTS').first()
-                            if bts_device:
-                                bts_site = Site.objects(name=bts_device.site).first()
-                                if bts_site:
-                                    bts_ssids = bts_site.ssidList
-                                    ssidList=[x for x in data.ssidList if x not in bts_ssids]
-                                else:
-                                    app.logger.error("BTS site %s does not exist" % bts_device.site)
-                            else:
-                                app.logger.error("There is NO BTS site for ssid %s" % second_device.connId)
-                        else:
-                            app.logger.error("There is NO second device on site %s" % device.site)
-
-                        if ssidList:
-                            new_ssid = ssidList[0]
-                            payload = {'connId': new_ssid}
-                            # putRequest = requests.put(url, data=json.dumps(payload), headers=headers) #TODO uncomment this after test
-
-                            # update Device info - is this needed?
-                            # device.connId = new_ssid
-                            # device.save()
-
-                        # reset counter
-
-                        ssid_event_counter = 0
-                        start = time.time()
-
-                elif snr < LOW_SNR:
-                    if freq_event_counter == 0:
-                        start = time.time()
-                    freq_event_counter += 1
-                    stop = time.time()
-                    delta = stop-start
-                    if freq_event_counter >= NUM_OF_EVENTS and delta <= EVENT_TIME_INTERVAL:
-                        event=Event(device=data.mac, parameter='SNR='+ str(snr), message='Changing Frequency')
-                        event.save()
-                        # other_connected_device = Data.objects(connId=data.connId, mac__ne=data.mac,
-                        #                 time__lt = data.time + datetime.timedelta(seconds = 1),
-                        #                 time__gt = data.time - datetime.timedelta(seconds = 1)).first()
-                        # bts_device = Data.objects(connId=data.connId, mac__ne=data.mac,time = data.time ).first()
-                        #
-                        # if bts_device:
-                        url = Device.objects(mac = bts_device.mac).first().url + '/api/config'
-                        # else:
-                        #     app.logger.error("No freq changed because bts is not connected to %s" % data.mac)
-                        # else:# Todo remove this test code
-                        #     url = device.url+'/api/config' # todo remove this test code
-                            # remove freqA and freqB from freqlist choices
-
-                        current_freq = [str(data.freqA),str(data.freqB)]
-                        freqList=[x for x in data.freqList if x not in current_freq]
-
-                        if freqList:
-                            new_freq = freqList[0]
-                            if data.snrA < data.snrB:
-                                payload = {'freqA': new_freq}
-                            else:
-                                payload = {'freqB': new_freq}
-                            putRequest = requests.put(url, data=json.dumps(payload), headers=headers)
-                        freq_event_counter = 0
-                        start = time.time()
-
-            else:
-                app.logger.error("There is no bts device connected to CPE %s" % data.mac)
-
-    return "Done"
+# @app.route('/processData')
+# @login_required
+# # @run_once
+# def processData():
+#     # process CPE data continuously, calculate distance and coverage and update both CPE and BTS data
+#     # generate snr related events for CPE
+#     now = int(time.time())
+#     ssid_event_counter=0
+#     freq_event_counter=0
+#     out_of_network_counter=0
+#     start=time.time()
+#     distance = 0
+#
+#     dataObjects = Data.objects(process = False, time__lt = now-PROCESS_TIME_DELAY_IN_SECS,
+#                                time__gt = now-MAX_DAYS*24*60*60)
+#     for data in dataObjects:
+#         device = Device.objects(mac=data.mac).first()
+#         if device.type == 'CPE':
+#             # get the other device data to calculate total capacity and distance of link
+#             bts_device = Data.objects(connId=data.connId, mac__ne=data.mac,time = data.time ).first()
+#             if bts_device:
+#                 # total_cap = data.cap + cap_of_bts_device
+#                 total_cap = (data.cap*data.tx + bts_device.cap*data.rx)/(data.tx + data.rx)
+#                 distance = distance_in_miles(bts_device.geo,data.geo)
+#                 Data.objects(id=data.id).update(set__distance=distance, set__total_cap=total_cap, set__process=True,
+#                                                 set__geo1=bts_device.geo)
+#                 Data.objects(id=bts_device.id).update(set__distance=distance, set__total_cap=total_cap,
+#                                                       set__process=True, set__geo1=data.geo)
+#                 # check CPE SNR and generate alarm if necessary
+#                 snr = min(data.snrA,data.snrB)
+#                 # if snr is less than cutoff_snr, change ssid else change frequency
+#                 if snr < OUT_OF_NETWORK_SNR:
+#                     if out_of_network_counter == 0:
+#                         start = time.time()
+#                     out_of_network_counter += 1
+#                     stop = time.time()
+#                     delta = stop-start
+#                     if out_of_network_counter >= NUM_OF_EVENTS-2 and delta <= EVENT_TIME_INTERVAL-2:
+#                         event=Event(device=data.mac, parameter='SNR='+ str(snr), message='Going out of network')
+#                         event.save()
+#                     out_of_network_counter = 0
+#                     start = time.time()
+#
+#                 elif snr < CUTOFF_SNR:
+#                     if ssid_event_counter == 0:
+#                         start = time.time()
+#                     ssid_event_counter += 1
+#                     stop = time.time()
+#                     delta = stop-start
+#                     if ssid_event_counter >= NUM_OF_EVENTS-1 and delta <= EVENT_TIME_INTERVAL-1:
+#                         event=Event(device=data.mac, parameter='SNR='+ str(snr), message='Changing SSID')
+#                         event.save()
+#                         url = device.url+'/api/config'
+#
+#                         # remove all ssids of bts_site that 2nd device is connected to
+#
+#                         second_device = Device.objects(site=device.site, mac__ne=device.mac).first()
+#                         if second_device:
+#                             # if second_device.connId in ssidList:
+#                             #     ssidList.remove(second_device.connId)
+#                             bts_device = Device.objects(connId=second_device.connId, type='BTS').first()
+#                             if bts_device:
+#                                 bts_site = Site.objects(name=bts_device.site).first()
+#                                 if bts_site:
+#                                     bts_ssids = bts_site.ssidList
+#                                     ssidList=[x for x in data.ssidList if x not in bts_ssids]
+#                                 else:
+#                                     app.logger.error("BTS site %s does not exist" % bts_device.site)
+#                             else:
+#                                 app.logger.error("There is NO BTS site for ssid %s" % second_device.connId)
+#                         else:
+#                             app.logger.error("There is NO second device on site %s" % device.site)
+#
+#                         if ssidList:
+#                             new_ssid = ssidList[0]
+#                             payload = {'connId': new_ssid}
+#                             # putRequest = requests.put(url, data=json.dumps(payload), headers=headers) #TODO uncomment this after test
+#
+#                             # update Device info - is this needed?
+#                             # device.connId = new_ssid
+#                             # device.save()
+#
+#                         # reset counter
+#
+#                         ssid_event_counter = 0
+#                         start = time.time()
+#
+#                 elif snr < LOW_SNR:
+#                     if freq_event_counter == 0:
+#                         start = time.time()
+#                     freq_event_counter += 1
+#                     stop = time.time()
+#                     delta = stop-start
+#                     if freq_event_counter >= NUM_OF_EVENTS and delta <= EVENT_TIME_INTERVAL:
+#                         event=Event(device=data.mac, parameter='SNR='+ str(snr), message='Changing Frequency')
+#                         event.save()
+#                         # other_connected_device = Data.objects(connId=data.connId, mac__ne=data.mac,
+#                         #                 time__lt = data.time + datetime.timedelta(seconds = 1),
+#                         #                 time__gt = data.time - datetime.timedelta(seconds = 1)).first()
+#                         # bts_device = Data.objects(connId=data.connId, mac__ne=data.mac,time = data.time ).first()
+#                         #
+#                         # if bts_device:
+#                         url = Device.objects(mac = bts_device.mac).first().url + '/api/config'
+#                         # else:
+#                         #     app.logger.error("No freq changed because bts is not connected to %s" % data.mac)
+#                         # else:# Todo remove this test code
+#                         #     url = device.url+'/api/config' # todo remove this test code
+#                             # remove freqA and freqB from freqlist choices
+#
+#                         current_freq = [str(data.freqA),str(data.freqB)]
+#                         freqList=[x for x in data.freqList if x not in current_freq]
+#
+#                         if freqList:
+#                             new_freq = freqList[0]
+#                             if data.snrA < data.snrB:
+#                                 payload = {'freqA': new_freq}
+#                             else:
+#                                 payload = {'freqB': new_freq}
+#                             putRequest = requests.put(url, data=json.dumps(payload), headers=headers)
+#                         freq_event_counter = 0
+#                         start = time.time()
+#
+#             else:
+#                 app.logger.error("There is no bts device connected to CPE %s" % data.mac)
+#
+#     return "Done"
 
 @app.route('/beagleData')
 @login_required
@@ -726,126 +821,126 @@ def beagleData():
 
     return "Done"
 
-@app.route('/aggrData')
-@login_required
-def aggrData():
+# @app.route('/aggrData')
+# @login_required
+# def aggrData():
+#
+#     # aggregate cpe devices on a ship, and bts devices at a port
+#     now = int(time.time())
+#     dataObjects = Data.objects(aggregate = False, process = True, time__lt = now-AGGR_TIME_DELAY_IN_SECS,time__gt = now
+#                                                                           -24*60*60*MAX_DAYS)
+#
+#     for data in dataObjects:
+#         device = Device.objects(mac=data.mac).first()
+#
+#         if device.type == 'CPE':
+#             # if Aggr_data.objects(time__lt = data.time + datetime.timedelta(seconds = 0.5),
+#             #                         time__gt = data.time - datetime.timedelta(seconds = 0.5),
+#             #                         site = device.site).first() is None:
+#             if Aggr_data.objects(time = data.time,site = device.site).first() is None:
+#
+#                 # get data from the second device
+#
+#                 second_device = Device.objects(site=device.site, mac__ne=device.mac).first()
+#                 if second_device:
+#                     # second_device_data = Data.objects(mac=second_device.mac,
+#                     #         time__lt= data.time+datetime.timedelta(seconds=1),
+#                     #         time__gt= data.time-datetime.timedelta(seconds=1)).first()
+#                     second_device_data = Data.objects(mac=second_device.mac,time= data.time).first()
+#
+#                     # add aggr_data record with tx, rx, total_cap, minimum distance;
+#                     # if total_cap > cutoff_capacity then cov = YES
+#
+#                     if second_device_data:
+#                         total_tx = second_device_data.tx + data.tx
+#                         total_rx = second_device_data.rx + data.rx
+#                         total_total_cap = second_device_data.total_cap + data.total_cap
+#                         if second_device_data.distance > data.distance :
+#                             min_distance = data.distance
+#                         else :
+#                             min_distance = second_device_data.distance
+#
+#                         # prevent zero distance condition
+#
+#                         if second_device_data.distance == 0:
+#                             min_distance = data.distance
+#                         if data.distance == 0:
+#                             min_distance = second_device_data.distance
+#
+#                         if total_total_cap > CUTOFF_CAPACITY:
+#                             coverage = True
+#                         else:
+#                             coverage = False
+#                         aggr_data = Aggr_data(site=device.site, time = data.time, tx=total_tx, rx=total_rx,
+#                              cap = total_total_cap, data = total_rx+total_tx, coverage = coverage,
+#                              distance = min_distance, geo = data.geo)
+#                         aggr_data.save()
+#                         Data.objects(id=data.id).update(set__aggregate=True)
+#                     else:
+#                         if data.total_cap > CUTOFF_CAPACITY:
+#                             coverage = True
+#                         else:
+#                             coverage = False
+#                         aggr_data = Aggr_data(site=device.site, time = data.time, tx=data.tx, rx=data.rx,
+#                              cap = data.total_cap, data = data.tx+data.rx, coverage = coverage,
+#                              distance = data.distance, geo = data.geo)
+#                         aggr_data.save()
+#                         Data.objects(id=data.id).update(set__aggregate=True)
+#                         app.logger.error("There is NO data from second device %s on site %s" %
+#                                          (second_device.name, device.site))
+#                 else:
+#                     app.logger.error("There is NO second device on site %s" % device.site)
+#
+#     return "Done"
+#     # time.sleep(1)
 
-    # aggregate cpe devices on a ship, and bts devices at a port
-    now = int(time.time())
-    dataObjects = Data.objects(aggregate = False, process = True, time__lt = now-AGGR_TIME_DELAY_IN_SECS,time__gt = now
-                                                                          -24*60*60*MAX_DAYS)
-
-    for data in dataObjects:
-        device = Device.objects(mac=data.mac).first()
-
-        if device.type == 'CPE':
-            # if Aggr_data.objects(time__lt = data.time + datetime.timedelta(seconds = 0.5),
-            #                         time__gt = data.time - datetime.timedelta(seconds = 0.5),
-            #                         site = device.site).first() is None:
-            if Aggr_data.objects(time = data.time,site = device.site).first() is None:
-
-                # get data from the second device
-
-                second_device = Device.objects(site=device.site, mac__ne=device.mac).first()
-                if second_device:
-                    # second_device_data = Data.objects(mac=second_device.mac,
-                    #         time__lt= data.time+datetime.timedelta(seconds=1),
-                    #         time__gt= data.time-datetime.timedelta(seconds=1)).first()
-                    second_device_data = Data.objects(mac=second_device.mac,time= data.time).first()
-
-                    # add aggr_data record with tx, rx, total_cap, minimum distance;
-                    # if total_cap > cutoff_capacity then cov = YES
-
-                    if second_device_data:
-                        total_tx = second_device_data.tx + data.tx
-                        total_rx = second_device_data.rx + data.rx
-                        total_total_cap = second_device_data.total_cap + data.total_cap
-                        if second_device_data.distance > data.distance :
-                            min_distance = data.distance
-                        else :
-                            min_distance = second_device_data.distance
-
-                        # prevent zero distance condition
-
-                        if second_device_data.distance == 0:
-                            min_distance = data.distance
-                        if data.distance == 0:
-                            min_distance = second_device_data.distance
-
-                        if total_total_cap > CUTOFF_CAPACITY:
-                            coverage = True
-                        else:
-                            coverage = False
-                        aggr_data = Aggr_data(site=device.site, time = data.time, tx=total_tx, rx=total_rx,
-                             cap = total_total_cap, data = total_rx+total_tx, coverage = coverage,
-                             distance = min_distance, geo = data.geo)
-                        aggr_data.save()
-                        Data.objects(id=data.id).update(set__aggregate=True)
-                    else:
-                        if data.total_cap > CUTOFF_CAPACITY:
-                            coverage = True
-                        else:
-                            coverage = False
-                        aggr_data = Aggr_data(site=device.site, time = data.time, tx=data.tx, rx=data.rx,
-                             cap = data.total_cap, data = data.tx+data.rx, coverage = coverage,
-                             distance = data.distance, geo = data.geo)
-                        aggr_data.save()
-                        Data.objects(id=data.id).update(set__aggregate=True)
-                        app.logger.error("There is NO data from second device %s on site %s" %
-                                         (second_device.name, device.site))
-                else:
-                    app.logger.error("There is NO second device on site %s" % device.site)
-
-    return "Done"
-    # time.sleep(1)
-
-@app.route('/siteData')
-@login_required
-def siteData():
-    timeStamp=None
-    # a=defaultdict(lambda :defaultdict())
-    # go through all sites, go through device list for site, get Data for device with False aggregate and True process
-    # order records by time.
-    for site in Site.objects():
-        a = {}
-        for device in site.deviceList:
-            dataObjects = Data.objects(mac = device, aggregate = False, process = True,
-                                       time__lt = time.time() - AGGR_TIME_DELAY_IN_SECS,
-                                       time__gt = time.time() - 24*60*60*MAX_DAYS).order_by("time")
-            for data in dataObjects:
-                # a[data.time][data.mac]= {'rx':data.rx, 'tx':data.tx,'cap':data.cap,'distance':data.distance,
-                #                               'site':site.name, 'coverage':0, 'data':data.rx+data.tx, 'geo':data.geo}
-                a= {data.time:{data.mac:{'rx':data.rx, 'tx':data.tx,'cap':data.cap,'distance':data.distance,
-                     'site':site.name, 'coverage':0, 'data':data.rx+data.tx, 'geo':data.geo, 'time':data.time}}}
-                Data.objects(id=data.id).update(set__aggregate=True)
-
-        # go through data, add rx,tx,cap and minimize distance values for same site, and put it new list(dict) format
-        # save the new list
-        documents=[]
-        for t, mac in a.items():
-            total_rx = 0
-            total_tx = 0
-            total_cap = 0
-            distance=[]
-            records={}
-
-            for macId, value in mac.items():
-                total_rx += a[t][macId]['rx']
-                total_tx += a[t][macId]['tx']
-                total_cap += a[t][macId]['cap']
-                distance.append(a[t][macId]['distance'])
-                if total_cap > CUTOFF_CAPACITY:
-                    coverage = 1
-                records[t]={'rx':total_rx, 'tx':total_tx,'cap':total_cap,'distance':min(distance),
-                         'site':a[t][macId]['site'], 'coverage':coverage, 'data':total_rx+total_tx,
-                         'geo':a[t][macId]['geo'],'time':a[t][macId]['time']}
-
-            documents.append(records[t])
-
-        if documents:
-            dbmongo.aggr_data.insert(documents)
-    # time.sleep(1)
-    return "Done"
+# @app.route('/siteData')
+# @login_required
+# def siteData():
+#     timeStamp=None
+#     # a=defaultdict(lambda :defaultdict())
+#     # go through all sites, go through device list for site, get Data for device with False aggregate and True process
+#     # order records by time.
+#     for site in Site.objects():
+#         a = {}
+#         for device in site.deviceList:
+#             dataObjects = Data.objects(mac = device, aggregate = False, process = True,
+#                                        time__lt = time.time() - AGGR_TIME_DELAY_IN_SECS,
+#                                        time__gt = time.time() - 24*60*60*MAX_DAYS).order_by("time")
+#             for data in dataObjects:
+#                 # a[data.time][data.mac]= {'rx':data.rx, 'tx':data.tx,'cap':data.cap,'distance':data.distance,
+#                 #                               'site':site.name, 'coverage':0, 'data':data.rx+data.tx, 'geo':data.geo}
+#                 a= {data.time:{data.mac:{'rx':data.rx, 'tx':data.tx,'cap':data.cap,'distance':data.distance,
+#                      'site':site.name, 'coverage':0, 'data':data.rx+data.tx, 'geo':data.geo, 'time':data.time}}}
+#                 Data.objects(id=data.id).update(set__aggregate=True)
+#
+#         # go through data, add rx,tx,cap and minimize distance values for same site, and put it new list(dict) format
+#         # save the new list
+#         documents=[]
+#         for t, mac in a.items():
+#             total_rx = 0
+#             total_tx = 0
+#             total_cap = 0
+#             distance=[]
+#             records={}
+#
+#             for macId, value in mac.items():
+#                 total_rx += a[t][macId]['rx']
+#                 total_tx += a[t][macId]['tx']
+#                 total_cap += a[t][macId]['cap']
+#                 distance.append(a[t][macId]['distance'])
+#                 if total_cap > CUTOFF_CAPACITY:
+#                     coverage = 1
+#                 records[t]={'rx':total_rx, 'tx':total_tx,'cap':total_cap,'distance':min(distance),
+#                          'site':a[t][macId]['site'], 'coverage':coverage, 'data':total_rx+total_tx,
+#                          'geo':a[t][macId]['geo'],'time':a[t][macId]['time']}
+#
+#             documents.append(records[t])
+#
+#         if documents:
+#             dbmongo.aggr_data.insert(documents)
+#     # time.sleep(1)
+#     return "Done"
 
 
 @app.route('/minuteData')
@@ -879,7 +974,7 @@ def minuteData():
                             }}
                         ])
                         if len(dataObject['result']) > 0:
-                            minute_data = Minute( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
+                            minute_data = Minute( site=site.name, time = firstRecord.time+60, tx = dataObject['result'][0]['tx'],
                                             rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                             data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
                                             distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
@@ -923,7 +1018,7 @@ def hourData():
                             }}
                         ])
                         if len(dataObject['result']) > 0:
-                            hour_data = Hour( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
+                            hour_data = Hour( site=site.name, time = firstRecord.time+60*60, tx = dataObject['result'][0]['tx'],
                                             rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                             data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
                                             distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
@@ -967,7 +1062,7 @@ def dayData():
                             }}
                         ])
                         if len(dataObject['result']) > 0:
-                            hour_data = Hour( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
+                            hour_data = Hour( site=site.name, time = firstRecord.time+60*60*24, tx = dataObject['result'][0]['tx'],
                                             rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                             data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
                                             distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
@@ -1012,7 +1107,7 @@ def monthData():
                             }}
                         ])
                         if len(dataObject['result']) > 0:
-                            hour_data = Hour( site=site.name, time = firstRecord.time, tx = dataObject['result'][0]['tx'],
+                            hour_data = Hour( site=site.name, time = firstRecord.time+60*60*24*31, tx = dataObject['result'][0]['tx'],
                                             rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                             data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
                                             distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
@@ -2202,69 +2297,69 @@ from flask_wtf import Form
 #     # )
 #     # result = dbmongo.aggr_data.map_reduce(map, reduce, finalize_f=finalize, out={'merge':"sixty"}, query={"time":{"$gt": gtTime})
 #     return "Done"
-@app.route('/getdata')
-@login_required
+# @app.route('/getdata')
+# @login_required
 # @run_once
 
-def dataLayer():
-    getDataTime=0
-    processTime =0
-    siteTime =0
-    minuteTime =0
-    hourTime =0
-    dayTime = 0
-    monthTime = 0
-    while True:
-        if time.time()-getDataTime >= 1:
-            getDataTime = time.time()
-            getData()
-        # if time.time()-processTime >= 1:
-        #     processTime = time.time()
-            processData()
-        # if time.time()-siteTime >= 1:
-        #     siteTime = time.time()
-        #     aggrData()
-            siteData()
-        if time.time()-minuteTime >= 60:
-            minuteTime = time.time()
-            minuteData()
-        if time.time()-hourTime >= 60*60:
-            hourTime = time.time()
-            hourData()
-        if time.time()-dayTime >= 60*60*24:
-            dayTime = time.time()
-            dayData()
-        if time.time()-monthTime >= 60*60*24*30:
-            monthTime = time.time()
-            monthData()
-
-    # backProc = Process(target=processData_, args=())
-    #
-    # backProc.start()
-    # pool = Pool(processes=8)
-    # app.run(debug=True, use_reloader=False)
-    # while True:
-    #     getData()
-    #     processData
-    #     siteData()
-    #     minuteData()
-    #     hourData()
-    #     dayData()
-    #     get_beagle()
-    #     get_router()
-
-        # pool = ThreadPool(8)              # start 4 worker processes
-        # # result = pool.apply_async(f, [10])
-        # pool.apply_async(getData())
-        # pool.apply_async(processData, ())
-        # pool.apply_async(siteData, ())
-        # pool.apply_async(minuteData, ())
-        # pool.apply_async(hourData, ())
-        # pool.apply_async(dayData, ())
-        # pool.apply_async(get_beagle, ())
-        # pool.apply_async(get_router, ())
-        # app.logger.info( " %s" % result.get())
-        # app.logger.info("ProcessData in progress...")
-
-        # pool.close()
-        # pool.join()
+# def dataLayer():
+#     getDataTime=0
+#     processTime =0
+#     siteTime =0
+#     minuteTime =0
+#     hourTime =0
+#     dayTime = 0
+#     monthTime = 0
+#     while True:
+#         if time.time()-getDataTime >= 1:
+#             getDataTime = time.time()
+#             getData()
+#         # if time.time()-processTime >= 1:
+#         #     processTime = time.time()
+#             processData()
+#         # if time.time()-siteTime >= 1:
+#         #     siteTime = time.time()
+#         #     aggrData()
+#             siteData()
+#         if time.time()-minuteTime >= 60:
+#             minuteTime = time.time()
+#             minuteData()
+#         if time.time()-hourTime >= 60*60:
+#             hourTime = time.time()
+#             hourData()
+#         if time.time()-dayTime >= 60*60*24:
+#             dayTime = time.time()
+#             dayData()
+#         if time.time()-monthTime >= 60*60*24*30:
+#             monthTime = time.time()
+#             monthData()
+#
+#     # backProc = Process(target=processData_, args=())
+#     #
+#     # backProc.start()
+#     # pool = Pool(processes=8)
+#     # app.run(debug=True, use_reloader=False)
+#     # while True:
+#     #     getData()
+#     #     processData
+#     #     siteData()
+#     #     minuteData()
+#     #     hourData()
+#     #     dayData()
+#     #     get_beagle()
+#     #     get_router()
+#
+#         # pool = ThreadPool(8)              # start 4 worker processes
+#         # # result = pool.apply_async(f, [10])
+#         # pool.apply_async(getData())
+#         # pool.apply_async(processData, ())
+#         # pool.apply_async(siteData, ())
+#         # pool.apply_async(minuteData, ())
+#         # pool.apply_async(hourData, ())
+#         # pool.apply_async(dayData, ())
+#         # pool.apply_async(get_beagle, ())
+#         # pool.apply_async(get_router, ())
+#         # app.logger.info( " %s" % result.get())
+#         # app.logger.info("ProcessData in progress...")
+#
+#         # pool.close()
+#         # pool.join()

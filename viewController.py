@@ -15,8 +15,8 @@ DISTANCE_MAX = 51
 start = int(time.time()) - 100*24*60*60
 end = int(time.time())
 # site = 'btsA'
-site = 'ShipA'
-link = 'S001'
+site = 'SiteA'
+link = 'SanJose'
 # import plotly.plotly as py
 # from plotly.graph_objs import *
 # py.sign_in("saswata", "mret9csgsi")
@@ -305,17 +305,18 @@ def get_links():
     response_data = []
     for device in Device.objects:
         if device.type == 'CPE':
-            record = Data.objects(mac = device.mac).order_by("-time").first()
+            record = Data.objects(DeviceName = device.name).order_by("-time").first()
+
             if record:
-                btsDevice = Device.objects(connId = record.connId, mac__ne = record.mac).order_by("-time").first()
-                btsRecord = Aggr_data.objects(site = btsDevice.site).order_by("-time").first()
-                distance = distance_in_miles(record.geo,btsRecord.geo)
+                btsDevice = Device.objects(connId = record.LinkName, name__ne = record.DeviceName).order_by("-time").first()
+            #     btsRecord = Aggr_data.objects(site = btsDevice.site).order_by("-time").first()
+            #     # distance = distance_in_miles(record.geo,btsRecord.geo)
             if record is not None:
-                response_data.append({"connId":record.connId,"tx":"{:.2f}".format(record.tx),
-                 "rx":"{:.2f}".format(record.rx),"cap":"{:.2f}".format(record.cap),
-                 "data":"{:.2f}".format(record.rx+record.tx),
-                 "lat":record.geo[0], "lng":record.geo[1], "lat1":btsRecord.geo[0], "lng1":btsRecord.geo[1],
-                 "time":record.time * 1000, "distance":"{:.2f}".format(distance)})
+                response_data.append({"connId":record.LinkName,"tx":"{:.2f}".format(record.TxRate),
+                 "rx":"{:.2f}".format(record.RxRate),"cap":"{:.2f}".format(record.MaxCapacity),
+                 "data":"{:.2f}".format(record.TxRate+record.RxRate),
+                 "lat":record.Location[0], "lng":record.Location[1], "lat1":btsDevice.geo[0], "lng1":btsDevice.geo[1],
+                 "time":record.Time * 1000, "distance":"{:.2f}".format(record.Distance)})
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
     # data_jsonify= flask.jsonify(*response_data)

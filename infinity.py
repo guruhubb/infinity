@@ -277,8 +277,10 @@ class Device(db.Document):
     model = db.StringField(max_length=32)
     version = db.StringField(max_length=32)
     serial = db.StringField(max_length=32)
-    mac = db.StringField(max_length=32, unique = True)
-    url = db.StringField(unique = True)
+    # mac = db.StringField(max_length=32, unique = True)
+    # url = db.StringField(unique = True)
+    url = db.StringField(unique=True)
+
     type = db.StringField(max_length=10, choices=TYPE)
     operator = db.ReferenceField(Company)
     owner = db.ReferenceField(Company)
@@ -295,7 +297,7 @@ class Device(db.Document):
     # firmware = db.ReferenceField('Firmware')
     # config = db.ReferenceField('Config')
 
-    meta = {'indexes': ['mac','operator','owner','tags','geo']}
+    meta = {'indexes': ['name','operator','owner','tags','geo']}
 
     def __unicode__(self):
         return self.name
@@ -307,8 +309,8 @@ class Data(db.Document):
     TxRate = db.FloatField()
     RxRate = db.FloatField()
     Noise = db.FloatField()
-    Chains_1_2 = db.IntField()
-    Chains_3_4 = db.IntField()
+    Chains_1_2 = db.StringField()
+    Chains_3_4 = db.StringField()
     Tx_Power = db.FloatField()
     Tx_Phys_Rate = db.FloatField()
     Rx_Phys_Rate = db.FloatField()

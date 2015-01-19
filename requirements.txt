@@ -17,3 +17,4 @@ requests
 flask-restful
 python-simplexml
 xmltodict
+eventlet

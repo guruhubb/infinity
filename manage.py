@@ -1,6 +1,6 @@
 from flask.ext.script import Manager, Server
 from infinity import app
-from dataController import dataLayer
+# from dataController import dataLayer
 import commands
 
 manager = Manager(app)
