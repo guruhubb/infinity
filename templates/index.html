@@ -781,6 +781,7 @@
 {#    debugger;#}
     var	map1,
         map2,
+        deviceType,
         refreshIntervalId,
         markers = [],
         circles = [],
@@ -874,7 +875,7 @@
         {#	if (!map) return;#}
         //clearPlacemarks(); // Remove old placemarks
         var title = device.site;
-
+        deviceType = device.type;
         if (device.coverage) {
             var d = new Date(device.time);
             title = title + '<br> Tx: ' + device.tx + ' Mbps ';
@@ -889,9 +890,9 @@
             title = title + ' is offline';
 
         }
-{#        debugger;#}
-{#        var colors = {true: 'green', false: 'orange'};#}
-        var color, circle,cap ;
+        {#        debugger;#}
+        {#        var colors = {true: 'green', false: 'orange'};#}
+        var color, circle, cap;
         cap = device.cap;
         if (device.coverage) {
             if (cap > 40) {
@@ -920,28 +921,28 @@
             }
         }
         marker = L.circle([lat, lng], 10000, {
-                color: color,
-                fillColor: color,
-                fillOpacity: 1.0
-            });
+            color: color,
+            fillColor: color,
+            fillOpacity: 1.0
+        });
         marker.addTo(map1);
-{#        var marker;#}
-{#        var coverage = device.coverage;#}
-{##}
-{#        if (test){#}
-{#        if (coverage){#}
-{#            marker = L.marker([lat, lng], {icon: blackIcon}).addTo(map1);#}
-{#            test = false;#}
-{#        }#}
-{#        else {#}
-{#            if (device.distance < TYPICAL_COVERAGE_MILES) {#}
-{#                marker = L.marker([lat, lng], {icon: redIcon}).addTo(map1);#}
-                {#              test = true;#}
-{#            } else {#}
-{#                marker = L.marker([lat, lng], {icon: orangeIcon}).addTo(map1);#}
-                {#              test = true;#}
-{#            }#}
-{#        }#}
+        {#        var marker;#}
+        {#        var coverage = device.coverage;#}
+        {##}
+        {#        if (test){#}
+        {#        if (coverage){#}
+        {#            marker = L.marker([lat, lng], {icon: blackIcon}).addTo(map1);#}
+        {#            test = false;#}
+        {#        }#}
+        {#        else {#}
+        {#            if (device.distance < TYPICAL_COVERAGE_MILES) {#}
+        {#                marker = L.marker([lat, lng], {icon: redIcon}).addTo(map1);#}
+        {#              test = true;#}
+        {#            } else {#}
+        {#                marker = L.marker([lat, lng], {icon: orangeIcon}).addTo(map1);#}
+        {#              test = true;#}
+        {#            }#}
+        {#        }#}
         marker.bindPopup(title);
         marker.on('click', onMarkerClick);
         markers.push(marker);
@@ -1109,7 +1110,7 @@
 {#        else {#}
 {#            color = '#d7efe5'#}
 {#        }#}
-        circle = L.circle([lat, lng], 500, {
+        circle = L.circle([lat, lng], 250, {
                 color: color,
                 fillColor: color,
                 fillOpacity: 0.5
@@ -1171,7 +1172,7 @@
         lines.push(firstpolyline);
     }
     function firstMap(){
-        map1 = L.map('map1').setView([33, -118], 6);
+        map1 = L.map('map1').setView([33, -118], 7);
         L.tileLayer('http://{s}.tiles.mapbox.com/v3/infinity.k4e0f93f/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(map1);
         map1.attributionControl.setPrefix(false);
         loadDevices();
@@ -1180,7 +1181,7 @@
     }
     function secondMap(){
 
-        map2 = L.map('map2').setView(medLatLng(path_lat, path_lng), 8);
+        map2 = L.map('map2').setView(medLatLng(path_lat, path_lng), 9);
         L.tileLayer('http://{s}.tiles.mapbox.com/v3/saswata.jldkb3nl/{z}/{x}/{y}.png', {maxZoom: 18}).addTo(map2);
         map2.attributionControl.setPrefix(false);
         clearCircles();
@@ -1216,7 +1217,7 @@
         map1.panTo(e.latlng);
         for (i = 0; i < markers.length; i++) {
             if (markers[i]._leaflet_id == this._leaflet_id) {
-                site = sites[i];
+               site = sites[i];
             }
         }
 {#        debugger;#}
@@ -1239,9 +1240,9 @@
             var stream = $('#stream').highcharts();
             aj = $.ajax({
                 type: "GET",
-                url: '{{ lastpoint_url }}',
+                url: '{{ stream_url }}',
                 async: true,
-                data: { site: site, lastTime: lastTime},
+                data: { site: site, lastTime: lastTime,type:deviceType},
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
             aj.done(function (response, textStatus, jqXHR) {
@@ -1268,7 +1269,7 @@
                 type: "GET",
                 url: '{{ stream_url }}',
                 async: true,
-                data: { site:site },
+                data: { site:site, type:deviceType },
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
         aj.done(function (response, textStatus, jqXHR) {
@@ -1295,7 +1296,7 @@
                 type: "GET",
                 url: '{{ chart_url }}',
                 async: true,
-                data: { site:site, fromTime:fromTime, toTime:toTime },
+                data: { site:site, fromTime:fromTime, toTime:toTime,type:deviceType },
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
         aj.done(function (response, textStatus, jqXHR) {
@@ -1321,7 +1322,7 @@
                 type: "GET",
                 url: '{{ histogram_url }}',
                 async: true,
-                data: { site:site, fromTime:fromTime, toTime:toTime },
+                data: { site:site, fromTime:fromTime, toTime:toTime,type:deviceType },
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
         aj1.done(function (response, textStatus, jqXHR) {
@@ -1341,7 +1342,7 @@
                 type: "GET",
                 url: '{{ path_url }}',
                 async: true,
-                data: { site:site, fromTime:fromTime, toTime:toTime },
+                data: { site:site, fromTime:fromTime, toTime:toTime,type:deviceType },
                 contentType: "application/json; charset=utf-8",
                 dataType: "json"});
         aj2.done(function (response, textStatus, jqXHR) {

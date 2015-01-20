@@ -297,7 +297,7 @@ class Device(db.Document):
     # firmware = db.ReferenceField('Firmware')
     # config = db.ReferenceField('Config')
 
-    meta = {'indexes': ['name','operator','owner','tags','geo']}
+    meta = {'indexes': ['name','operator','owner','tags','geo','site','connId']}
 
     def __unicode__(self):
         return self.name

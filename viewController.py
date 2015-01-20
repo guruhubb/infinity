@@ -15,8 +15,8 @@ DISTANCE_MAX = 51
 start = int(time.time()) - 100*24*60*60
 end = int(time.time())
 # site = 'btsA'
-site = 'SiteA'
-link = 'SanJose'
+site = 'Catalina'
+link = 'Catalina_LongBeach'
 # import plotly.plotly as py
 # from plotly.graph_objs import *
 # py.sign_in("saswata", "mret9csgsi")
@@ -159,6 +159,10 @@ def chart_view():
     toTime = int(flask.request.args.get('toTime'))/1000
     fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
+    type = flask.request.args.get('type')
+    if type == 'BTS':
+        site = Device.objects(site = site).first()
+        site = Device.objects(connId = site.connId).first().site
     range = toTime - fromTime
     # 15 min range loads second data
     if (range < 15 * 60 ):
@@ -242,7 +246,10 @@ def stream_view():
     start = int(time.time())-15*60*60  # 15 mins
     end = int(time.time())
     site = flask.request.args.get('site')
-
+    type = flask.request.args.get('type')
+    if type == 'BTS':
+        site = Device.objects(site = site).first()
+        site = Device.objects(connId = site.connId).first().site
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
         only('time',"data","cap","distance").order_by('time')
 
@@ -290,12 +297,18 @@ def get_devices_and_data():
     if device_type is None:
         for site in sites:
             record = Aggr_data.objects(site=site.name).order_by('-time')
+            cpeDevice = Device.objects(type = 'CPE',site = site.name).first()
             if len(record) > 3:
                 record = record [2]
                 response_data.append({"site":record.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
                  "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
                  "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
-                 "lat":record.geo[0], "lng":record.geo[1], "time":record.time * 1000})
+                 "lat":record.geo[0], "lng":record.geo[1], "time":record.time * 1000,"type":'CPE'})
+                btsDevice = Device.objects(type = 'BTS',connId = cpeDevice.connId).first()
+                response_data.append({"site":btsDevice.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
+                 "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
+                 "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
+                 "lat":btsDevice.geo[0], "lng":btsDevice.geo[1], "time":record.time * 1000, "type":'BTS'})
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
 
@@ -355,7 +368,10 @@ def generate_histogram():
     toTimeStamp = int(flask.request.args.get('toTime'))/1000
     fromTimeStamp = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
-
+    type = flask.request.args.get('type')
+    if type == 'BTS':
+        site = Device.objects(site = site).first()
+        site = Device.objects(connId = site.connId).first().site
     data = {}
     data["avg_cap"]=[]
     data["records"]=[]
@@ -382,6 +398,10 @@ def generate_path():
     toTime = int(flask.request.args.get('toTime'))/1000
     fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
+    type = flask.request.args.get('type')
+    if type == 'BTS':
+        site = Device.objects(site = site).first()
+        site = Device.objects(connId = site.connId).first().site
     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
     # start = 0
     # skip = len(query_set)/MAX_POINTS
