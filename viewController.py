@@ -132,6 +132,10 @@ def home():
 def lastPoint():
     lastTime = int(flask.request.args.get('lastTime'))/1000
     site = flask.request.args.get('site')
+    type = flask.request.args.get('type')
+    if type == 'BTS':
+        site = Device.objects(site = site).first()
+        site = Device.objects(connId = site.connId).first().site
     start = int(time.time())-15*60  # 15 mins
     if lastTime > start:   # if lastTime is less than 15 mins, use it for start time
         start = lastTime

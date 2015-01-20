@@ -1004,7 +1004,7 @@
 
         var line = new L.Polyline(pointList, {
                                     color: color,
-                                    weight: 3,
+                                    weight: 5,
                                     opacity: 0.5,
                                     smoothFactor: 1
                                 });
@@ -1223,8 +1223,7 @@
 {#        debugger;#}
         window.clearInterval(refreshIntervalId);
         getData();
-
-        streamData();
+        lastPointData();
     }
     function onLinkClick(e) {
         map1.panTo(e.latlng);
@@ -1235,12 +1234,12 @@
 {#        }#}
 {#        getData();#}
     }
-    function streamData() {
+    function lastPointData() {
         refreshIntervalId = window.setInterval(function(){
             var stream = $('#stream').highcharts();
             aj = $.ajax({
                 type: "GET",
-                url: '{{ stream_url }}',
+                url: '{{ lastpoint_url }}',
                 async: true,
                 data: { site: site, lastTime: lastTime,type:deviceType},
                 contentType: "application/json; charset=utf-8",
@@ -1406,7 +1405,7 @@
                 chart: {
 {#                    zoomType: 'x',#}
                     events : {
-                        load : streamData()
+                        load : lastPointData()
                     }
                 },
                 title: {
