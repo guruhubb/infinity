@@ -1399,6 +1399,7 @@
                 useUTC : false
             }
         });
+
         var streamOptions = {
 
                 chart: {
@@ -1437,56 +1438,56 @@
                     tickInterval: 60000  // 1 min
                 },
                 yAxis: [
-{#                    { // Secondary yAxis#}
-{#                    gridLineWidth: 0,#}
-{#                    title: {#}
-{#                        text: 'Capacity',#}
-{#                        style: {#}
-{#                            color: Highcharts.getOptions().colors[1]#}
-{#                        }#}
-{#                    },#}
-{#                    labels: {#}
-{#                        format: '{value} Mbps',#}
-{#                        style: {#}
-{#                            color: Highcharts.getOptions().colors[1]#}
-{#                        }#}
-{#                    },#}
-{#                    opposite: true,#}
-{#                    floor:0#}
-{#                }, #}
-                    { // Tertiary yAxis
-                    gridLineWidth: 0,
-                    title: {
-                        text: 'Distance',
-                        style: {
-                            color: Highcharts.getOptions().colors[2]
-                        }
-                    },
-                    labels: {
-                        format: '{value} miles',
-                        style: {
-                            color: Highcharts.getOptions().colors[2]
-                        }
-                    },
-                    opposite: false,
-                    floor:0
-                },{ // Primary yAxis
-                    labels: {
-                        format: '{value}Mbps',
-                        style: {
-                            color: Highcharts.getOptions().colors[0]
-                        }
-                    },
-                    title: {
-                        text: 'Traffic, Capacity',
-                        style: {
-                            color: Highcharts.getOptions().colors[0]
-                        }
-                    },
-                    opposite: true,
-                    floor:0
+    {#                    { // Secondary yAxis#}
+    {#                    gridLineWidth: 0,#}
+    {#                    title: {#}
+    {#                        text: 'Capacity',#}
+    {#                        style: {#}
+    {#                            color: Highcharts.getOptions().colors[1]#}
+    {#                        }#}
+    {#                    },#}
+    {#                    labels: {#}
+    {#                        format: '{value} Mbps',#}
+    {#                        style: {#}
+    {#                            color: Highcharts.getOptions().colors[1]#}
+    {#                        }#}
+    {#                    },#}
+    {#                    opposite: true,#}
+    {#                    floor:0#}
+    {#                }, #}
+                        { // Tertiary yAxis
+                        gridLineWidth: 0,
+                        title: {
+                            text: 'Distance',
+                            style: {
+                                color: Highcharts.getOptions().colors[2]
+                            }
+                        },
+                        labels: {
+                            format: '{value} miles',
+                            style: {
+                                color: Highcharts.getOptions().colors[2]
+                            }
+                        },
+                        opposite: false,
+                        floor:0
+                    },{ // Primary yAxis
+                        labels: {
+                            format: '{value}Mbps',
+                            style: {
+                                color: Highcharts.getOptions().colors[0]
+                            }
+                        },
+                        title: {
+                            text: 'Traffic, Capacity',
+                            style: {
+                                color: Highcharts.getOptions().colors[0]
+                            }
+                        },
+                        opposite: true,
+                        floor:0
 
-                }],
+                    }],
                  tooltip: {
 {#                    backgroundColor: 'white',#}
 {#                    borderWidth: 0,#}
@@ -1499,7 +1500,34 @@
 {#                    },#}
 {#                    shadow: false,#}
                     shared: true,
-                    valueDecimals: 2
+                    valueDecimals: 2,
+                    formatter: function () {
+{#                        var d = new XDSoft_datetime(this.x);#}
+                        {#                    var s = '<b>' + new Date(this.x).toUTCString() + '</b>';#}
+{#                        var s = '<b>' + d.toLocaleString() + '</b>';#}
+                        var s = '<b>' + Highcharts.dateFormat('%A, %b %e, %Y, %H:%M:%S', this.x) + '</b>';
+                        index=0;
+                        $.each(this.points, function (index) {
+                            if (index == 0) {
+                                s += '<br/><span style="color:#6EA3ED; font-weight:bold;"> Traffic: ' + this.y + '  Mbps';
+                            }
+                            if (index == 1) {
+
+                                s += '<br/><span style="color:#333338; font-weight:bold;"> Capacity: ' + this.y + '  Mbps';
+                            }
+                            if (index == 2) {
+                                s += '<br/><span style="color:#88EF57; font-weight:bold;"> Distance: ' + this.y + '  miles';
+                            }
+                            if (index <2) {
+                                index = +1;
+                            } else { index = 0;
+
+                            }
+
+                        });
+                        return s;
+                    }
+
                 },
                 exporting: false,
                 credits: false,
@@ -1683,7 +1711,33 @@
 {#                    },#}
 {#                    shadow: false,#}
                     shared: true,
-                    valueDecimals: 2
+                    valueDecimals: 2,
+                    formatter: function () {
+{#                        var d = new XDSoft_datetime(this.x);#}
+                        {#                    var s = '<b>' + new Date(this.x).toUTCString() + '</b>';#}
+{#                        var s = '<b>' + d.toLocaleString() + '</b>';#}
+                        var s = '<b>' + Highcharts.dateFormat('%A, %b %e, %Y, %H:%M:%S', this.x) + '</b>';
+                        index=0;
+                        $.each(this.points, function (index) {
+                            if (index == 0) {
+                                s += '<br/><span style="color:#6EA3ED; font-weight:bold;"> Traffic: ' + this.y + '  Mbps';
+                            }
+                            if (index == 1) {
+
+                                s += '<br/><span style="color:#333338; font-weight:bold;"> Capacity: ' + this.y + '  Mbps';
+                            }
+                            if (index == 2) {
+                                s += '<br/><span style="color:#88EF57; font-weight:bold;"> Distance: ' + this.y + '  miles';
+                            }
+                            if (index <2) {
+                                index = +1;
+                            } else { index = 0;
+
+                            }
+
+                        });
+                        return s;
+                    }
                 },
                 exporting: false,
                 credits: false,

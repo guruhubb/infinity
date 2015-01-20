@@ -136,7 +136,7 @@ def lastPoint():
     if lastTime > start:   # if lastTime is less than 15 mins, use it for start time
         start = lastTime
     end = int(time.time())  # end time = current time
-    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).order_by("time")
+    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).order_by('time')
     # ob = Aggr_data.objects(site = site ).order_by("-time").first()
     # data = defaultdict(lambda :defaultdict)  # one-liner to initialize dictionary containing lists
     # data = defaultdict(list)
@@ -163,31 +163,31 @@ def chart_view():
     # 15 min range loads second data
     if (range < 15 * 60 ):
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-        only("time","data","cap","distance").order_by("time")
+        only('time',"data","cap","distance").order_by('time')
     # 1 day range loads minute data
     elif (range < 24 * 3600 ):
         query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-        only("time","data","cap","distance").order_by("time")
+        only('time',"data","cap","distance").order_by('time')
     # two month range loads hourly data
     elif (range < 2 * 31 * 24 * 3600 ):
         query_set = Hour.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-        only("time","data","cap","distance").order_by("time")
+        only('time',"data","cap","distance").order_by('time')
     # two year range loads daily data
     elif (range < 3 * 12 * 31 * 24 * 3600 ):
         query_set = Day.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-        only("time","data","cap","distance").order_by("time")
+        only('time',"data","cap","distance").order_by('time')
     # greater range loads monthly data
     elif (range >= 3 * 12 * 31 * 24 * 3600 ):
         query_set = Month.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-        only("time","data","cap","distance").order_by("time")
+        only('time',"data","cap","distance").order_by('time')
     else :
         query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-        only("time","data","cap","distance").order_by("time")
+        only('time',"data","cap","distance").order_by('time')
     # query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-    #     only("time","data","cap","distance").order_by("time")
+    #     only('time',"data","cap","distance").order_by('time')
     if len(query_set) < 500 :
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-        only("time","data","cap","distance").order_by("time")
+        only('time',"data","cap","distance").order_by('time')
     data = {}
     data["cap"]=[]
     data["data"]=[]
@@ -213,7 +213,7 @@ def chart_view():
 def chart_view_init():
     global start, end
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
-        only("time","data","cap","distance").order_by("time")
+        only('time',"data","cap","distance").order_by('time')
     data = {}
     data["cap"]=[]
     data["data"]=[]
@@ -244,7 +244,7 @@ def stream_view():
     site = flask.request.args.get('site')
 
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
-        only("time","data","cap","distance").order_by("time")
+        only('time',"data","cap","distance").order_by('time')
 
     data = {}
     data["cap"]=[]
@@ -266,7 +266,7 @@ def stream_view_init():
     # end = int(time.time())
 
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
-        only("time","data","cap","distance").order_by("time")
+        only('time',"data","cap","distance").order_by('time')
 
     data = {}
     data["cap"]=[]
@@ -289,7 +289,7 @@ def get_devices_and_data():
     response_data = []
     if device_type is None:
         for site in sites:
-            record = Aggr_data.objects(site=site.name).order_by("-time")
+            record = Aggr_data.objects(site=site.name).order_by('-time')
             if len(record) > 3:
                 record = record [2]
                 response_data.append({"site":record.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
@@ -305,11 +305,11 @@ def get_links():
     response_data = []
     for device in Device.objects:
         if device.type == 'CPE':
-            record = Data.objects(DeviceName = device.name).order_by("-time").first()
+            record = Data.objects(DeviceName = device.name).order_by('-Time').first()
 
             if record:
-                btsDevice = Device.objects(connId = record.LinkName, name__ne = record.DeviceName).order_by("-time").first()
-            #     btsRecord = Aggr_data.objects(site = btsDevice.site).order_by("-time").first()
+                btsDevice = Device.objects(connId = record.LinkName, name__ne = record.DeviceName).order_by('-time').first()
+            #     btsRecord = Aggr_data.objects(site = btsDevice.site).order_by('-time').first()
             #     # distance = distance_in_miles(record.geo,btsRecord.geo)
             if record is not None:
                 response_data.append({"connId":record.LinkName,"tx":"{:.2f}".format(record.TxRate),

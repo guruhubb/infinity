@@ -90,29 +90,30 @@
                 },
                 shadow: false,
                 formatter: function () {
-                var s = '<b>' + new Date(this.x).toUTCString() + '</b>';
+{#                    var s = '<b>' + new Date(this.x).toUTCString() + '</b>';#}
+                    var s = '<b>' + new Date(this.x).toLocaleString() + '</b>';
 
-                $.each(this.points, function () {
-                    s += ' | ' + this.series.name + ': ' +
-                        this.y;
-                });
+                    $.each(this.points, function () {
+                         s += ' | ' + this.series.name + ': ' +
+                           this.y;
+                    });
 
-                if (placemarks != null) {
+                    if (placemarks != null) {
 
-                    for (p in placemarks) {
-                        if (placemarks[p].stime == this.x) {
-                            placemarks[p].icon.scale = 5;
-                            placemarks[p].setMap(null);
-                            placemarks[p].setMap(map);
-                        }
-                        else if (placemarks[p].icon.scale != 1) {
-                            placemarks[p].icon.scale = 1;
-                            placemarks[p].setMap(null);
-                            placemarks[p].setMap(map);
-                        }
+                        for (p in placemarks) {
+                            if (placemarks[p].stime == this.x) {
+                                placemarks[p].icon.scale = 5;
+                                placemarks[p].setMap(null);
+                                placemarks[p].setMap(map);
+                            }
+                            else if (placemarks[p].icon.scale != 1) {
+                                placemarks[p].icon.scale = 1;
+                                placemarks[p].setMap(null);
+                                placemarks[p].setMap(map);
+                            }
 
-                    } //for
-                } //if placemarks!=null
+                        } //for
+                    } //if placemarks!=null
 
                 return s;
                 }
