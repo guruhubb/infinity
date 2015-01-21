@@ -782,6 +782,7 @@
     var	map1,
         map2,
         deviceType,
+        bigButton = false,
         refreshIntervalId,
         markers = [],
         circles = [],
@@ -920,7 +921,7 @@
                 color = 'orange';
             }
         }
-        marker = L.circle([lat, lng], 10000, {
+        marker = L.circle([lat, lng], 5000, {
             color: color,
             fillColor: color,
             fillOpacity: 1.0
@@ -1923,6 +1924,7 @@
             });
         $('#bigbutton').on('click', function () {
             getData();
+            bigButton = true;
         });
     });
 
@@ -1953,6 +1955,12 @@
         setInterval(function() {
             loadDevices();
             loadLinks();
+            debugger
+            if (bigButton == false){
+                nowTime = new Date().getTime();
+                toTime = Math.round( nowTime );
+                getData();
+            };
             }, (15 * 1000));
     </script>
 </body>
