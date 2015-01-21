@@ -287,7 +287,7 @@ class Device(db.Document):
     tags = db.ListField(db.ReferenceField('Tag'), default=['all'])
     time = db.DateTimeField(default=datetime.now())
     active = db.BooleanField(default=True)
-    geo = db.GeoPointField()
+    geo = db.GeoPointField(default =(33.783503, -118.198599))   #long beach
 
     # geo = db.GeoPointField(default = (31.86,116.6))
     site = db.StringField()                 # TODO may need to reference this at some point
@@ -302,7 +302,7 @@ class Device(db.Document):
     def __unicode__(self):
         return self.name
 
-Device.objects(name="btsSimulator1").update(set__geo=[37.397410, -122.076117])
+Device.objects(name="btsSimulator1").update(set__geo=[34.099139, -117.240400])
 
 class Data(db.Document):
     Time = db.IntField(default=int(time.time()))

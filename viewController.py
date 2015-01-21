@@ -273,8 +273,9 @@ def stream_view():
     return data_dumps
 
 def stream_view_init():
-    # start = int(time.time())-15*60*60  # 15 mins
-    # end = int(time.time())
+    start = int(time.time())-15*60*60  # 15 mins
+    end = int(time.time())
+    # global start, end
 
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
         only('time',"data","cap","distance").order_by('time')
@@ -347,6 +348,7 @@ def generate_histogram_init():
     # toTimeStamp = datetime.datetime.now()
     # fromTimeStamp = toTimeStamp-datetime.timedelta(days=15)
     # site = 'ShipA'
+    global  start,end
     data = {}
     data["avg_cap"]=[]
     data["records"]=[]
@@ -441,7 +443,7 @@ def generate_path_init():
     # toTime = datetime.datetime.now()
     # fromTime = toTime-datetime.timedelta(days=15)
     # site = 'ShipA'
-
+    global start,end
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site )
     # start = 0
     # skip = len(query_set)/MAX_POINTS
