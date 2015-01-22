@@ -135,7 +135,7 @@ def lastPoint():
     type = flask.request.args.get('type')
     if type == 'BTS':
         site = Device.objects(site = site).first()
-        site = Device.objects(connId = site.connId).first().site
+        site = Device.objects(connId = site.connId, type = 'CPE').first().site
     start = int(time.time())-15*60  # 15 mins
     if lastTime > start:   # if lastTime is less than 15 mins, use it for start time
         start = lastTime
@@ -166,7 +166,7 @@ def chart_view():
     type = flask.request.args.get('type')
     if type == 'BTS':
         site = Device.objects(site = site).first()
-        site = Device.objects(connId = site.connId).first().site
+        site = Device.objects(connId = site.connId, type = 'CPE').first().site
     range = toTime - fromTime
     # 15 min range loads second data
     if (range < 15 * 60 ):
@@ -253,7 +253,7 @@ def stream_view():
     type = flask.request.args.get('type')
     if type == 'BTS':
         site = Device.objects(site = site).first()
-        site = Device.objects(connId = site.connId).first().site
+        site = Device.objects(connId = site.connId, type = 'CPE').first().site
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
         only('time',"data","cap","distance").order_by('time')
 
@@ -377,7 +377,7 @@ def generate_histogram():
     type = flask.request.args.get('type')
     if type == 'BTS':
         site = Device.objects(site = site).first()
-        site = Device.objects(connId = site.connId).first().site
+        site = Device.objects(connId = site.connId, type = 'CPE').first().site
     data = {}
     data["avg_cap"]=[]
     data["records"]=[]
@@ -407,7 +407,7 @@ def generate_path():
     type = flask.request.args.get('type')
     if type == 'BTS':
         site = Device.objects(site = site).first()
-        site = Device.objects(connId = site.connId).first().site
+        site = Device.objects(connId = site.connId, type = 'CPE').first().site
     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
     # start = 0
     # skip = len(query_set)/MAX_POINTS

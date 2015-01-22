@@ -781,9 +781,9 @@
 {#    debugger;#}
     var	map1,
         map2,
-        deviceType,
         bigButton = false,
         refreshIntervalId,
+        deviceTypes = [],
         markers = [],
         circles = [],
 	    lines = [],
@@ -876,7 +876,7 @@
         {#	if (!map) return;#}
         //clearPlacemarks(); // Remove old placemarks
         var title = device.site;
-        deviceType = device.type;
+{#        deviceType = device.type;#}
         if (device.coverage) {
             var d = new Date(device.time);
             title = title + '<br> Tx: ' + device.tx + ' Mbps ';
@@ -947,6 +947,7 @@
         marker.bindPopup(title);
         marker.on('click', onMarkerClick);
         markers.push(marker);
+        deviceTypes.push(device.type);
         sites.push(device.site);
     }
     function addLink(link) {
@@ -1046,6 +1047,8 @@
         }
         markers = [];
         sites = [];
+        deviceTypes = [];
+
     }
 
     {#	len = lines.length;#}
@@ -1216,24 +1219,29 @@
     }
     function onMarkerClick(e) {
         map1.panTo(e.latlng);
+        debugger;
+
         for (i = 0; i < markers.length; i++) {
             if (markers[i]._leaflet_id == this._leaflet_id) {
                site = sites[i];
+               deviceType = deviceTypes[i];
             }
         }
-{#        debugger;#}
         window.clearInterval(refreshIntervalId);
         getData();
         lastPointData();
     }
     function onLinkClick(e) {
         map1.panTo(e.latlng);
-{#        for (i = 0; i < lines.length; i++) {#}
-{#            if (lines[i]._leaflet_id == this._leaflet_id) {#}
-{#                site = sites[i];#}
-{#            }#}
-{#        }#}
-{#        getData();#}
+{#    debugger;#}
+        for (i = 0; i < lines.length; i++) {
+            if (lines[i]._leaflet_id == this._leaflet_id) {
+                site = sites[i*2];
+                deviceType = deviceTypes[i*2];
+            }
+        }
+        getData();
+
     }
     function lastPointData() {
         refreshIntervalId = window.setInterval(function(){
@@ -1955,7 +1963,7 @@
         setInterval(function() {
             loadDevices();
             loadLinks();
-            debugger
+{#            debugger;#}
             if (bigButton == false){
                 nowTime = new Date().getTime();
                 toTime = Math.round( nowTime );

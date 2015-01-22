@@ -302,7 +302,10 @@ class Device(db.Document):
     def __unicode__(self):
         return self.name
 
-Device.objects(name="btsSimulator1").update(set__geo=[34.099139, -117.240400])
+Device.objects(name="BTS02").update(set__geo=[34.099139, -117.240400])
+Device.objects(name="BTS03").update(set__geo=[33.916995, -117.366742])
+Device.objects(name="BTS04").update(set__geo=[33.680001, -117.723440])
+Device.objects(name="BTS05").update(set__geo=[33.659000, -117.967886])
 
 class Data(db.Document):
     Time = db.IntField(default=int(time.time()))
