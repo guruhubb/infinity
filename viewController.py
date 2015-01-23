@@ -313,7 +313,7 @@ def get_devices_and_data():
                 response_data.append({"site":btsDevice.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
                  "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
                  "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
-                 "lat":btsDevice.geo[0], "lng":btsDevice.geo[1], "time":record.time * 1000, "type":'BTS'})
+                 "lat":btsDevice.lat, "lng":btsDevice.lng, "time":record.time * 1000, "type":'BTS'})
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
 
@@ -333,7 +333,7 @@ def get_links():
                 response_data.append({"connId":record.LinkName,"tx":"{:.2f}".format(record.TxRate),
                  "rx":"{:.2f}".format(record.RxRate),"cap":"{:.2f}".format(record.MaxCapacity),
                  "data":"{:.2f}".format(record.TxRate+record.RxRate),
-                 "lat":record.Location[0], "lng":record.Location[1], "lat1":btsDevice.geo[0], "lng1":btsDevice.geo[1],
+                 "lat":record.Location[0], "lng":record.Location[1], "lat1":btsDevice.lat, "lng1":btsDevice.lng,
                  "time":record.Time * 1000, "distance":"{:.2f}".format(record.Distance)})
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps

@@ -174,80 +174,38 @@ def get_data():
     if ((int(time.time()) - initial_time) > 4):
         initial_time = int(time.time())
         # get data
-        url_status = []
-        url_device = []
-        url_link = []
-        url_list =[]
+        # url_status = []
+        # url_device = []
+        # url_link = []
+        # url_list =[]
+        url_full_list = []
         for object in Device.objects(active = True, type = 'CPE'):
-            url_list.append(object.url)
+            # url_list.append(object.url)
 
             # url_status.append('https://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
             # url_device.append('https://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
             # url_link.append('https://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
-            url_status.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
-            url_device.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
-            url_link.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
+            # url_status.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
+            # url_device.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
+            # url_link.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
-            # url_status = 'https://192.168.1.20:5001/core/api/service/status.php?management-id=mimosa&management-password=pass123'
-            # url_device = 'http://127.0.0.1:5001/core/api/service/device-info.php?management-id=mimosa&management-password=pass123'
-            # url_link = 'http://127.0.0.1:5001/core/api/service/link-info.php?management-id=mimosa&management-password=pass123'
-        for url, urlStatus, urlDevice, urlLink in zip(url_list,url_status,url_device,url_link):
-            try :
+            url_full_list.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
+            url_full_list.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
+            url_full_list.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
-                # password_mgr = HTTPPasswordMgrWithDefaultRealm()
-                # # Add the username and password.
-                # feed_url = 'https://192.168.1.20/core/api/service/status.php'
-                # password_mgr.add_password(None, feed_url, "username=infinity", "password=123")
-                # opener = build_opener(HTTPBasicAuthHandler(password_mgr))
-                # file = opener.open(feed_url)
-                # conn = httplib.HTTPSConnection(str(url))
-                # conn.request("GET","/core/api/service/status.php?username=infinity&password=123")
-                # r1 = conn.getresponse()
-                # response_status= r1.read()
-                # conn.request("GET","/core/api/service/device-info.php?username=infinity&password=123")
-                # r1 = conn.getresponse()
-                # response_device= r1.read()
-                # conn.request("GET","/core/api/service/link-info.php?username=infinity&password=123")
-                # r1 = conn.getresponse()
-                # response_link= r1.read()
+        doc_=[]
+        pool = eventlet.GreenPool()
+        # use multiple threads to get data from each device and parse it
 
-                # response_status = session.get(urlStatus, headers=headersXml,timeout=2).result()
-                # response_device = session.get(urlDevice, headers=headersXml,timeout=2).result()
-                # response_link = session.get(urlLink, headers=headersXml,timeout=2).result()
-                # response_status = urllib2.urlopen('https://192.168.1.20/core/api/service/status.php?username=infinity&password=123')
-                # response_device = urllib2.urlopen('https://192.168.1.20/core/api/service/device-info.php?username=infinity&password=123')
-                # response_link = urllib2.urlopen('https://192.168.1.20/core/api/service/link-info.php?username=infinity&password=123')
+        for body in pool.imap(fetch, url_full_list):
+            doc_.append(xmltodict.parse(body))
 
-                # r=requests.get(urlStatus,verify=False)  #same as urllib2
-                urls = [urlStatus,urlDevice,urlLink]
-                doc_=[]
-                pool = eventlet.GreenPool()
-                for body in pool.imap(fetch, urls):
-                    doc_.append(xmltodict.parse(body))
-                    # print("got body", len(body))
-
-                # response_status = urllib2.urlopen(urlStatus, None,TIMEOUT)
-                # response_device = urllib2.urlopen(urlDevice, None, TIMEOUT)
-                # response_link = urllib2.urlopen(urlLink, None, TIMEOUT)
-
-                # doc_status = xmltodict.parse(response_status.read())
-                # doc_device = xmltodict.parse(response_device.read())
-                # doc_link = xmltodict.parse(response_link.read())
-
-                # doc_status = xmltodict.parse(response_status.content)
-                # doc_device = xmltodict.parse(response_device.content)
-                # doc_link = xmltodict.parse(response_link.content)
-
-                # status = doc_status['response']['mimosaContent']['values']
-                # device = doc_device['response']['mimosaContent']['values']
-                # link = doc_link['response']['mimosaContent']['values']
-
-                status = doc_[0]['response']['mimosaContent']['values']
-                device = doc_[1]['response']['mimosaContent']['values']
-                link = doc_[2]['response']['mimosaContent']['values']
-
-                # add only DeviceName and Location from device-info API
+        for i in xrange (0,len(doc_),3):
+            try:
+                status = doc_[i]['response']['mimosaContent']['values']
+                device = doc_[i+1]['response']['mimosaContent']['values']
+                link = doc_[i+2]['response']['mimosaContent']['values']
                 for k,v in device.items():
                     if k in ['DeviceName','Location']:
                         if device[k]:
@@ -276,7 +234,7 @@ def get_data():
                         if status[k]:
                             status[k] = status[k]
                         else: status[k] = 0.
-                if status['SignalStrength'] == float('-inf'):
+                if str(status['SignalStrength']) == '-inf':
                     status['SignalStrength'] = -100.0
                 # status.update(device)
                 # status.update(link)
@@ -312,8 +270,9 @@ def get_data():
                 status_['Time']=initial_time
                 for k,v in status.items():
                     status_[k]=status[k]
-                app.logger.info('Data from %s'  % url)
+                app.logger.info('Data from %s'  % url_full_list[i])
                 dataCollection.insert(status_)
+                # i=i+3
 
                 # status ['statusSize'] = sys.getsizeof(response_status.content)
                 # from pymongo import Connection
@@ -322,6 +281,141 @@ def get_data():
 
             except :
                 app.logger.info("Bad Access API")
+            # url_status = 'https://192.168.1.20:5001/core/api/service/status.php?management-id=mimosa&management-password=pass123'
+            # url_device = 'http://127.0.0.1:5001/core/api/service/device-info.php?management-id=mimosa&management-password=pass123'
+            # url_link = 'http://127.0.0.1:5001/core/api/service/link-info.php?management-id=mimosa&management-password=pass123'
+        # for url, urlStatus, urlDevice, urlLink in zip(url_list,url_status,url_device,url_link):
+        #     try :
+        #
+        #         # password_mgr = HTTPPasswordMgrWithDefaultRealm()
+        #         # # Add the username and password.
+        #         # feed_url = 'https://192.168.1.20/core/api/service/status.php'
+        #         # password_mgr.add_password(None, feed_url, "username=infinity", "password=123")
+        #         # opener = build_opener(HTTPBasicAuthHandler(password_mgr))
+        #         # file = opener.open(feed_url)
+        #         # conn = httplib.HTTPSConnection(str(url))
+        #         # conn.request("GET","/core/api/service/status.php?username=infinity&password=123")
+        #         # r1 = conn.getresponse()
+        #         # response_status= r1.read()
+        #         # conn.request("GET","/core/api/service/device-info.php?username=infinity&password=123")
+        #         # r1 = conn.getresponse()
+        #         # response_device= r1.read()
+        #         # conn.request("GET","/core/api/service/link-info.php?username=infinity&password=123")
+        #         # r1 = conn.getresponse()
+        #         # response_link= r1.read()
+        #
+        #         # response_status = session.get(urlStatus, headers=headersXml,timeout=2).result()
+        #         # response_device = session.get(urlDevice, headers=headersXml,timeout=2).result()
+        #         # response_link = session.get(urlLink, headers=headersXml,timeout=2).result()
+        #         # response_status = urllib2.urlopen('https://192.168.1.20/core/api/service/status.php?username=infinity&password=123')
+        #         # response_device = urllib2.urlopen('https://192.168.1.20/core/api/service/device-info.php?username=infinity&password=123')
+        #         # response_link = urllib2.urlopen('https://192.168.1.20/core/api/service/link-info.php?username=infinity&password=123')
+        #
+        #         # r=requests.get(urlStatus,verify=False)  #same as urllib2
+        #         urls = [urlStatus,urlDevice,urlLink]
+        #         doc_=[]
+        #         pool = eventlet.GreenPool()
+        #         i=0
+        #         for body in pool.imap(fetch, urls):
+        #             doc_.append(xmltodict.parse(body))
+        #
+        #             # print("got body", len(body))
+        #
+        #         # response_status = urllib2.urlopen(urlStatus, None,TIMEOUT)
+        #         # response_device = urllib2.urlopen(urlDevice, None, TIMEOUT)
+        #         # response_link = urllib2.urlopen(urlLink, None, TIMEOUT)
+        #
+        #         # doc_status = xmltodict.parse(response_status.read())
+        #         # doc_device = xmltodict.parse(response_device.read())
+        #         # doc_link = xmltodict.parse(response_link.read())
+        #
+        #         # doc_status = xmltodict.parse(response_status.content)
+        #         # doc_device = xmltodict.parse(response_device.content)
+        #         # doc_link = xmltodict.parse(response_link.content)
+        #
+        #         # status = doc_status['response']['mimosaContent']['values']
+        #         # device = doc_device['response']['mimosaContent']['values']
+        #         # link = doc_link['response']['mimosaContent']['values']
+        #
+        #         status = doc_[0]['response']['mimosaContent']['values']
+        #         device = doc_[1]['response']['mimosaContent']['values']
+        #         link = doc_[2]['response']['mimosaContent']['values']
+        #
+        #         # add only DeviceName and Location from device-info API
+        #         for k,v in device.items():
+        #             if k in ['DeviceName','Location']:
+        #                 if device[k]:
+        #                     status[k] = device[k]
+        #         # add only LinkName, MaxCapacity, and Distance from link-info API
+        #         for k,v in link.items():
+        #             if k in ['LinkName','MaxCapacity','Distance']:
+        #                 if link[k]:
+        #                     status[k] = link[k]
+        #                 else:
+        #                     status[k] = 0.0
+        #         for k,v in status.items():
+        #             if k not in ['Chains_1_2', 'Chains_3_4','Details','Rx_MCS','Location','DeviceName','LinkName']:
+        #                 if status[k]:
+        #                     status[k] = float(status[k])
+        #                 else: status[k] = 0.0
+        #             elif k == 'Rx_MCS':
+        #                 if status[k]:
+        #                     status [k]=int(status[k])
+        #                 else: status[k] = 0.0
+        #             elif k == 'Location':
+        #                 if status[k]:
+        #                     status [k] = tuple([float(x) for x in re.split(' -- ',status [k])])
+        #                 else: status[k] = (0.,0.)
+        #             else:
+        #                 if status[k]:
+        #                     status[k] = status[k]
+        #                 else: status[k] = 0.
+        #         if status['SignalStrength'] == float('-inf'):
+        #             status['SignalStrength'] = -100.0
+        #         # status.update(device)
+        #         # status.update(link)
+        #
+        #         # convert string to float, mcs/encoding to int, lat-long to geo
+        #         # add checks for Null data, convert Details to flat dict, remove Details
+        #
+        #         details = status['Details']['_ELEMENT']
+        #         for x in range(len(details)):
+        #             if details[x]['Tx']:
+        #                 status['Tx'+str(x)] = float(details[x]['Tx'])
+        #             else:
+        #                 status['Tx'+str(x)] = 0.0
+        #             if details[x]['Rx']:
+        #                 status['Rx'+str(x)] = float(details[x]['Rx'])
+        #             else:
+        #                 status['Rx'+str(x)] = 0.0
+        #             if details[x]['Noise']:
+        #                 status['Noise'+str(x)] = float(details[x]['Noise'])
+        #             else:
+        #                 status['Noise'+str(x)] = 0.0
+        #             if details[x]['Encoding']:
+        #                 status['Encoding'+str(x)] = int(details[x]['Encoding'])
+        #             else:
+        #                 status['Encoding'+str(x)] = 0.0
+        #
+        #         del status['Details']
+        #         # status ['Time'] = initial_time
+        #         status ['Process'] = False
+        #         status ['Aggregate'] = False
+        #
+        #         status_=collections.OrderedDict()
+        #         status_['Time']=initial_time
+        #         for k,v in status.items():
+        #             status_[k]=status[k]
+        #         app.logger.info('Data from %s'  % url)
+        #         dataCollection.insert(status_)
+        #
+        #         # status ['statusSize'] = sys.getsizeof(response_status.content)
+        #         # from pymongo import Connection
+        #         # app.logger.info('data from %s - status_ is %s and dumps is %s' % (url, status_,json.dumps(status_)))
+        #         # return Response(json.dumps(status),  mimetype='application/json')
+        #
+        #     except :
+        #         app.logger.info("Bad Access API")
 
     # else:
     #     continue

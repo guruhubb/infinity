@@ -284,11 +284,12 @@ class Device(db.Document):
     type = db.StringField(max_length=10, choices=TYPE)
     operator = db.ReferenceField(Company)
     owner = db.ReferenceField(Company)
-    tags = db.ListField(db.ReferenceField('Tag'), default=['all'])
+    tags = db.ListField(db.ReferenceField('Tag'), default=['All'])
     time = db.DateTimeField(default=datetime.now())
     active = db.BooleanField(default=True)
-    geo = db.GeoPointField(default =(33.783503, -118.198599))   #long beach
-
+    # geo = db.GeoPointField(default =(33.783503, -118.198599))   #long beach
+    lat = db.FloatField(default = 33.783503)
+    lng = db.FloatField(default = -118.198599)
     # geo = db.GeoPointField(default = (31.86,116.6))
     site = db.StringField()                 # TODO may need to reference this at some point
     connId = db.StringField()
@@ -297,15 +298,15 @@ class Device(db.Document):
     # firmware = db.ReferenceField('Firmware')
     # config = db.ReferenceField('Config')
 
-    meta = {'indexes': ['name','operator','owner','tags','geo','site','connId']}
+    meta = {'indexes': ['name','operator','owner','tags','site','connId']}
 
     def __unicode__(self):
         return self.name
 
-Device.objects(name="BTS02").update(set__geo=[34.099139, -117.240400])
-Device.objects(name="BTS03").update(set__geo=[33.916995, -117.366742])
-Device.objects(name="BTS04").update(set__geo=[33.680001, -117.723440])
-Device.objects(name="BTS05").update(set__geo=[33.659000, -117.967886])
+# Device.objects(name="BTS02").update(set__geo=[34.099139, -117.240400])
+# Device.objects(name="BTS03").update(set__geo=[33.916995, -117.366742])
+# Device.objects(name="BTS04").update(set__geo=[33.680001, -117.723440])
+# Device.objects(name="BTS05").update(set__geo=[33.659000, -117.967886])
 
 class Data(db.Document):
     Time = db.IntField(default=int(time.time()))
