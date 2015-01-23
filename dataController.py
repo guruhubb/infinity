@@ -177,28 +177,24 @@ def get_data():
         # url_status = []
         # url_device = []
         # url_link = []
-        # url_list =[]
-        url_full_list = []
+        url_list =[]
+        # url_full_list = []
         for object in Device.objects(active = True, type = 'CPE'):
-            # url_list.append(object.url)
 
-            # url_status.append('https://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
-            # url_device.append('https://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
-            # url_link.append('https://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
+            # use this for real radio - it needs https calls
+            # url_list.append('https://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
+            # url_list.append('https://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
+            # url_list.append('https://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
-            # url_status.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
-            # url_device.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
-            # url_link.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
-
-            url_full_list.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
-            url_full_list.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
-            url_full_list.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
+            url_list.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
+            url_list.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
+            url_list.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
         doc_=[]
         pool = eventlet.GreenPool()
         # use multiple threads to get data from each device and parse it
 
-        for body in pool.imap(fetch, url_full_list):
+        for body in pool.imap(fetch, url_list):
             doc_.append(xmltodict.parse(body))
 
         for i in xrange (0,len(doc_),3):
@@ -270,7 +266,7 @@ def get_data():
                 status_['Time']=initial_time
                 for k,v in status.items():
                     status_[k]=status[k]
-                app.logger.info('Data from %s'  % url_full_list[i])
+                app.logger.info('Data from %s'  % url_list[i])
                 dataCollection.insert(status_)
                 # i=i+3
 
