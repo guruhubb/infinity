@@ -812,22 +812,23 @@
         path_dist = {{ path.dist }},
         path_cov = {{ path.cov }},
         site = '{{ site }}',
-        link = '{{ link }}';
+        link = '{{ link }}',
+        deviceType = '{{ type }}';
 
 
-    var blackIcon = L.icon({
-        iconUrl: '/static/img/ships/ship-black.png',
-        iconSize:     [40, 40] // size of the icon
-    });
-    var orangeIcon = L.icon({
-        iconUrl: '/static/img/ships/ship-orange.png',
-        iconSize:     [40, 40] // size of the icon
-    });
-    var redIcon = L.icon({
-        iconUrl: '/static/img/ships/ship-red.png',
-        iconSize:     [40, 40] // size of the icon
-    });
-    var TYPICAL_COVERAGE_MILES = 20;
+{#    var blackIcon = L.icon({#}
+{#        iconUrl: '/static/img/ships/ship-black.png',#}
+{#        iconSize:     [40, 40] // size of the icon#}
+{#    });#}
+{#    var orangeIcon = L.icon({#}
+{#        iconUrl: '/static/img/ships/ship-orange.png',#}
+{#        iconSize:     [40, 40] // size of the icon#}
+{#    });#}
+{#    var redIcon = L.icon({#}
+{#        iconUrl: '/static/img/ships/ship-red.png',#}
+{#        iconSize:     [40, 40] // size of the icon#}
+{#    });#}
+{#    var TYPICAL_COVERAGE_MILES = 20;#}
 
     function loadDevices() {
 	    var url = '{{ devices_url }}';
@@ -949,6 +950,7 @@
         markers.push(marker);
         deviceTypes.push(device.type);
         sites.push(device.site);
+{#        deviceType = device.type;#}
     }
     function addLink(link) {
         {#	if (!map) return;#}
@@ -1219,7 +1221,7 @@
     }
     function onMarkerClick(e) {
         map1.panTo(e.latlng);
-        debugger;
+{#        debugger;#}
 
         for (i = 0; i < markers.length; i++) {
             if (markers[i]._leaflet_id == this._leaflet_id) {

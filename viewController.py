@@ -17,6 +17,7 @@ end = int(time.time())
 # site = 'btsA'
 site = 'Catalina'
 link = 'Catalina_LongBeach'
+deviceType = 'CPE'
 # import plotly.plotly as py
 # from plotly.graph_objs import *
 # py.sign_in("saswata", "mret9csgsi")
@@ -115,7 +116,8 @@ def home():
         'site'     :site,
         'fromTime' :start*1000,
         'toTime'   :end*1000,
-        'lastTime' :end*1000
+        'lastTime' :end*1000,
+        'type'     :deviceType
     }
     if current_user.has_role('Root'):
         ctx['devices_url'] = '/devices'
