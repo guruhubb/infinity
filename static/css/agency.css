@@ -65,7 +65,7 @@ h6 {
 }
 
 .bg-darkest-gray {
-    background-color: #222;
+    background-color: #00aae7;
 }
 
 .btn-primary {
@@ -171,13 +171,24 @@ fieldset[disabled] .btn-xl.active {
 
 .navbar-default {
     border-color: transparent;
-    background-color: #222;
+    background-color: #00aae7;
+}
+.navbar-default .navbar-fixed-top  {
+    border-color: transparent;
+    background-color: #00aae7;
 }
 
 .navbar-default .navbar-brand {
     font-family: "Helvetica Neue",Helvetica,Arial;
     /*font-family: "Kaushan Script","Helvetica Neue",Helvetica,Arial,cursive;*/
     color: #fed136;
+}
+.page-scroll{
+    font-family: "Helvetica Neue",Helvetica,Arial;
+    /*font-family: "Kaushan Script","Helvetica Neue",Helvetica,Arial,cursive;*/
+    color: #fed136;
+    font-weight: bold;
+    font-size: 18px;
 }
 
 .navbar-default .navbar-brand:hover,
@@ -254,7 +265,7 @@ fieldset[disabled] .btn-xl.active {
 
     .navbar-default.navbar-shrink {
         padding: 10px 0;
-        background-color: #222;
+        background-color: #00aae7;
     }
 
     .navbar-default.navbar-shrink .navbar-brand {
@@ -269,7 +280,7 @@ header {
     background-attachment: scroll;
 
     /*background-image: url(../img/header-bg.jpg); sb changes*/
-    background-color: black;
+    background-color: #00aae7;
     background-position: center center;
     /*background-repeat: none;*/
     -webkit-background-size: cover;
@@ -688,7 +699,7 @@ aside.clients img {
 }
 
 section#contact {
-    background-color: #222;
+    background-color: #00aae7;
     background-image: url(../img/map-image.png);
     background-position: center;
     background-repeat: no-repeat;
@@ -785,7 +796,7 @@ ul.social-buttons li a {
     line-height: 40px;
     outline: 0;
     color: #fff;
-    background-color: #222;
+    background-color: #00aae7;
     -webkit-transition: all .3s;
     -moz-transition: all .3s;
     transition: all .3s;
@@ -859,7 +870,7 @@ ul.social-buttons li a:active {
     width: 1px;
     height: 75px;
     margin-left: 35px;
-    background-color: #222;
+    background-color: #00aae7;
     -webkit-transform: rotate(45deg);
     -ms-transform: rotate(45deg);
     transform: rotate(45deg);
@@ -869,7 +880,7 @@ ul.social-buttons li a:active {
     z-index: 1052;
     width: 1px;
     height: 75px;
-    background-color: #222;
+    background-color: #00aae7;
     -webkit-transform: rotate(90deg);
     -ms-transform: rotate(90deg);
     transform: rotate(90deg);
