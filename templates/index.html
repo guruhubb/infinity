@@ -813,7 +813,9 @@
         path_cov = {{ path.cov }},
         site = '{{ site }}',
         link = '{{ link }}',
-        deviceType = '{{ type }}';
+        deviceType = '{{ type }}',
+        streamInterval = '{{ stream_Interval }}',
+        updateInterval = '{{ update_Interval }}'
 
 
 {#    var blackIcon = L.icon({#}
@@ -1271,7 +1273,7 @@
             aj.fail(function (jqXHR, textStatus, errorThrown) {
 {#                                    alert(textStatus);#}
             });
-        }, 1000);
+        }, streamInterval);
         }
     function getData() {
 {#        debugger;#}
@@ -1971,7 +1973,7 @@
                 toTime = Math.round( nowTime );
                 getData();
             };
-            }, (15 * 1000));
+            }, updateInterval);
     </script>
 </body>
 </html>
