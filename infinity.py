@@ -284,7 +284,7 @@ class Device(db.Document):
     type = db.StringField(max_length=10, choices=TYPE)
     operator = db.ReferenceField(Company)
     owner = db.ReferenceField(Company)
-    tags = db.ListField(db.ReferenceField('Tag'), default=['All'])
+    tags = db.ListField(db.ReferenceField('Tag'))
     time = db.DateTimeField(default=datetime.now())
     active = db.BooleanField(default=True)
     # geo = db.GeoPointField(default =(33.783503, -118.198599))   #long beach
@@ -298,7 +298,7 @@ class Device(db.Document):
     # firmware = db.ReferenceField('Firmware')
     # config = db.ReferenceField('Config')
 
-    meta = {'indexes': ['name','operator','owner','tags','site','connId']}
+    meta = {'indexes': ['name','operator','owner','site','connId']}
 
     def __unicode__(self):
         return self.name
@@ -324,6 +324,8 @@ class Data(db.Document):
     Location = db.GeoPointField()
     LinkName = db.StringField()
     MaxCapacity = db.FloatField()
+    Data = db.FloatField()
+    Coverage = db.BooleanField(default=True)
     # total_cap = db.FloatField()
     Distance = db.FloatField()
     # freqList = db.StringField()
@@ -344,9 +346,9 @@ class Data(db.Document):
     Rx3 = db.FloatField()
     Noise3 = db.FloatField()
     Encoding3 = db.IntField()
-    Process = db.BooleanField(default=False)
-    Aggregate = db.BooleanField(default=False)
-    meta = {'indexes': ['Location', 'LinkName','DeviceName','Time','Distance','Process','Aggregate']}
+    # Process = db.BooleanField(default=False)
+    # Aggregate = db.BooleanField(default=False)
+    meta = {'indexes': ['Location', 'LinkName','DeviceName','Time','Distance']}
 
 #derived data from Data
 class Aggr_data(db.Document):
@@ -363,6 +365,8 @@ class Aggr_data(db.Document):
     meta = {'indexes': ['site','time','distance']}
 
     # meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
+
+#derived data from Aggr_Data
 
 #derived data from Aggr_Data
 class Minute(db.Document):
@@ -457,14 +461,78 @@ class Beagle(db.Document):
 
 class Site(db.Document):
     name = db.StringField(max_length=32)
-    ssidList = db.ListField(db.StringField())
+    # ssidList = db.ListField(db.StringField())
     deviceList = db.ListField(db.StringField())
     active = db.BooleanField(default=True)
     tags = db.ListField(db.ReferenceField('Tag'))
 
+    meta = {'indexes': ['name','deviceList']}
+
     def __unicode__(self):
         return self.name
 
+class Site_data(db.Document):
+    name = db.StringField()
+    time = db.IntField()
+    tx = db.FloatField()
+    rx = db.FloatField()
+    cap = db.FloatField()
+    data = db.FloatField()
+    type = db.StringField()
+    geo = db.GeoPointField()
+
+    meta = {'indexes': ['name','time','geo']}
+
+    # meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
+
+class Site_data_min(db.Document):
+    name = db.StringField()
+    time = db.IntField()
+    tx = db.FloatField()
+    rx = db.FloatField()
+    cap = db.FloatField()
+    data = db.FloatField()
+    type = db.StringField()
+    geo = db.GeoPointField()
+
+    meta = {'indexes': ['name','time','geo']}
+
+class Site_data_hour(db.Document):
+    name = db.StringField()
+    time = db.IntField()
+    tx = db.FloatField()
+    rx = db.FloatField()
+    cap = db.FloatField()
+    data = db.FloatField()
+    type = db.StringField()
+    geo = db.GeoPointField()
+
+    meta = {'indexes': ['name','time','geo']}
+
+class Site_data_day(db.Document):
+    name = db.StringField()
+    time = db.IntField()
+    tx = db.FloatField()
+    rx = db.FloatField()
+    cap = db.FloatField()
+    data = db.FloatField()
+    type = db.StringField()
+    geo = db.GeoPointField()
+
+    meta = {'indexes': ['name','time','geo']}
+
+class Site_data_month(db.Document):
+    name = db.StringField()
+    time = db.IntField()
+    tx = db.FloatField()
+    rx = db.FloatField()
+    cap = db.FloatField()
+    data = db.FloatField()
+    type = db.StringField()
+    geo = db.GeoPointField()
+
+    meta = {'indexes': ['name','time','geo']}
+    # meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
 # class Config(db.Document):
 #     name = db.StringField(max_length=64)
 #     description = db.StringField(max_length=512)

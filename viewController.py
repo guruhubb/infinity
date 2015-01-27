@@ -4,7 +4,7 @@ from flask.ext.admin import Admin
 from flask.ext.admin.contrib.mongoengine import ModelView
 import infinity
 import flask, time, subprocess, json,calendar
-from infinity import app, Site, Aggr_data, Device, Data, Minute, Hour, Day, Month
+from infinity import app, Site, Aggr_data, Device, Data, Minute, Hour, Day, Month, Site_data,Site_data_min
 from monary import Monary
 from collections import defaultdict
 from dataController import distance_in_miles
@@ -75,7 +75,9 @@ def adminViews(app):
     admin.add_view(ModelView(infinity.Router))
     admin.add_view(ModelView(infinity.Data))
     admin.add_view(ModelView(infinity.Aggr_data))
+    admin.add_view(ModelView(infinity.Site_data))
     admin.add_view(ModelView(infinity.Minute))
+    admin.add_view(ModelView(infinity.Site_data_min))
     admin.add_view(ModelView(infinity.Hour))
     admin.add_view(ModelView(infinity.Day))
     admin.add_view(ModelView(infinity.Month))
