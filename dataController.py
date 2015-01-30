@@ -1420,7 +1420,7 @@ def siteDay():
                                 , 'name':site.name}},
                             # {'$limit' : 60 },
                             {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
-                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
+                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'}
                             }}
                         ])
                         if len(dataObject['result']) > 0:
@@ -1464,7 +1464,7 @@ def siteMonth():
                                 , 'name':site.name}},
                             # {'$limit' : 60 },
                             {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
-                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
+                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'}
                             }}
                         ])
                         if len(dataObject['result']) > 0:

@@ -4,7 +4,8 @@ from flask.ext.admin import Admin
 from flask.ext.admin.contrib.mongoengine import ModelView
 import infinity
 import flask, time, subprocess, json,calendar
-from infinity import app, Site, Aggr_data, Device, Data, Minute, Hour, Day, Month, Site_data,Site_data_min
+from infinity import app, Site, Aggr_data, Device, Data, Minute, Hour, Day, Month, Site_data,Site_data_min, \
+    Site_data_hour, Site_data_day, Site_data_month
 from monary import Monary
 from collections import defaultdict
 from dataController import distance_in_miles
@@ -15,11 +16,12 @@ DISTANCE_MAX = 51
 start = int(time.time()) - 100*24*60*60
 end = int(time.time())
 # site = 'btsA'
-site = 'Catalina'
+# site = 'Catalina'
+site = 'Catalina_LongBeach'
 link = 'Catalina_LongBeach'
 deviceType = 'CPE'
-stream_interval = '1000'
-update_interval = '15000'
+streamInterval = 5000
+updateInterval = 15000
 # import plotly.plotly as py
 # from plotly.graph_objs import *
 # py.sign_in("saswata", "mret9csgsi")
@@ -71,23 +73,26 @@ def adminViews(app):
     admin.add_view(ModelView(infinity.Company))
     admin.add_view(ModelView(infinity.Tag))
     admin.add_view(ModelView(infinity.Device))
-    admin.add_view(ModelView(infinity.Beagle))
-    admin.add_view(ModelView(infinity.Router))
+    admin.add_view(ModelView(infinity.Site))
     admin.add_view(ModelView(infinity.Data))
     admin.add_view(ModelView(infinity.Aggr_data))
-    admin.add_view(ModelView(infinity.Site_data))
     admin.add_view(ModelView(infinity.Minute))
-    admin.add_view(ModelView(infinity.Site_data_min))
     admin.add_view(ModelView(infinity.Hour))
     admin.add_view(ModelView(infinity.Day))
     admin.add_view(ModelView(infinity.Month))
+    admin.add_view(ModelView(infinity.Site_data))
+    admin.add_view(ModelView(infinity.Site_data_min))
+    admin.add_view(ModelView(infinity.Site_data_hour))
+    admin.add_view(ModelView(infinity.Site_data_day))
+    admin.add_view(ModelView(infinity.Site_data_month))
     # admin.add_view(ModelView(infinity.Config))
     # admin.add_view(ModelView(infinity.Firmware))
     # admin.add_view(ModelView(infinity.Freq))
     # admin.add_view(ModelView(infinity.Power))
     # admin.add_view(ModelView(infinity.Ssid))
-    admin.add_view(ModelView(infinity.Site))
     # admin.add_view(ModelView(infinity.Job))
+    admin.add_view(ModelView(infinity.Beagle))
+    admin.add_view(ModelView(infinity.Router))
     admin.add_view(ModelView(infinity.Event))
     admin.add_view(ModelView(infinity.Audit))
 
@@ -111,19 +116,29 @@ def home():
         'histogram_url':'/histogram',
         'path_url':'/path',
         'lastpoint_url':'/lastpoint',
-        'links_url':'/links',
         'stream_url':'/stream',
+
+        'chart_url_site':'/chart_site',
+        'histogram_url_site':'/histogram_site',
+        'path_url_site':'/path_site',
+        'lastpoint_url_site':'/lastpoint_site',
+        'stream_url_site':'/stream_site',
+
         'data'     :chart_view_init(),
         'histogram':generate_histogram_init(),
         'path'     :generate_path_init(),
         'stream'   :stream_view_init(),
+
+        'links_url':'/links',
+        'onSite'   :'false',
         'site'     :site,
+        'link'     :site,
         'fromTime' :start*1000,
         'toTime'   :end*1000,
         'lastTime' :end*1000,
         'type'     :deviceType,
-        'stream_interval':stream_interval,
-        'update_interval':update_interval
+        'streamInterval':streamInterval,
+        'updateInterval':updateInterval
     }
     if current_user.has_role('Root'):
         ctx['devices_url'] = '/devices'
@@ -141,9 +156,9 @@ def lastPoint():
     lastTime = int(flask.request.args.get('lastTime'))/1000
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
-    if type == 'BTS':
-        site = Device.objects(site = site).first()
-        site = Device.objects(connId = site.connId, type = 'CPE').first().site
+    # if type == 'BTS':
+    #     site = Device.objects(site = site).first()
+    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     start = int(time.time())-15*60  # 15 mins
     if lastTime > start:   # if lastTime is less than 15 mins, use it for start time
         start = lastTime
@@ -165,16 +180,47 @@ def lastPoint():
     data_dumps = Response(json.dumps(data),  mimetype='application/json')
     return data_dumps       # if there is no data it will return zero
 
+@app.route('/lastpoint_site', methods= ['POST','GET'])
+@login_required
+def lastPoint_site():
+    lastTime = int(flask.request.args.get('lastTime'))/1000
+    site = flask.request.args.get('site')
+    type = flask.request.args.get('type')
+    # if type == 'BTS':
+    #     site = Device.objects(site = site).first()
+    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
+    start = int(time.time())-15*60  # 15 mins
+    if lastTime > start:   # if lastTime is less than 15 mins, use it for start time
+        start = lastTime
+    end = int(time.time())  # end time = current time
+    query_set = Site_data.objects(time__gt = start, time__lt = end, name = site ).order_by('time')
+    # ob = Aggr_data.objects(site = site ).order_by("-time").first()
+    # data = defaultdict(lambda :defaultdict)  # one-liner to initialize dictionary containing lists
+    # data = defaultdict(list)
+    data = {}
+    data["cap"]=[]
+    data["data"]=[]
+    # data["distance"]=[]
+    for ob in query_set:
+    # if ob:
+            t = ob.time*1000
+            data["cap"].append([t,float("{0:.2f}".format(ob.cap))])
+            data["data"].append([t,float("{0:.2f}".format(ob.data))])
+            # data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
+    data_dumps = Response(json.dumps(data),  mimetype='application/json')
+    return data_dumps       # if there is no data it will return zero
+
+
 @app.route('/chart', methods= ['POST','GET'])
 @login_required
 def chart_view():
     toTime = int(flask.request.args.get('toTime'))/1000
     fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
-    type = flask.request.args.get('type')
-    if type == 'BTS':
-        site = Device.objects(site = site).first()
-        site = Device.objects(connId = site.connId, type = 'CPE').first().site
+    # type = flask.request.args.get('type')
+    # if type == 'BTS':
+    #     site = Device.objects(site = site).first()
+    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     range = toTime - fromTime
     # 15 min range loads second data
     if (range < 15 * 60 ):
@@ -196,10 +242,10 @@ def chart_view():
     elif (range >= 3 * 12 * 31 * 24 * 3600 ):
         query_set = Month.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-    else :
-        query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-        only('time',"data","cap","distance").order_by('time')
-    # query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+    # else :
+    # #     query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+    # #     only('time',"data","cap","distance").order_by('time')
+    #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
     #     only('time',"data","cap","distance").order_by('time')
     if len(query_set) < 500 :
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
@@ -225,6 +271,65 @@ def chart_view():
     # data_jsonify = flask.jsonify(**data)  # same as flask.Response but doesn't quite work
     return data_dumps
 
+@app.route('/chart_site', methods= ['POST','GET'])
+@login_required
+def chart_view_site():
+    toTime = int(flask.request.args.get('toTime'))/1000
+    fromTime = int(flask.request.args.get('fromTime'))/1000
+    site = flask.request.args.get('site')
+    # type = flask.request.args.get('type')
+    # if type == 'BTS':
+    #     site = Device.objects(site = site).first()
+    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
+    range = toTime - fromTime
+    # 15 min range loads second data
+    if (range < 15 * 60 ):
+        query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
+        only('time',"data","cap").order_by('time')
+    # 1 day range loads minute data
+    elif (range < 24 * 3600 ):
+        query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
+        only('time',"data","cap").order_by('time')
+    # two month range loads hourly data
+    elif (range < 2 * 31 * 24 * 3600 ):
+        query_set = Site_data_hour.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
+        only('time',"data","cap").order_by('time')
+    # two year range loads daily data
+    elif (range < 3 * 12 * 31 * 24 * 3600 ):
+        query_set = Site_data_day.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
+        only('time',"data","cap").order_by('time')
+    # greater range loads monthly data
+    elif (range >= 3 * 12 * 31 * 24 * 3600 ):
+        query_set = Site_data_month.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
+        only('time',"data","cap").order_by('time')
+    # else :
+    # #     query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+    # #     only('time',"data","cap","distance").order_by('time')
+    #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+    #     only('time',"data","cap").order_by('time')
+    if len(query_set) < 500 :
+        query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
+        only('time',"data","cap").order_by('time')
+    data = {}
+    data["cap"]=[]
+    data["data"]=[]
+    # data["distance"]=[]
+    # data = []
+
+    for ob in query_set:
+        # cap = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.cap)))
+        # # data.append(list(s))
+        # data = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.data)))
+        # distance = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.distance)))
+
+        t = ob.time*1000
+        data["cap"].append([t,float("{0:.2f}".format(ob.cap))])   # multiple by 1.5 to see if data is changing
+        data["data"].append([t,float("{0:.2f}".format(ob.data))])
+        # data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
+
+    data_dumps = Response(json.dumps(data),  mimetype='application/json')
+    # data_jsonify = flask.jsonify(**data)  # same as flask.Response but doesn't quite work
+    return data_dumps
 
 def chart_view_init():
     global start, end
@@ -255,16 +360,21 @@ def chart_view_init():
 @app.route('/stream', methods= ['POST','GET'])
 @login_required
 def stream_view():
-    start = int(time.time())-15*60*60  # 15 mins
-    end = int(time.time())
+    global start, end
+    startStream = int(time.time())-15*60*60  # 15 mins
+    endStream = int(time.time())
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
-    if type == 'BTS':
-        site = Device.objects(site = site).first()
-        site = Device.objects(connId = site.connId, type = 'CPE').first().site
-    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
+    # if type == 'BTS':
+    #     site = Device.objects(site = site).first()
+    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
+    query_set = Aggr_data.objects(time__gt = startStream, time__lt = endStream, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-
+    if query_set:
+        pass
+    else:
+        query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
+            only('time',"data","cap","distance").order_by('time')
     data = {}
     data["cap"]=[]
     data["data"]=[]
@@ -280,14 +390,52 @@ def stream_view():
 
     return data_dumps
 
+@app.route('/stream_site', methods= ['POST','GET'])
+@login_required
+def stream_view_site():
+    global start, end
+    startStream = int(time.time())-15*60*60  # 15 mins
+    endStream = int(time.time())
+    site = flask.request.args.get('site')
+    type = flask.request.args.get('type')
+    # if type == 'BTS':
+    #     site = Device.objects(site = site).first()
+    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
+    query_set = Site_data.objects(time__gt = startStream, time__lt = endStream, name = site ).\
+        only('time',"data","cap").order_by('time')
+    if query_set:
+        pass
+    else:
+        query_set = Site_data.objects(time__gt = start, time__lt = end, name = site ).\
+            only('time',"data","cap").order_by('time')
+    data = {}
+    data["cap"]=[]
+    data["data"]=[]
+    # data["distance"]=[]
+
+    for ob in query_set:
+        t = ob.time*1000
+        data["cap"].append([t,float("{0:.2f}".format(ob.cap))])
+        data["data"].append([t,float("{0:.2f}".format(ob.data))])
+        # data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
+
+    data_dumps = Response(json.dumps(data),  mimetype='application/json')
+
+    return data_dumps
+
 def stream_view_init():
-    start = int(time.time())-15*60*60  # 15 mins
-    end = int(time.time())
+    global start, end
+    startStream = int(time.time())-15*60*60  # 15 mins
+    endStream = int(time.time())
     # global start, end
 
-    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
+    query_set = Aggr_data.objects(time__gt = startStream, time__lt = endStream, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-
+    if query_set:
+        pass
+    else:
+        query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
+            only('time',"data","cap","distance").order_by('time')
     data = {}
     data["cap"]=[]
     data["data"]=[]
@@ -305,23 +453,22 @@ def stream_view_init():
 @login_required
 def get_devices_and_data():
     device_type = flask.request.args.get('type')
-    sites = Site.objects.only('name')
     response_data = []
     if device_type is None:
-        for site in sites:
-            record = Aggr_data.objects(site=site.name).order_by('-time')
-            cpeDevice = Device.objects(type = 'CPE',site = site.name).first()
-            if len(record) > 3:
-                record = record [2]
-                response_data.append({"site":record.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
+        for site in Site.objects:
+            recordObjects = Site_data.objects(name=site.name).order_by('-time')   # todo: limit # of records to 5
+            # cpeDevice = Device.objects(type = 'CPE',site = site.name).first()
+            if len(recordObjects) > 3:
+                record = recordObjects [2]  # don't take the latest timestamp data, but a few seconds earlier
+                response_data.append({"site":record.name,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
                  "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
-                 "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
-                 "lat":record.geo[0], "lng":record.geo[1], "time":record.time * 1000,"type":'CPE'})
-                btsDevice = Device.objects(type = 'BTS',connId = cpeDevice.connId).first()
-                response_data.append({"site":btsDevice.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
-                 "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
-                 "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
-                 "lat":btsDevice.lat, "lng":btsDevice.lng, "time":record.time * 1000, "type":'BTS'})
+                 # "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
+                 "lat":record.geo[0], "lng":record.geo[1], "time":record.time * 1000,"type":record.type})
+                # btsDevice = Device.objects(type = 'BTS',connId = cpeDevice.connId).first()
+                # response_data.append({"site":btsDevice.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
+                #  "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
+                #  "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
+                #  "lat":btsDevice.lat, "lng":btsDevice.lng, "time":record.time * 1000, "type":'BTS'})
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
 
@@ -362,7 +509,7 @@ def generate_histogram_init():
     data["records"]=[]
     data["distance"]=[]
     total_records = len(Aggr_data.objects(time__gt = start, time__lt = end, site = site ))
-    if total_records == 0:
+    if total_records == 0:   # prevent divide by zero condition
         total_records=1
     step=DISTANCE_STEP
     for x in range(step,DISTANCE_MAX,step):
@@ -383,9 +530,9 @@ def generate_histogram():
     fromTimeStamp = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
-    if type == 'BTS':
-        site = Device.objects(site = site).first()
-        site = Device.objects(connId = site.connId, type = 'CPE').first().site
+    # if type == 'BTS':
+    #     site = Device.objects(site = site).first()
+    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     data = {}
     data["avg_cap"]=[]
     data["records"]=[]
@@ -405,6 +552,36 @@ def generate_histogram():
     data_dumps= Response(json.dumps(data),  mimetype='application/json')
     return data_dumps
 
+@app.route('/histogram_site')
+@login_required
+def generate_histogram_site():
+
+    toTimeStamp = int(flask.request.args.get('toTime'))/1000
+    fromTimeStamp = int(flask.request.args.get('fromTime'))/1000
+    site = flask.request.args.get('site')
+    type = flask.request.args.get('type')
+    # if type == 'BTS':
+    #     site = Device.objects(site = site).first()
+    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
+    data = {}
+    data["avg_cap"]=[]
+    data["records"]=[]
+    # data["distance"]=[]
+
+    total_records = len(Site_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+    if total_records == 0:
+        total_records=1
+    step=20
+    for x in range(step,100,step):
+        data["records"].append( len( Site_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+                                     name = site , cap__lt = x, cap__gte = x-step) )*100/total_records )
+        # data["avg_cap"].append(float("{0:.2f}".format(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
+        #                              , distance__lt = x, distance__gte = x-step).average('cap'))))
+        data["avg_cap"].append(x)
+
+    data_dumps= Response(json.dumps(data),  mimetype='application/json')
+    return data_dumps
+
 @app.route('/path')
 @login_required
 def generate_path():
@@ -413,9 +590,9 @@ def generate_path():
     fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
-    if type == 'BTS':
-        site = Device.objects(site = site).first()
-        site = Device.objects(connId = site.connId, type = 'CPE').first().site
+    # if type == 'BTS':
+    #     site = Device.objects(site = site).first()
+    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
     # start = 0
     # skip = len(query_set)/MAX_POINTS
@@ -445,6 +622,45 @@ def generate_path():
     data_dumps= Response(json.dumps(data),  mimetype='application/json')
     return data_dumps
 
+@app.route('/path_site')
+@login_required
+def generate_path_site():
+
+    toTime = int(flask.request.args.get('toTime'))/1000
+    fromTime = int(flask.request.args.get('fromTime'))/1000
+    site = flask.request.args.get('site')
+    type = flask.request.args.get('type')
+    # if type == 'BTS':
+    #     site = Device.objects(site = site).first()
+    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
+    query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )
+    # start = 0
+    # skip = len(query_set)/MAX_POINTS
+    data = {}
+    data["cap"]=[]
+    data["lat"]=[]
+    data["lng"]=[]
+    # data["dist"]=[]
+    # data["cov"]=[]
+    data["time"]=[]
+
+    for ob in query_set:
+        # if start == 0:
+            data["cap"].append(float("{0:.2f}".format(ob.cap)))
+            data["lat"].append(float("{0:.2f}".format(ob.geo[0])))
+            data["lng"].append(float("{0:.2f}".format(ob.geo[1])))
+            data["time"].append(ob.time*1000 )
+            # data["cov"].append(int(ob.coverage))
+            # data["dist"].append(float("{0:.2f}".format(ob.distance)))
+
+        #     start +=1
+        # else:
+        #     if start > skip:
+        #         start = 0
+        #     else:
+        #         start+=1
+    data_dumps= Response(json.dumps(data),  mimetype='application/json')
+    return data_dumps
 
 def generate_path_init():
 
