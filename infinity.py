@@ -480,6 +480,7 @@ class Site_data(db.Document):
     data = db.FloatField()
     type = db.StringField()
     geo = db.GeoPointField()
+    distance = db.FloatField()
 
     meta = {'indexes': ['name','time','geo']}
 
@@ -494,6 +495,7 @@ class Site_data_min(db.Document):
     data = db.FloatField()
     type = db.StringField()
     geo = db.GeoPointField()
+    distance = db.FloatField()
 
     meta = {'indexes': ['name','time','geo']}
 
@@ -506,6 +508,7 @@ class Site_data_hour(db.Document):
     data = db.FloatField()
     type = db.StringField()
     geo = db.GeoPointField()
+    distance = db.FloatField()
 
     meta = {'indexes': ['name','time','geo']}
 
@@ -530,6 +533,7 @@ class Site_data_month(db.Document):
     data = db.FloatField()
     type = db.StringField()
     geo = db.GeoPointField()
+    distance = db.FloatField()
 
     meta = {'indexes': ['name','time','geo']}
     # meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this

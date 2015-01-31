@@ -1263,11 +1263,13 @@ def site():
             site_data_cpe['rx']=0.0
             site_data_cpe['cap']= 0.0
             site_data_cpe['data']= 0.0
+            site_data_cpe['distance']=100.0
             site_data_bts = {}
             site_data_bts['tx']=0.0
             site_data_bts['rx']=0.0
             site_data_bts['cap']= 0.0
             site_data_bts['data']= 0.0
+            site_data_bts['distance']=100.0
             for device in site.deviceList:
                 #check if device is cpe, else if device is bts get the cpe for the link
                 deviceObject = Device.objects(name = device).first()
@@ -1284,7 +1286,7 @@ def site():
                         site_data_cpe['rx']+= record.RxRate
                         site_data_cpe['cap']+= record.Data
                         site_data_cpe['data']+= record.MaxCapacity
-
+                        site_data_cpe['distance']=min(record.Distance,site_data_cpe['distance'] )
                 else:
                     # get cpe related to the bts link
                     cpeDevice = Device.objects(name__ne = device, connId = deviceObject.connId).first()
@@ -1299,6 +1301,8 @@ def site():
                             site_data_bts['type'] = 'BTS'
                             site_data_bts['name'] = site.name
                             site_data_bts['time'] = initial_time
+                            site_data_bts['distance']=min(record.Distance,site_data_bts['distance'] )
+
             if site_data_cpe['tx'] != 0.0 and site_data_cpe['rx'] != 0.0:
                 siteCollection.insert(site_data_cpe)
             if site_data_bts['tx'] != 0.0 and site_data_bts['rx'] != 0.0:
@@ -1338,7 +1342,7 @@ def siteMinute():
                         if len(dataObject['result']) > 0:
                             minute_data = Site_data_min( name=site.name, time = firstRecord.time+60, tx = dataObject['result'][0]['tx'],
                                             rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
-                                            data = dataObject['result'][0]['data'],
+                                            data = dataObject['result'][0]['data'], distance = dataObject['result'][0]['distance'],
                                             type = firstRecord.type, geo = firstRecord.geo )
                             minute_data.save()
                         time1 = time1 + 60
@@ -1382,7 +1386,7 @@ def siteHour():
                         if len(dataObject['result']) > 0:
                             minute_data = Site_data_hour( name=site.name, time = firstRecord.time+60, tx = dataObject['result'][0]['tx'],
                                             rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
-                                            data = dataObject['result'][0]['data'],
+                                            data = dataObject['result'][0]['data'],distance = dataObject['result'][0]['distance'],
                                             type = firstRecord.type, geo = firstRecord.geo )
                             minute_data.save()
                         time1 = time1 + 60
@@ -1420,13 +1424,13 @@ def siteDay():
                                 , 'name':site.name}},
                             # {'$limit' : 60 },
                             {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
-                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'}
+                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
                             }}
                         ])
                         if len(dataObject['result']) > 0:
                             minute_data = Site_data_day( name=site.name, time = firstRecord.time+60, tx = dataObject['result'][0]['tx'],
                                             rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
-                                            data = dataObject['result'][0]['data'],
+                                            data = dataObject['result'][0]['data'],distance = dataObject['result'][0]['distance'],
                                             type = firstRecord.type, geo = firstRecord.geo )
                             minute_data.save()
                         time1 = time1 + 60
@@ -1464,13 +1468,13 @@ def siteMonth():
                                 , 'name':site.name}},
                             # {'$limit' : 60 },
                             {'$group':{ '_id':'$site','cap' :{'$avg' : '$cap'},'tx' :{'$avg' : '$tx'},
-                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'}
+                                   'rx' :{'$avg' : '$rx'},'data' :{'$avg' : '$data'},'distance' :{'$avg' : '$distance'}
                             }}
                         ])
                         if len(dataObject['result']) > 0:
                             minute_data = Site_data_month( name=site.name, time = firstRecord.time+60, tx = dataObject['result'][0]['tx'],
                                             rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
-                                            data = dataObject['result'][0]['data'],
+                                            data = dataObject['result'][0]['data'],distance = dataObject['result'][0]['distance'],
                                             type = firstRecord.type, geo = firstRecord.geo )
                             minute_data.save()
                         time1 = time1 + 60

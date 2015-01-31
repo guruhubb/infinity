@@ -163,7 +163,8 @@ def lastPoint():
     if lastTime > start:   # if lastTime is less than 15 mins, use it for start time
         start = lastTime
     end = int(time.time())  # end time = current time
-    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).order_by('time')
+    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).order_by('time')\
+        .only('time',"data","cap","distance")
     # ob = Aggr_data.objects(site = site ).order_by("-time").first()
     # data = defaultdict(lambda :defaultdict)  # one-liner to initialize dictionary containing lists
     # data = defaultdict(list)
@@ -193,20 +194,21 @@ def lastPoint_site():
     if lastTime > start:   # if lastTime is less than 15 mins, use it for start time
         start = lastTime
     end = int(time.time())  # end time = current time
-    query_set = Site_data.objects(time__gt = start, time__lt = end, name = site ).order_by('time')
+    query_set = Site_data.objects(time__gt = start, time__lt = end, name = site ).order_by('time')\
+        .only('time',"data","cap","distance")
     # ob = Aggr_data.objects(site = site ).order_by("-time").first()
     # data = defaultdict(lambda :defaultdict)  # one-liner to initialize dictionary containing lists
     # data = defaultdict(list)
     data = {}
     data["cap"]=[]
     data["data"]=[]
-    # data["distance"]=[]
+    data["distance"]=[]
     for ob in query_set:
     # if ob:
             t = ob.time*1000
             data["cap"].append([t,float("{0:.2f}".format(ob.cap))])
             data["data"].append([t,float("{0:.2f}".format(ob.data))])
-            # data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
+            data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
     data_dumps = Response(json.dumps(data),  mimetype='application/json')
     return data_dumps       # if there is no data it will return zero
 
@@ -285,23 +287,23 @@ def chart_view_site():
     # 15 min range loads second data
     if (range < 15 * 60 ):
         query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
-        only('time',"data","cap").order_by('time')
+        only('time',"data","cap","distance").order_by('time')
     # 1 day range loads minute data
     elif (range < 24 * 3600 ):
         query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
-        only('time',"data","cap").order_by('time')
+        only('time',"data","cap","distance").order_by('time')
     # two month range loads hourly data
     elif (range < 2 * 31 * 24 * 3600 ):
         query_set = Site_data_hour.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
-        only('time',"data","cap").order_by('time')
+        only('time',"data","cap","distance").order_by('time')
     # two year range loads daily data
     elif (range < 3 * 12 * 31 * 24 * 3600 ):
         query_set = Site_data_day.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
-        only('time',"data","cap").order_by('time')
+        only('time',"data","cap","distance").order_by('time')
     # greater range loads monthly data
     elif (range >= 3 * 12 * 31 * 24 * 3600 ):
         query_set = Site_data_month.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
-        only('time',"data","cap").order_by('time')
+        only('time',"data","cap","distance").order_by('time')
     # else :
     # #     query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
     # #     only('time',"data","cap","distance").order_by('time')
@@ -309,11 +311,11 @@ def chart_view_site():
     #     only('time',"data","cap").order_by('time')
     if len(query_set) < 500 :
         query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
-        only('time',"data","cap").order_by('time')
+        only('time',"data","cap","distance").order_by('time')
     data = {}
     data["cap"]=[]
     data["data"]=[]
-    # data["distance"]=[]
+    data["distance"]=[]
     # data = []
 
     for ob in query_set:
@@ -325,7 +327,7 @@ def chart_view_site():
         t = ob.time*1000
         data["cap"].append([t,float("{0:.2f}".format(ob.cap))])   # multiple by 1.5 to see if data is changing
         data["data"].append([t,float("{0:.2f}".format(ob.data))])
-        # data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
+        data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
 
     data_dumps = Response(json.dumps(data),  mimetype='application/json')
     # data_jsonify = flask.jsonify(**data)  # same as flask.Response but doesn't quite work
@@ -402,22 +404,22 @@ def stream_view_site():
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     query_set = Site_data.objects(time__gt = startStream, time__lt = endStream, name = site ).\
-        only('time',"data","cap").order_by('time')
+        only('time',"data","cap","distance").order_by('time')
     if query_set:
         pass
     else:
         query_set = Site_data.objects(time__gt = start, time__lt = end, name = site ).\
-            only('time',"data","cap").order_by('time')
+            only('time',"data","cap","distance").order_by('time')
     data = {}
     data["cap"]=[]
     data["data"]=[]
-    # data["distance"]=[]
+    data["distance"]=[]
 
     for ob in query_set:
         t = ob.time*1000
         data["cap"].append([t,float("{0:.2f}".format(ob.cap))])
         data["data"].append([t,float("{0:.2f}".format(ob.data))])
-        # data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
+        data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
 
     data_dumps = Response(json.dumps(data),  mimetype='application/json')
 
@@ -566,18 +568,23 @@ def generate_histogram_site():
     data = {}
     data["avg_cap"]=[]
     data["records"]=[]
-    # data["distance"]=[]
+    data["distance"]=[]
 
     total_records = len(Site_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
     if total_records == 0:
         total_records=1
     step=20
     for x in range(step,100,step):
+        # data["records"].append( len( Site_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+        #                              name = site , cap__lt = x, cap__gte = x-step) )*100/total_records )
+        # # data["avg_cap"].append(float("{0:.2f}".format(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
+        # #                              , distance__lt = x, distance__gte = x-step).average('cap'))))
+        # data["avg_cap"].append(x)
         data["records"].append( len( Site_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
-                                     name = site , cap__lt = x, cap__gte = x-step) )*100/total_records )
-        # data["avg_cap"].append(float("{0:.2f}".format(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
-        #                              , distance__lt = x, distance__gte = x-step).average('cap'))))
-        data["avg_cap"].append(x)
+                                     name = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
+        data["avg_cap"].append(float("{0:.2f}".format(Site_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site
+                                     , distance__lt = x, distance__gte = x-step).average('cap'))))
+        data["distance"].append(x)
 
     data_dumps= Response(json.dumps(data),  mimetype='application/json')
     return data_dumps
@@ -593,7 +600,8 @@ def generate_path():
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
-    query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
+    query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )\
+        .only('time',"cap","geo","distance","coverage")
     # start = 0
     # skip = len(query_set)/MAX_POINTS
     data = {}
@@ -633,14 +641,15 @@ def generate_path_site():
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
-    query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )
+    query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )\
+        .only('time',"cap","geo","distance")
     # start = 0
     # skip = len(query_set)/MAX_POINTS
     data = {}
     data["cap"]=[]
     data["lat"]=[]
     data["lng"]=[]
-    # data["dist"]=[]
+    data["dist"]=[]
     # data["cov"]=[]
     data["time"]=[]
 
@@ -651,7 +660,7 @@ def generate_path_site():
             data["lng"].append(float("{0:.2f}".format(ob.geo[1])))
             data["time"].append(ob.time*1000 )
             # data["cov"].append(int(ob.coverage))
-            # data["dist"].append(float("{0:.2f}".format(ob.distance)))
+            data["dist"].append(float("{0:.2f}".format(ob.distance)))
 
         #     start +=1
         # else:
@@ -668,7 +677,8 @@ def generate_path_init():
     # fromTime = toTime-datetime.timedelta(days=15)
     # site = 'ShipA'
     global start,end
-    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site )
+    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site )\
+        .only('time',"cap","geo","distance","coverage")
     # start = 0
     # skip = len(query_set)/MAX_POINTS
     data = {}
