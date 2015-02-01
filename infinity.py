@@ -288,8 +288,8 @@ class Device(db.Document):
     time = db.DateTimeField(default=datetime.now())
     active = db.BooleanField(default=True)
     # geo = db.GeoPointField(default =(33.783503, -118.198599))   #long beach
-    lat = db.FloatField(default = 33.783503)
-    lng = db.FloatField(default = -118.198599)
+    lat = db.FloatField()
+    lng = db.FloatField()
     # geo = db.GeoPointField(default = (31.86,116.6))
     site = db.StringField()                 # TODO may need to reference this at some point
     connId = db.StringField()
