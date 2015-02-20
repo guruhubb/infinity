@@ -322,6 +322,7 @@ class Data(db.Document):
     Rx_MCS = db.IntField()
     DeviceName = db.StringField()
     Location = db.GeoPointField()
+    Temperature = db.FloatField()
     LinkName = db.StringField()
     MaxCapacity = db.FloatField()
     Data = db.FloatField()
@@ -521,6 +522,7 @@ class Site_data_day(db.Document):
     data = db.FloatField()
     type = db.StringField()
     geo = db.GeoPointField()
+    distance = db.FloatField()
 
     meta = {'indexes': ['name','time','geo']}
 

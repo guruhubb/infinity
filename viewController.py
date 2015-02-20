@@ -458,7 +458,7 @@ def get_devices_and_data():
     response_data = []
     if device_type is None:
         for site in Site.objects:
-            recordObjects = Site_data.objects(name=site.name).order_by('-time')   # todo: limit # of records to 5
+            recordObjects = Site_data.objects(name=site.name).order_by('-time').limit(5)   # todo: limit # of records to 5
             # cpeDevice = Device.objects(type = 'CPE',site = site.name).first()
             if len(recordObjects) > 3:
                 record = recordObjects [2]  # don't take the latest timestamp data, but a few seconds earlier
@@ -483,15 +483,20 @@ def get_links():
             record = Data.objects(DeviceName = device.name).order_by('-Time').first()
 
             if record:
-                btsDevice = Device.objects(connId = record.LinkName, name__ne = record.DeviceName).order_by('-time').first()
+                btsDevice = Device.objects(connId = record.LinkName, type = 'BTS').order_by('-time').first()
             #     btsRecord = Aggr_data.objects(site = btsDevice.site).order_by('-time').first()
             #     # distance = distance_in_miles(record.geo,btsRecord.geo)
-            if record is not None:
-                response_data.append({"connId":record.LinkName,"tx":"{:.2f}".format(record.TxRate),
+                if btsDevice is None:
+                    app.logger.error("There is NO bts device corresponding to cpe %s " % record.DeviceName)
+                else:
+                    response_data.append({"connId":record.LinkName,"tx":"{:.2f}".format(record.TxRate),
                  "rx":"{:.2f}".format(record.RxRate),"cap":"{:.2f}".format(record.MaxCapacity),
                  "data":"{:.2f}".format(record.TxRate+record.RxRate),
                  "lat":record.Location[0], "lng":record.Location[1], "lat1":btsDevice.lat, "lng1":btsDevice.lng,
                  "time":record.Time * 1000, "distance":"{:.2f}".format(record.Distance)})
+            else:
+                app.logger.error("There is NO data corresponding to cpe %s " % device.name)
+
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
     # data_jsonify= flask.jsonify(*response_data)

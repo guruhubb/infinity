@@ -143,22 +143,24 @@ def get_router_():
 @login_required
 @run_once
 def startdata():
-    try:
-        while True:
+    while True:
+
+        try:
             # getData()
             # processData()
             # aggrData()
-            get_data()      # get data from all 'CPE' devices; CPE devices are connected to BTS and has a linkname
-            # site()
+            get_data()      # get data from all 'CPE' devices and then from all 'sites'
+            minuteData()
+            hourData()
+            dayData()
+            monthData()
             siteMinute()
-            # site_data()     # SITE data based on all the CPE devices on that site
-            minuteData()    # per minute data of SITE
-            # hourData()      # per hour data of SITE
-            # dayData()      # per day data of SITE
-            # monthData()     # per month data of SITE
+            siteHour()
+            siteDay()
+            siteMonth()
             # time.sleep(1)
 
-    except Exception, msg:
+        except Exception, msg:
             app.logger.error('error message is: %s, ' % msg)
     return "Start getting data from device"
 
@@ -200,6 +202,11 @@ def get_data():
             # url_list.append('https://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
             # url_list.append('https://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
+            # use this for real radio - it needs https calls
+            # url_list.append('https://'+object.url+'/core/api/service/status.php?username=gigaknot&password=123')
+            # url_list.append('https://'+object.url + '/core/api/service/device-info.php?username=gigaknot&password=123')
+            # url_list.append('https://'+object.url + '/core/api/service/link-info.php?username=gigaknot&password=123')
+
             url_list.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
             url_list.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
             url_list.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
@@ -207,10 +214,12 @@ def get_data():
         doc_=[]
         pool = eventlet.GreenPool()
         # use multiple threads to get data from each device and parse it
+        app.logger.info('Fetching data at %s'  % str(datetime.datetime.now()))
 
         for body in pool.imap(fetch, url_list):
             if body:
                 doc_.append(xmltodict.parse(body))
+        app.logger.info('Fetched data at %s'  % str(datetime.datetime.now()))
 
         for i in xrange (0,len(doc_),3):
             try:
@@ -218,7 +227,7 @@ def get_data():
                 device = doc_[i+1]['response']['mimosaContent']['values']
                 link = doc_[i+2]['response']['mimosaContent']['values']
                 for k,v in device.items():
-                    if k in ['DeviceName','Location']:
+                    if k in ['DeviceName','Location','Temperature']:
                         if device[k]:
                             status[k] = device[k]
                 # add only LinkName, MaxCapacity, and Distance from link-info API
@@ -300,10 +309,9 @@ def get_data():
                 link_['distance']=status['Distance']
                 link_['geo']=status['Location']
 
-                app.logger.info('Data from %s'  % url_list[i])
+                app.logger.info('Data from %s at %s'  % (url_list[i],str(datetime.datetime.now())))
                 dataCollection.insert(status_)
                 linkCollection.insert(link_)
-
                 # i=i+3
 
                 # status ['statusSize'] = sys.getsizeof(response_status.content)
@@ -313,6 +321,7 @@ def get_data():
 
             except :
                 app.logger.info("Bad Access API")
+        # time.sleep(1)
         site()
             # url_status = 'https://192.168.1.20:5001/core/api/service/status.php?management-id=mimosa&management-password=pass123'
             # url_device = 'http://127.0.0.1:5001/core/api/service/device-info.php?management-id=mimosa&management-password=pass123'
@@ -1255,9 +1264,10 @@ def site():
     # time1 = initial_time
     # get all device data for current time
     dataObjects = Data.objects(Time = initial_time)
-    if len(dataObjects) > 1:
+    if len(dataObjects) > 0:
         for site in Site.objects:
         # for each site iterate over all the devices
+        # initialize
             site_data_cpe = {}
             site_data_cpe['tx']=0.0
             site_data_cpe['rx']=0.0
@@ -1270,6 +1280,9 @@ def site():
             site_data_bts['cap']= 0.0
             site_data_bts['data']= 0.0
             site_data_bts['distance']=100.0
+            cpePresent = False
+            btsPresent = False
+
             for device in site.deviceList:
                 #check if device is cpe, else if device is bts get the cpe for the link
                 deviceObject = Device.objects(name = device).first()
@@ -1287,6 +1300,7 @@ def site():
                         site_data_cpe['cap']+= record.Data
                         site_data_cpe['data']+= record.MaxCapacity
                         site_data_cpe['distance']=min(record.Distance,site_data_cpe['distance'] )
+                        cpePresent = True
                 else:
                     # get cpe related to the bts link
                     cpeDevice = Device.objects(name__ne = device, connId = deviceObject.connId).first()
@@ -1302,10 +1316,11 @@ def site():
                             site_data_bts['name'] = site.name
                             site_data_bts['time'] = initial_time
                             site_data_bts['distance']=min(record.Distance,site_data_bts['distance'] )
+                            btsPresent = True
 
-            if site_data_cpe['tx'] != 0.0 and site_data_cpe['rx'] != 0.0:
+            if cpePresent:
                 siteCollection.insert(site_data_cpe)
-            if site_data_bts['tx'] != 0.0 and site_data_bts['rx'] != 0.0:
+            if btsPresent:
                 siteCollection.insert(site_data_bts)
     return "Done"
 
@@ -1372,8 +1387,8 @@ def siteHour():
             lastTime = lastRecord.time
             if firstRecord:
                 time1 = firstRecord.time
-                time2 = firstRecord.time+60
-                if lastTime > time1+60-1:
+                time2 = firstRecord.time+60*60
+                if lastTime > time1+60*60-60:
                     while time1 < lastTime:
                         dataObject = dbmongo.site_data.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
@@ -1416,8 +1431,8 @@ def siteDay():
             lastTime = lastRecord.time
             if firstRecord:
                 time1 = firstRecord.time
-                time2 = firstRecord.time+60
-                if lastTime > time1+60-1:
+                time2 = firstRecord.time+60*60*24
+                if lastTime > time1+60*60*24-60*60:
                     while time1 < lastTime:
                         dataObject = dbmongo.site_data.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
@@ -1460,8 +1475,8 @@ def siteMonth():
             lastTime = lastRecord.time
             if firstRecord:
                 time1 = firstRecord.time
-                time2 = firstRecord.time+60
-                if lastTime > time1+60-1:
+                time2 = firstRecord.time+60*60*24*31
+                if lastTime > time1+60*60*24*31-60*60*24:
                     while time1 < lastTime:
                         dataObject = dbmongo.site_data.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
