@@ -16,6 +16,7 @@ manager.add_command("runserver", Server(
     host='127.0.0.1',
     port = 5000),
     # host='192.168.55.84', port=5000)
+    # host='104.131.101.197',port=5000)
 )
 # Turn on debugger by default and reloader
 

@@ -1,0 +1,5 @@
+#!/bin/bash
+# add port 'deviceName', 'linkName', 'lat', 'lng', 'ship'(optional for mobile cpe) next to the .py command to spawn new processes
+python /Users/saswata_basu/code/gigaknot/nms/deviceSimulator/deviceSimulator.py 5005 Device05 Pacific_Huntington 33.637279 -118.003592 ship &
+python /Users/saswata_basu/code/gigaknot/nms/deviceSimulator/deviceSimulator.py 5004 Device04 SantaAna_Irvine 33.732124 -117.900595 &
+

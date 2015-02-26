@@ -11,9 +11,9 @@ from collections import defaultdict
 from dataController import distance_in_miles
 import numpy
 MAX_POINTS = 100
-DISTANCE_STEP = 10
-DISTANCE_MAX = 51
-start = int(time.time()) - 100*24*60*60
+DISTANCE_STEP = 2
+DISTANCE_MAX = 10
+start = int(time.time()) - 24*60*60
 end = int(time.time())
 # site = 'btsA'
 # site = 'Catalina'
@@ -21,7 +21,7 @@ site = 'Catalina_LongBeach'
 link = 'Catalina_LongBeach'
 deviceType = 'CPE'
 streamInterval = 5000
-updateInterval = 15000
+updateInterval = 120000
 # import plotly.plotly as py
 # from plotly.graph_objs import *
 # py.sign_in("saswata", "mret9csgsi")
@@ -60,7 +60,6 @@ class RoleView(ModelView):
     def is_accessible(self):
         return current_user.is_authenticated() and current_user.has_role('Root')
 
-
 # Add Admin Views
 def adminViews(app):
     # Create admin
@@ -97,6 +96,7 @@ def adminViews(app):
     admin.add_view(ModelView(infinity.Audit))
 
 # Setup Admin Views
+# @login_required  # if not logged in, login.html will be the default page
 adminViews(app)
 
 
@@ -224,24 +224,24 @@ def chart_view():
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     range = toTime - fromTime
-    # 15 min range loads second data
-    if (range < 15 * 60 ):
+    # 30 min range loads second data
+    if (range < 30 * 60 ):
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # 1 day range loads minute data
+    # 24 hrs range loads minute data
     elif (range < 24 * 3600 ):
         query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # two month range loads hourly data
-    elif (range < 2 * 31 * 24 * 3600 ):
+    # 1 month range loads hourly data
+    elif (range < 1 * 31  * 24 * 3600 ):
         query_set = Hour.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # two year range loads daily data
-    elif (range < 3 * 12 * 31 * 24 * 3600 ):
+    # 1 yr range loads daily data
+    elif (range < 12 * 31 * 24 * 3600 ):
         query_set = Day.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
     # greater range loads monthly data
-    elif (range >= 3 * 12 * 31 * 24 * 3600 ):
+    else:
         query_set = Month.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
     # else :
@@ -252,6 +252,7 @@ def chart_view():
     if len(query_set) < 500 :
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
+
     data = {}
     data["cap"]=[]
     data["data"]=[]
@@ -284,24 +285,24 @@ def chart_view_site():
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     range = toTime - fromTime
-    # 15 min range loads second data
-    if (range < 15 * 60 ):
+    # 30 min range loads second data
+    if (range < 30 * 60 ):
         query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # 1 day range loads minute data
+    # 3 hr range loads minute data
     elif (range < 24 * 3600 ):
         query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # two month range loads hourly data
-    elif (range < 2 * 31 * 24 * 3600 ):
+    # 3 day range loads hourly data
+    elif (range < 1 * 31 * 24 * 3600 ):
         query_set = Site_data_hour.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # two year range loads daily data
-    elif (range < 3 * 12 * 31 * 24 * 3600 ):
+    # 3 mth range loads daily data
+    elif (range < 12 * 31 * 24 * 3600 ):
         query_set = Site_data_day.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
     # greater range loads monthly data
-    elif (range >= 3 * 12 * 31 * 24 * 3600 ):
+    else:
         query_set = Site_data_month.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
     # else :
@@ -309,6 +310,7 @@ def chart_view_site():
     # #     only('time',"data","cap","distance").order_by('time')
     #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
     #     only('time',"data","cap").order_by('time')
+
     if len(query_set) < 500 :
         query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
@@ -363,7 +365,7 @@ def chart_view_init():
 @login_required
 def stream_view():
     global start, end
-    startStream = int(time.time())-15*60*60  # 15 mins
+    startStream = int(time.time())-15*60  # 15 mins
     endStream = int(time.time())
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
@@ -396,7 +398,7 @@ def stream_view():
 @login_required
 def stream_view_site():
     global start, end
-    startStream = int(time.time())-15*60*60  # 15 mins
+    startStream = int(time.time())-15*60  # 15 mins
     endStream = int(time.time())
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
@@ -427,7 +429,7 @@ def stream_view_site():
 
 def stream_view_init():
     global start, end
-    startStream = int(time.time())-15*60*60  # 15 mins
+    startStream = int(time.time())-15*60  # 15 mins
     endStream = int(time.time())
     # global start, end
 
@@ -578,8 +580,8 @@ def generate_histogram_site():
     total_records = len(Site_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
     if total_records == 0:
         total_records=1
-    step=20
-    for x in range(step,100,step):
+    step=DISTANCE_STEP
+    for x in range(step,DISTANCE_MAX,step):
         # data["records"].append( len( Site_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
         #                              name = site , cap__lt = x, cap__gte = x-step) )*100/total_records )
         # # data["avg_cap"].append(float("{0:.2f}".format(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site

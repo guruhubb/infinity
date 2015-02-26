@@ -1,13 +1,14 @@
 from flask.ext.script import Command
 from infinity import userDatastore
+import infinity
 import models
 
 # Seed initial users and roles
 
 class SeedUsersAndRoles(Command):
     def run(self):
-        models.Role.drop_collection()
-        models.User.drop_collection()
+        infinity.Role.drop_collection()
+        infinity.User.drop_collection()
 
         level0 = userDatastore.create_role(name='Level0', description='Lowest Level Clearance')
         level1 = userDatastore.create_role(name='Level1', description='Level 1 Clearance')
@@ -17,5 +18,8 @@ class SeedUsersAndRoles(Command):
         admin = userDatastore.create_role(name='Root',description='All Access')
 
         # userDatastore.create_user(email='saswata_basu@yahoo.com',name='Saswata', role=admin)
-        userDatastore.create_user(email='saswata_basu@yahoo.com',name='Saswata', roles=[admin])
-
+        # userDatastore.create_user(email='saswata_basu@yahoo.com',name='Saswata', roles=[admin])
+        userDatastore.create_user(email='saswata_basu@yahoo.com',name='Saswata', password='123', roles=[admin], active=True,
+                                   confirmed_at='02/25/2015')
+        userDatastore.create_user(email='admin',name='admin', password='admin', roles=[admin], active=True,
+                                   confirmed_at='02/25/2015')

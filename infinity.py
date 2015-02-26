@@ -34,7 +34,7 @@ app = Flask(__name__)
 app.config["MONGODB_SETTINGS"] = db_settings
 app.config["SECRET_KEY"] = "KeepThisS3cr3t"
 app.config['SECURITY_LOGIN_USER_TEMPLATE'] = 'login.html'
-app.config['SECURITY_PASSWORD_HASH'] = 'bcrypt'
+# app.config['SECURITY_PASSWORD_HASH'] = 'bcrypt'  # changes the password after you log out
 app.config['SECURITY_PASSWORD_SALT'] = '$2a$12$F6jRQYQK9xU4OQjt8gtCo.'
 app.config['SECURITY_CHANGEABLE'] = True
 app.config['SECURITY_CONFIRMABLE'] = False
@@ -72,7 +72,7 @@ class Role(db.Document, RoleMixin):
 
 class User(db.Document, UserMixin):
     name = db.StringField(max_length=64)
-    email = db.StringField(max_length=255)
+    email = db.StringField(max_length=255, default = 'admin')
     password = db.StringField(max_length=255, default="infinity")
     active = db.BooleanField(default=True)
     confirmed_at = db.DateTimeField(default=datetime.now)

@@ -187,7 +187,7 @@ def get_data():
     # initial_time = 0
     # while True:
     global  initial_time
-    if ((int(time.time()) - initial_time) > 4):
+    if ((int(time.time()) - initial_time) > 1):
         initial_time = int(time.time())
         # get data
         # url_status = []
@@ -1100,7 +1100,7 @@ def minuteData():
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60
                 if lastTime > time1+60-1:
-                    while time1 < lastTime:
+                    while time1 < lastTime and firstRecord:
                         dataObject = dbmongo.aggr_data.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
                                 , 'site':device.connId}},
@@ -1144,7 +1144,7 @@ def hourData():
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60*60
                 if lastTime > time1+60*60-60:
-                    while time1 < lastTime:
+                    while time1 < lastTime and firstRecord:
                         dataObject = dbmongo.minute.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
                                 , 'site':device.connId}},
@@ -1188,7 +1188,7 @@ def dayData():
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60*60*24
                 if lastTime > time1+60*60*24-60*60:
-                    while time1 < lastTime:
+                    while time1 < lastTime and firstRecord:
                         dataObject = dbmongo.hour.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
                                 , 'site':device.connId}},
@@ -1205,7 +1205,7 @@ def dayData():
                             hour_data.save()
                         time1 = time1 + 60*60*24
                         time2 = time1 + 60*60*24
-                        firstRecord = Minute.objects(site = device.connId, time__gte = time1).first()
+                        firstRecord = Hour.objects(site = device.connId, time__gte = time1).first()
             else:
                 continue
     # time.sleep(60*60*24+1)
@@ -1233,7 +1233,7 @@ def monthData():
                 time2 = firstRecord.time+60*60*24*31
                 if lastTime > time1+60*60*24*31-60*60*24:
 
-                    while time1 < lastTime:
+                    while time1 < lastTime and firstRecord:
                         dataObject = dbmongo.day.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
                                 , 'site':device.connId}},
@@ -1250,7 +1250,7 @@ def monthData():
                             hour_data.save()
                         time1 = time1 + 60*60*24*31
                         time2 = time1 + 60*60*24*31
-                        firstRecord = Minute.objects(site = device.connId, time__gte = time1).first()
+                        firstRecord = Day.objects(site = device.connId, time__gte = time1).first()
             else:
                 continue
     # time.sleep(60*60*24+31+1)
@@ -1297,8 +1297,8 @@ def site():
                         site_data_cpe['time'] = initial_time
                         site_data_cpe['tx'] += record.TxRate
                         site_data_cpe['rx']+= record.RxRate
-                        site_data_cpe['cap']+= record.Data
-                        site_data_cpe['data']+= record.MaxCapacity
+                        site_data_cpe['data']+= record.Data
+                        site_data_cpe['cap']+= record.MaxCapacity
                         site_data_cpe['distance']=min(record.Distance,site_data_cpe['distance'] )
                         cpePresent = True
                 else:
@@ -1309,8 +1309,8 @@ def site():
                         if record and deviceObject:
                             site_data_bts['tx']+= record.TxRate                         # data from cpe connected to bts
                             site_data_bts['rx']+= record.RxRate
-                            site_data_bts['cap']+= record.Data
-                            site_data_bts['data']+= record.MaxCapacity
+                            site_data_bts['data']+= record.Data
+                            site_data_bts['cap']+= record.MaxCapacity
                             site_data_bts['geo'] = (deviceObject.lat,deviceObject.lng)  # bts device location
                             site_data_bts['type'] = 'BTS'
                             site_data_bts['name'] = site.name
@@ -1329,7 +1329,7 @@ def site():
 def siteMinute():
     timeStamp=None
     # go through all sites, look at last timestamp and aggregate records for one minute and store it in the Minute colleciton
-    for site in Site_data.objects():
+    for site in Site.objects():
         if Site_data_min.objects:
             lastObject = Site_data_min.objects(name = site.name).order_by('-time').only ('time').first()  # last record from Minute
             if lastObject:
@@ -1345,7 +1345,7 @@ def siteMinute():
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60
                 if lastTime > time1+60-1:
-                    while time1 < lastTime:
+                    while time1 < lastTime and firstRecord:
                         dataObject = dbmongo.site_data.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
                                 , 'name':site.name}},
@@ -1373,7 +1373,7 @@ def siteMinute():
 def siteHour():
     timeStamp=None
     # go through all sites, look at last timestamp and aggregate records for one minute and store it in the Minute colleciton
-    for site in Site_data_min.objects():
+    for site in Site.objects():
         if Site_data_hour.objects:
             lastObject = Site_data_hour.objects(name = site.name).order_by('-time').only ('time').first()  # last record from Minute
             if lastObject:
@@ -1389,7 +1389,7 @@ def siteHour():
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60*60
                 if lastTime > time1+60*60-60:
-                    while time1 < lastTime:
+                    while time1 < lastTime and firstRecord:
                         dataObject = dbmongo.site_data.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
                                 , 'name':site.name}},
@@ -1417,7 +1417,7 @@ def siteHour():
 def siteDay():
     timeStamp=None
     # go through all sites, look at last timestamp and aggregate records for one minute and store it in the Minute colleciton
-    for site in Site_data_hour.objects():
+    for site in Site.objects():
         if Site_data_day.objects:
             lastObject = Site_data_day.objects(name = site.name).order_by('-time').only ('time').first()  # last record from Minute
             if lastObject:
@@ -1433,7 +1433,7 @@ def siteDay():
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60*60*24
                 if lastTime > time1+60*60*24-60*60:
-                    while time1 < lastTime:
+                    while time1 < lastTime and firstRecord:
                         dataObject = dbmongo.site_data.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
                                 , 'name':site.name}},
@@ -1461,7 +1461,7 @@ def siteDay():
 def siteMonth():
     timeStamp=None
     # go through all sites, look at last timestamp and aggregate records for one minute and store it in the Minute colleciton
-    for site in Site_data_day.objects():
+    for site in Site.objects():
         if Site_data_month.objects:
             lastObject = Site_data_month.objects(name = site.name).order_by('-time').only ('time').first()  # last record from Minute
             if lastObject:
@@ -1477,7 +1477,7 @@ def siteMonth():
                 time1 = firstRecord.time
                 time2 = firstRecord.time+60*60*24*31
                 if lastTime > time1+60*60*24*31-60*60*24:
-                    while time1 < lastTime:
+                    while time1 < lastTime and firstRecord:
                         dataObject = dbmongo.site_data.aggregate([
                             {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
                                 , 'name':site.name}},
