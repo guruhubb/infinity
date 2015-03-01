@@ -21,12 +21,14 @@ server {
 
     listen          *:80;
     listen          *:8080;
-    listen          *:8081;
-    server_name     nms*.truepathwireless.com;
-    root            /opt/athanasys/worklogsite;
+    #listen          *:8081;
+    #server_name     nms*.truepathwireless.com;
+    #root            /opt/athanasys/worklogsite;
+    root            /opt/gigaknot/worklogsite;
+
 
     location /static/ { # STATIC_URL
-        alias /opt/truepath/nmssite/static/; # STATIC_ROOT
+        alias /opt/gigaknot/infinity/static/; # STATIC_ROOT
         expires 30d;
     }
     

@@ -1,7 +1,8 @@
 #!/bin/bash
-BRANCH=$1
+#BRANCH=$1
 cd ~/code/gigaknot/infinity
-git pull origin $BRANCH
+#git pull origin $BRANCH
+git pull origin master
 
 # stop
 ps auxww | grep 'runfcgi' | awk '{print $2}' | xargs kill -9

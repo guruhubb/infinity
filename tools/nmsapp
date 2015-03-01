@@ -25,7 +25,9 @@ test -x $DAEMON || exit 0
 #
 do_start()
 {
+#    sudo -u nms $DAEMON
     sudo -u nms $DAEMON
+
 }
 
 
