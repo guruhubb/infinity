@@ -23,6 +23,8 @@ server {
     listen          *:8080;
     #listen          *:8081;
     #server_name     nms*.truepathwireless.com;
+    server_name     nmslive;
+
     #root            /opt/athanasys/worklogsite;
     root            /opt/gigaknot/worklogsite;
 
