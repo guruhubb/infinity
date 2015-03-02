@@ -1125,6 +1125,7 @@ def minuteData():
 
 @app.route('/hourData')
 @login_required
+
 def hourData():
     timeStamp=None
     # go through all sites, look at last timestamp and aggregate records for one minute and store it in the Hour colleciton
