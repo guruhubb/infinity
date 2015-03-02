@@ -45,6 +45,7 @@ linkCollection = db.aggr_data
 
 # DISTANCE_MAX = 40
 # DISTANCE_MIN = 10
+INTERVAL = 4
 CUTOFF_CAPACITY = 2
 LOW_SNR = 5
 CUTOFF_SNR = 3
@@ -187,7 +188,7 @@ def get_data():
     # initial_time = 0
     # while True:
     global  initial_time
-    if ((int(time.time()) - initial_time) > 1):
+    if ((int(time.time()) - initial_time) > INTERVAL):
         initial_time = int(time.time())
         # get data
         # url_status = []
