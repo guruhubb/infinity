@@ -45,7 +45,7 @@ linkCollection = db.aggr_data
 
 # DISTANCE_MAX = 40
 # DISTANCE_MIN = 10
-INTERVAL = 4
+INTERVAL = 14
 CUTOFF_CAPACITY = 2
 LOW_SNR = 5
 CUTOFF_SNR = 3
@@ -1181,7 +1181,7 @@ def dayData():
                 timeStamp=lastObject.time
         # work on aggr_data records that has a timestamp if it is more than 1 hour
         if timeStamp is None:
-            timeStamp = int(time.time()) - 60*60*24*30
+            timeStamp = int(time.time()) - 60*60*24*31
         firstRecord = Hour.objects(site = device.connId, time__gt = timeStamp).first()
         lastRecord = Hour.objects(site = device.connId).order_by('-time').first()
         if lastRecord:
@@ -1225,7 +1225,7 @@ def monthData():
                 timeStamp=lastObject.time
         # work on aggr_data records that has a timestamp if it is more than 1 hour
         if timeStamp is None:
-            timeStamp = int(time.time()) - 60*60*24*30*31
+            timeStamp = int(time.time()) - 60*60*24*31*12
         firstRecord = Day.objects(site = device.connId, time__gt = timeStamp).first()
         lastRecord = Day.objects(site = device.connId).order_by('-time').first()
         if lastRecord:
@@ -1373,6 +1373,7 @@ def siteMinute():
 @app.route('/siteHour')
 @login_required
 def siteHour():
+
     timeStamp=None
     # go through all sites, look at last timestamp and aggregate records for one minute and store it in the Minute colleciton
     for site in Site.objects():
@@ -1385,6 +1386,7 @@ def siteHour():
             timeStamp = int(time.time()) - 60*60*24
         firstRecord = Site_data_min.objects(name = site.name, time__gt = timeStamp).first()
         lastRecord = Site_data_min.objects(name = site.name).order_by('-time').first()
+
         if lastRecord:
             lastTime = lastRecord.time
             if firstRecord:
@@ -1401,13 +1403,13 @@ def siteHour():
                             }}
                         ])
                         if len(dataObject['result']) > 0:
-                            minute_data = Site_data_hour( name=site.name, time = firstRecord.time+60, tx = dataObject['result'][0]['tx'],
+                            minute_data = Site_data_hour( name=site.name, time = firstRecord.time+60*60, tx = dataObject['result'][0]['tx'],
                                             rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                             data = dataObject['result'][0]['data'],distance = dataObject['result'][0]['distance'],
                                             type = firstRecord.type, geo = firstRecord.geo )
                             minute_data.save()
-                        time1 = time1 + 60
-                        time2 = time1 + 60
+                        time1 = time1 + 60*60
+                        time2 = time1 + 60*60
                         firstRecord = Site_data_min.objects(name = site.name, time__gte = time1).first()
             else:
                 continue
@@ -1426,7 +1428,7 @@ def siteDay():
                 timeStamp=lastObject.time
         # work on aggr_data records that has a timestamp more than 1 minute
         if timeStamp is None:
-            timeStamp = int(time.time()) - 60*60*24
+            timeStamp = int(time.time()) - 60*60*24*31
         firstRecord = Site_data_hour.objects(name = site.name, time__gt = timeStamp).first()
         lastRecord = Site_data_hour.objects(name = site.name).order_by('-time').first()
         if lastRecord:
@@ -1445,13 +1447,13 @@ def siteDay():
                             }}
                         ])
                         if len(dataObject['result']) > 0:
-                            minute_data = Site_data_day( name=site.name, time = firstRecord.time+60, tx = dataObject['result'][0]['tx'],
+                            minute_data = Site_data_day( name=site.name, time = firstRecord.time+60*60*24, tx = dataObject['result'][0]['tx'],
                                             rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                             data = dataObject['result'][0]['data'],distance = dataObject['result'][0]['distance'],
                                             type = firstRecord.type, geo = firstRecord.geo )
                             minute_data.save()
-                        time1 = time1 + 60
-                        time2 = time1 + 60
+                        time1 = time1 + 60*60*24
+                        time2 = time1 + 60*60*24
                         firstRecord = Site_data_hour.objects(name = site.name, time__gte = time1).first()
             else:
                 continue
@@ -1470,7 +1472,7 @@ def siteMonth():
                 timeStamp=lastObject.time
         # work on aggr_data records that has a timestamp more than 1 minute
         if timeStamp is None:
-            timeStamp = int(time.time()) - 60*60*24
+            timeStamp = int(time.time()) - 60*60*24*31*12
         firstRecord = Site_data_day.objects(name = site.name, time__gt = timeStamp).first()
         lastRecord = Site_data_day.objects(name = site.name).order_by('-time').first()
         if lastRecord:
@@ -1489,13 +1491,13 @@ def siteMonth():
                             }}
                         ])
                         if len(dataObject['result']) > 0:
-                            minute_data = Site_data_month( name=site.name, time = firstRecord.time+60, tx = dataObject['result'][0]['tx'],
+                            minute_data = Site_data_month( name=site.name, time = firstRecord.time+60*60*24*31, tx = dataObject['result'][0]['tx'],
                                             rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                             data = dataObject['result'][0]['data'],distance = dataObject['result'][0]['distance'],
                                             type = firstRecord.type, geo = firstRecord.geo )
                             minute_data.save()
-                        time1 = time1 + 60
-                        time2 = time1 + 60
+                        time1 = time1 + 60*60*24*31
+                        time2 = time1 + 60*60*24*31
                         firstRecord = Site_data_day.objects(name = site.name, time__gte = time1).first()
             else:
                 continue

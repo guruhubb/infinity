@@ -224,20 +224,20 @@ def chart_view():
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     range = toTime - fromTime
-    # 30 min range loads second data
-    if (range < 30 * 60 ):
+    # 25 min range loads second data - 15s x 4 x 25 = 100 pts
+    if (range < 25 * 60 ):
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # 24 hrs range loads minute data
-    elif (range < 24 * 3600 ):
+    # 100 min range loads minute data - 100 mins = 1hr 40 mins
+    elif (range < 100 * 60 ):
         query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # 1 month range loads hourly data
-    elif (range < 1 * 31  * 24 * 3600 ):
+    # 4 day range loads hourly data - 100 hours ~ 4 days
+    elif (range < 100 * 3600 ):
         query_set = Hour.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # 1 yr range loads daily data
-    elif (range < 12 * 31 * 24 * 3600 ):
+    # 1 yr range loads daily data = 100 days ~ 3.5 months
+    elif (range < 100 * 24 * 3600 ):
         query_set = Day.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
     # greater range loads monthly data
@@ -249,10 +249,10 @@ def chart_view():
     # #     only('time',"data","cap","distance").order_by('time')
     #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
     #     only('time',"data","cap","distance").order_by('time')
-    if len(query_set) < 500 :
+    if len(query_set) < 100 :
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-
+    app.logger.info("chart size is %s " % len(query_set))
     data = {}
     data["cap"]=[]
     data["data"]=[]
@@ -285,20 +285,20 @@ def chart_view_site():
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     range = toTime - fromTime
-    # 30 min range loads second data
-    if (range < 30 * 60 ):
+    # 25 min range loads second data - 25 x 4
+    if (range < 25 * 60 ):
         query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # 3 hr range loads minute data
-    elif (range < 24 * 3600 ):
+    # 100 min range loads minute data
+    elif (range < 100 * 60 ):
         query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # 3 day range loads hourly data
-    elif (range < 1 * 31 * 24 * 3600 ):
+    # 100 hrs range loads hourly data
+    elif (range < 100 * 3600 ):
         query_set = Site_data_hour.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
-    # 3 mth range loads daily data
-    elif (range < 12 * 31 * 24 * 3600 ):
+    # 100 day range loads daily data
+    elif (range < 100 * 24 * 3600 ):
         query_set = Site_data_day.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
     # greater range loads monthly data
@@ -311,7 +311,7 @@ def chart_view_site():
     #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
     #     only('time',"data","cap").order_by('time')
 
-    if len(query_set) < 500 :
+    if len(query_set) < 100 :
         query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
     data = {}
@@ -319,6 +319,7 @@ def chart_view_site():
     data["data"]=[]
     data["distance"]=[]
     # data = []
+    app.logger.info("chart_site size is %s " % len(query_set))
 
     for ob in query_set:
         # cap = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.cap)))
@@ -607,10 +608,39 @@ def generate_path():
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
-    query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )\
-        .only('time',"cap","geo","distance","coverage")
+    # query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )\
+    #     .only('time',"cap","geo","distance","coverage")
     # start = 0
     # skip = len(query_set)/MAX_POINTS
+    range = toTime - fromTime
+    # 25 min range loads second data - 15s x 4 x 25 = 100 pts
+    if (range < 25 * 60 ):
+        query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
+    # 100 min range loads minute data - 100 mins = 1hr 40 mins
+    elif (range < 100 * 60 ):
+        query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site )
+    # 4 day range loads hourly data - 100 hours ~ 4 days
+    elif (range < 100 * 3600 ):
+        query_set = Hour.objects(time__gt = fromTime, time__lt = toTime, site = site )
+    # 1 yr range loads daily data = 100 days ~ 3.5 months
+    elif (range < 100 * 24 * 3600 ):
+        query_set = Day.objects(time__gt = fromTime, time__lt = toTime, site = site )
+    # greater range loads monthly data
+    else:
+        query_set = Month.objects(time__gt = fromTime, time__lt = toTime, site = site )
+    # else :
+    # #     query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+    # #     only('time',"data","cap","distance").order_by('time')
+    #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+    #     only('time',"data","cap","distance").order_by('time')
+    if len(query_set) < 100 :
+        query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
+
+
+    app.logger.info("path size is %s " % len(query_set))
+
+
+
     data = {}
     data["cap"]=[]
     data["lat"]=[]
@@ -618,7 +648,6 @@ def generate_path():
     data["dist"]=[]
     data["cov"]=[]
     data["time"]=[]
-
     for ob in query_set:
         # if start == 0:
             data["cap"].append(float("{0:.2f}".format(ob.cap)))
@@ -645,11 +674,36 @@ def generate_path_site():
     fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
+
+    range = toTime - fromTime
+    # 25 min range loads second data - 25 x 4
+    if (range < 25 * 60 ):
+        query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )
+    # 100 min range loads minute data
+    elif (range < 100 * 60 ):
+        query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, name = site )
+    # 100 hrs range loads hourly data
+    elif (range < 100 * 3600 ):
+        query_set = Site_data_hour.objects(time__gt = fromTime, time__lt = toTime, name = site )
+    # 100 day range loads daily data
+    elif (range < 100 * 24 * 3600 ):
+        query_set = Site_data_day.objects(time__gt = fromTime, time__lt = toTime, name = site )
+    # greater range loads monthly data
+    else:
+        query_set = Site_data_month.objects(time__gt = fromTime, time__lt = toTime, name = site )
+    # else :
+    # #     query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+    # #     only('time',"data","cap","distance").order_by('time')
+    #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+    #     only('time',"data","cap").order_by('time')
+
+    if len(query_set) < 100 :
+        query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
-    query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )\
-        .only('time',"cap","geo","distance")
+    # query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )\
+    #     .only('time',"cap","geo","distance")
     # start = 0
     # skip = len(query_set)/MAX_POINTS
     data = {}
@@ -659,6 +713,7 @@ def generate_path_site():
     data["dist"]=[]
     # data["cov"]=[]
     data["time"]=[]
+    app.logger.info("path_site size is %s " % len(query_set))
 
     for ob in query_set:
         # if start == 0:
