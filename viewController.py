@@ -10,10 +10,11 @@ from monary import Monary
 from collections import defaultdict
 from dataController import distance_in_miles
 import numpy
+INTERVAL_INIT = 24*60*60
 MAX_POINTS = 100
 DISTANCE_STEP = 2
 DISTANCE_MAX = 10
-start = int(time.time()) - 24*60*60
+start = int(time.time()) - INTERVAL_INIT
 end = int(time.time())
 # site = 'btsA'
 # site = 'Catalina'
@@ -159,10 +160,11 @@ def lastPoint():
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
-    start = int(time.time())-15*60  # 15 mins
-    if lastTime > start:   # if lastTime is less than 15 mins, use it for start time
+    nowtime = int(time.time())
+    start = nowtime-15*60  # 15 mins
+    if lastTime > start and lastTime != nowtime:   # if lastTime is less than 15 mins, use it for start time
         start = lastTime
-    end = int(time.time())  # end time = current time
+    end = nowtime  # end time = current time
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).order_by('time')\
         .only('time',"data","cap","distance")
     # ob = Aggr_data.objects(site = site ).order_by("-time").first()
@@ -190,10 +192,11 @@ def lastPoint_site():
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
-    start = int(time.time())-15*60  # 15 mins
-    if lastTime > start:   # if lastTime is less than 15 mins, use it for start time
+    nowtime = int(time.time())
+    start = nowtime-15*60  # 15 mins
+    if lastTime > start and lastTime != nowtime:   # if lastTime is less than 15 mins, use it for start time
         start = lastTime
-    end = int(time.time())  # end time = current time
+    end = nowtime  # end time = current time
     query_set = Site_data.objects(time__gt = start, time__lt = end, name = site ).order_by('time')\
         .only('time',"data","cap","distance")
     # ob = Aggr_data.objects(site = site ).order_by("-time").first()
@@ -219,6 +222,8 @@ def chart_view():
     toTime = int(flask.request.args.get('toTime'))/1000
     fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
+    if fromTime == toTime:
+        fromTime = toTime - INTERVAL_INIT
     # type = flask.request.args.get('type')
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
@@ -280,6 +285,8 @@ def chart_view_site():
     toTime = int(flask.request.args.get('toTime'))/1000
     fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
+    if fromTime == toTime:
+        fromTime = toTime - INTERVAL_INIT
     # type = flask.request.args.get('type')
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
@@ -338,16 +345,18 @@ def chart_view_site():
 
 def chart_view_init():
     global start, end
+    if start == end:
+        start = end - INTERVAL_INIT
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
         only('time',"data","cap","distance").order_by('time')
     data = {}
     data["cap"]=[]
     data["data"]=[]
     data["distance"]=[]
-    if query_set:
-        start = query_set[0].time
-        end = query_set[len(query_set)-1].time
-    # data =[]
+    # if query_set:
+    #     start = query_set[0].time
+    #     end = query_set[len(query_set)-1].time
+    # # data =[]
 
     for ob in query_set:
         # t = (calendar.timegm(ob.time.timetuple()) * 1000,float("{0:.2f}".format(ob.data)),
@@ -514,6 +523,8 @@ def generate_histogram_init():
     # fromTimeStamp = toTimeStamp-datetime.timedelta(days=15)
     # site = 'ShipA'
     global  start,end
+    if start == end:
+        start = end - INTERVAL_INIT
     data = {}
     data["avg_cap"]=[]
     data["records"]=[]
@@ -540,6 +551,8 @@ def generate_histogram():
     fromTimeStamp = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
+    if fromTimeStamp == toTimeStamp:
+        fromTimeStamp = toTimeStamp - INTERVAL_INIT
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
@@ -570,6 +583,8 @@ def generate_histogram_site():
     fromTimeStamp = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
+    if fromTimeStamp == toTimeStamp:
+        fromTimeStamp = toTimeStamp - INTERVAL_INIT
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
@@ -605,6 +620,8 @@ def generate_path():
     fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
+    if fromTime == toTime:
+        fromTime = toTime - INTERVAL_INIT
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
@@ -674,7 +691,8 @@ def generate_path_site():
     fromTime = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
-
+    if fromTime == toTime:
+        fromTime = toTime - INTERVAL_INIT
     range = toTime - fromTime
     # 25 min range loads second data - 25 x 4
     if (range < 25 * 60 ):
@@ -739,6 +757,8 @@ def generate_path_init():
     # fromTime = toTime-datetime.timedelta(days=15)
     # site = 'ShipA'
     global start,end
+    if start == end:
+        start = end - INTERVAL_INIT
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site )\
         .only('time',"cap","geo","distance","coverage")
     # start = 0
