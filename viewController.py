@@ -10,7 +10,7 @@ from monary import Monary
 from collections import defaultdict
 from dataController import distance_in_miles
 import numpy
-INTERVAL_INIT = 24*60*60
+INTERVAL_INIT = 60*60
 MAX_POINTS = 100
 DISTANCE_STEP = 2
 DISTANCE_MAX = 10
@@ -230,7 +230,7 @@ def chart_view():
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     range = toTime - fromTime
     # 25 min range loads second data - 15s x 4 x 25 = 100 pts
-    if (range < 25 * 60 ):
+    if (range < 35 * 60 ):
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
     # 100 min range loads minute data - 100 mins = 1hr 40 mins
@@ -293,7 +293,7 @@ def chart_view_site():
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     range = toTime - fromTime
     # 25 min range loads second data - 25 x 4
-    if (range < 25 * 60 ):
+    if (range < 35 * 60 ):
         query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
     # 100 min range loads minute data
@@ -631,7 +631,7 @@ def generate_path():
     # skip = len(query_set)/MAX_POINTS
     range = toTime - fromTime
     # 25 min range loads second data - 15s x 4 x 25 = 100 pts
-    if (range < 25 * 60 ):
+    if (range < 35 * 60 ):
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
     # 100 min range loads minute data - 100 mins = 1hr 40 mins
     elif (range < 100 * 60 ):
@@ -695,7 +695,7 @@ def generate_path_site():
         fromTime = toTime - INTERVAL_INIT
     range = toTime - fromTime
     # 25 min range loads second data - 25 x 4
-    if (range < 25 * 60 ):
+    if (range < 35 * 60 ):
         query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )
     # 100 min range loads minute data
     elif (range < 100 * 60 ):
