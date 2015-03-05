@@ -10,7 +10,7 @@ from monary import Monary
 from collections import defaultdict
 from dataController import distance_in_miles
 import numpy
-INTERVAL_INIT = 60*60*24
+INTERVAL_INIT = 60*60
 MAX_POINTS = 100
 DISTANCE_STEP = 2
 DISTANCE_MAX = 10
