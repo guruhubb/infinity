@@ -254,9 +254,9 @@ def chart_view():
     # #     only('time',"data","cap","distance").order_by('time')
     #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
     #     only('time',"data","cap","distance").order_by('time')
-    if len(query_set) < 100 :
-        query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
-        only('time',"data","cap","distance").order_by('time')
+    # if len(query_set) < 100 :
+    #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+    #     only('time',"data","cap","distance").order_by('time')
     app.logger.info("chart size is %s " % len(query_set))
     data = {}
     data["cap"]=[]
@@ -318,9 +318,9 @@ def chart_view_site():
     #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
     #     only('time',"data","cap").order_by('time')
 
-    if len(query_set) < 100 :
-        query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
-        only('time',"data","cap","distance").order_by('time')
+    # if len(query_set) < 100 :
+    #     query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
+    #     only('time',"data","cap","distance").order_by('time')
     data = {}
     data["cap"]=[]
     data["data"]=[]
@@ -650,8 +650,8 @@ def generate_path():
     # #     only('time',"data","cap","distance").order_by('time')
     #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
     #     only('time',"data","cap","distance").order_by('time')
-    if len(query_set) < 100 :
-        query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
+    # if len(query_set) < 100 :
+    #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
 
 
     app.logger.info("path size is %s " % len(query_set))
@@ -715,8 +715,9 @@ def generate_path_site():
     #     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
     #     only('time',"data","cap").order_by('time')
 
-    if len(query_set) < 100 :
-        query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )
+    # if len(query_set) < 100 :
+    #     query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )
+
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
