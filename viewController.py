@@ -530,11 +530,13 @@ def get_devices_and_data():
     response_data = []
     if device_type is None:
         for site in Site.objects:
-            recordObjects = Site_data.objects(name=site.name).order_by('-time').limit(5)   # todo: limit # of records to 5
+            # recordObjects = Site_data.objects(name=site.name).order_by('-time').limit(5)   # todo: limit # of records to 5
+            record = Site_data.objects(name=site.name).order_by('-time').first()   # todo: limit # of records to 5
+
             # cpeDevice = Device.objects(type = 'CPE',site = site.name).first()
-            if len(recordObjects) > 3:
-                record = recordObjects [2]  # don't take the latest timestamp data, but a few seconds earlier
-                response_data.append({"site":record.name,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
+            # if len(recordObjects) > 3:
+                # record = recordObjects [2]  # don't take the latest timestamp data, but a few seconds earlier
+            response_data.append({"site":record.name,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
                  "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
                  # "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
                  "lat":record.geo[0], "lng":record.geo[1], "time":record.time * 1000,"type":record.type})
