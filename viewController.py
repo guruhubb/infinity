@@ -556,19 +556,19 @@ def get_links():
     for device in Device.objects:
         if device.type == 'CPE':
             record = Data.objects(DeviceName = device.name, Time=timeStamp).first()
-
+            record = Aggr_data.objects(site = record.LinkName, time = timeStamp).first()
             if record:
-                btsDevice = Device.objects(connId = record.LinkName, type = 'BTS').order_by('-time').first()
+                btsDevice = Device.objects(connId = record.site, type = 'BTS').order_by('-time').first()
             #     btsRecord = Aggr_data.objects(site = btsDevice.site).order_by('-time').first()
             #     # distance = distance_in_miles(record.geo,btsRecord.geo)
                 if btsDevice is None:
-                    app.logger.error("There is NO bts device corresponding to cpe %s " % record.DeviceName)
+                    app.logger.error("There is NO bts device corresponding to link %s " % record.site)
                 else:
-                    response_data.append({"connId":record.LinkName,"tx":"{:.2f}".format(record.TxRate),
-                 "rx":"{:.2f}".format(record.RxRate),"cap":"{:.2f}".format(record.MaxCapacity),
-                 "data":"{:.2f}".format(record.TxRate+record.RxRate),
-                 "lat":record.Location[0], "lng":record.Location[1], "lat1":btsDevice.lat, "lng1":btsDevice.lng,
-                 "time":record.Time * 1000, "distance":"{:.2f}".format(record.Distance)})
+                    response_data.append({"connId":record.site,"tx":"{:.2f}".format(record.tx),
+                 "rx":"{:.2f}".format(record.rx),"cap":"{:.2f}".format(record.cap),
+                 "data":"{:.2f}".format(record.data),
+                 "lat":record.geo[0], "lng":record.geo[1], "lat1":btsDevice.lat, "lng1":btsDevice.lng,
+                 "time":record.time * 1000, "distance":"{:.2f}".format(record.distance)})
             else:
                 app.logger.error("There is NO data corresponding to cpe %s " % device.name)
 
