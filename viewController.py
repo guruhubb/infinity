@@ -552,9 +552,10 @@ def get_devices_and_data():
 @login_required
 def get_links():
     response_data = []
+    timeStamp = int(flask.request.args.get('time'))/1000
     for device in Device.objects:
         if device.type == 'CPE':
-            record = Data.objects(DeviceName = device.name).order_by('-Time').first()
+            record = Data.objects(DeviceName = device.name, Time=timeStamp).first()
 
             if record:
                 btsDevice = Device.objects(connId = record.LinkName, type = 'BTS').order_by('-time').first()
