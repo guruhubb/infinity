@@ -5,28 +5,36 @@
  */
 
 // jQuery for page scrolling feature - requires jQuery Easing plugin
-$(function() {
-    $('a.page-scroll').bind('click', function(event) {
-        var $anchor = $(this).attr('href');
+//$(function() {
+ //   $('a.page-scroll').bind('click', function(event) {
+  //      var $anchor = $(this).attr('href');
         // get target div to scroll to
 
-        var target;
-        if ($anchor && $anchor.attr()) {
-            target = $($anchor.attr('href'));
+  //      var target;
+ //       if ($anchor ) {
+ //           target = $(this).attr('href');
             // if target is valid, scroll to
-            if (target && target.offset()) {
-                $('html, body').stop().animate({
-                    scrollTop: target.offset().top
-                }, 1500, 'easeInOutExpo');
-            }
-        }
+ //           if (target ) {
+ //               $('html, body').stop().animate({
+ //                   scrollTop: target.offset().top
+//                }, 1500, 'easeInOutExpo');
+ //           }
+//        }
 //        $('html, body').stop().animate({
 //            scrollTop: $($anchor.attr('href')).offset().top
 //        }, 1500, 'easeInOutExpo');
+ //       event.preventDefault();
+//    });
+//});
+$(function() {
+    $('.page-scroll a').bind('click', function(event) {
+        var $anchor = $(this);
+        $('html, body').stop().animate({
+            scrollTop: $($anchor.attr('href')).offset().top
+        }, 1500, 'easeInOutExpo');
         event.preventDefault();
     });
 });
-
 // Highlight the top nav as scrolling occurs
 $('body').scrollspy({
     target: '.navbar-fixed-top'
