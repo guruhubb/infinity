@@ -1206,11 +1206,11 @@ def dayData():
                                 }}
                             ])
                             if len(dataObject['result']) > 0:
-                                hour_data = Hour( site=device.connId, time = firstRecord.time+60*60*24, tx = dataObject['result'][0]['tx'],
+                                day_data = Day( site=device.connId, time = firstRecord.time+60*60*24, tx = dataObject['result'][0]['tx'],
                                                 rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                                 data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
                                                 distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
-                                hour_data.save()
+                                day_data.save()
                             time1 = time1 + 60*60*24
                             time2 = time1 + 60*60*24
                             firstRecord = Hour.objects(site = device.connId, time__gte = time1).first()
@@ -1255,11 +1255,11 @@ def monthData():
                                 }}
                             ])
                             if len(dataObject['result']) > 0:
-                                hour_data = Hour( site=device.connId, time = firstRecord.time+60*60*24*31, tx = dataObject['result'][0]['tx'],
+                                month_data = Month( site=device.connId, time = firstRecord.time+60*60*24*31, tx = dataObject['result'][0]['tx'],
                                                 rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                                 data = dataObject['result'][0]['data'], coverage = firstRecord.coverage,
                                                 distance = dataObject['result'][0]['distance'], geo = firstRecord.geo )
-                                hour_data.save()
+                                month_data.save()
                             time1 = time1 + 60*60*24*31
                             time2 = time1 + 60*60*24*31
                             firstRecord = Day.objects(site = device.connId, time__gte = time1).first()
@@ -1414,7 +1414,7 @@ def siteHour():
                     time2 = firstRecord.time+60*60
                     if lastTime > time1+60*60-60:
                         while time1 < lastTime and firstRecord:
-                            dataObject = dbmongo.site_data.aggregate([
+                            dataObject = dbmongo.site_data_min.aggregate([
                                 {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
                                     , 'name':site.name}},
                                 # {'$limit' : 60 },
@@ -1423,11 +1423,11 @@ def siteHour():
                                 }}
                             ])
                             if len(dataObject['result']) > 0:
-                                minute_data = Site_data_hour( name=site.name, time = firstRecord.time+60*60, tx = dataObject['result'][0]['tx'],
+                                hour_data = Site_data_hour( name=site.name, time = firstRecord.time+60*60, tx = dataObject['result'][0]['tx'],
                                                 rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                                 data = dataObject['result'][0]['data'],distance = dataObject['result'][0]['distance'],
                                                 type = firstRecord.type, geo = firstRecord.geo )
-                                minute_data.save()
+                                hour_data.save()
                             time1 = time1 + 60*60
                             time2 = time1 + 60*60
                             firstRecord = Site_data_min.objects(name = site.name, time__gte = time1).first()
@@ -1462,7 +1462,7 @@ def siteDay():
                     time2 = firstRecord.time+60*60*24
                     if lastTime > time1+60*60*24-60*60:
                         while time1 < lastTime and firstRecord:
-                            dataObject = dbmongo.site_data.aggregate([
+                            dataObject = dbmongo.site_data_hour.aggregate([
                                 {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
                                     , 'name':site.name}},
                                 # {'$limit' : 60 },
@@ -1471,11 +1471,11 @@ def siteDay():
                                 }}
                             ])
                             if len(dataObject['result']) > 0:
-                                minute_data = Site_data_day( name=site.name, time = firstRecord.time+60*60*24, tx = dataObject['result'][0]['tx'],
+                                day_data = Site_data_day( name=site.name, time = firstRecord.time+60*60*24, tx = dataObject['result'][0]['tx'],
                                                 rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                                 data = dataObject['result'][0]['data'],distance = dataObject['result'][0]['distance'],
                                                 type = firstRecord.type, geo = firstRecord.geo )
-                                minute_data.save()
+                                day_data.save()
                             time1 = time1 + 60*60*24
                             time2 = time1 + 60*60*24
                             firstRecord = Site_data_hour.objects(name = site.name, time__gte = time1).first()
@@ -1510,7 +1510,7 @@ def siteMonth():
                     time2 = firstRecord.time+60*60*24*31
                     if lastTime > time1+60*60*24*31-60*60*24:
                         while time1 < lastTime and firstRecord:
-                            dataObject = dbmongo.site_data.aggregate([
+                            dataObject = dbmongo.site_data_month.aggregate([
                                 {'$match':{ 'time' : { '$gt' : time1, '$lt':time2}
                                     , 'name':site.name}},
                                 # {'$limit' : 60 },
@@ -1519,11 +1519,11 @@ def siteMonth():
                                 }}
                             ])
                             if len(dataObject['result']) > 0:
-                                minute_data = Site_data_month( name=site.name, time = firstRecord.time+60*60*24*31, tx = dataObject['result'][0]['tx'],
+                                month_data = Site_data_month( name=site.name, time = firstRecord.time+60*60*24*31, tx = dataObject['result'][0]['tx'],
                                                 rx = dataObject['result'][0]['rx'],cap = dataObject['result'][0]['cap'],
                                                 data = dataObject['result'][0]['data'],distance = dataObject['result'][0]['distance'],
                                                 type = firstRecord.type, geo = firstRecord.geo )
-                                minute_data.save()
+                                month_data.save()
                             time1 = time1 + 60*60*24*31
                             time2 = time1 + 60*60*24*31
                             firstRecord = Site_data_day.objects(name = site.name, time__gte = time1).first()
