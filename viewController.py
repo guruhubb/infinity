@@ -14,8 +14,9 @@ INTERVAL_INIT = 60*60
 MAX_POINTS = 100
 DISTANCE_STEP = 2
 DISTANCE_MAX = 10
-start = int(time.time()) - INTERVAL_INIT
-end = int(time.time())
+NOW = int(time.time())
+start = NOW - INTERVAL_INIT
+end = NOW
 # site = 'btsA'
 # site = 'Catalina'
 site = 'Catalina_LongBeach'
@@ -404,7 +405,10 @@ def chart_view_site():
     return data_dumps
 
 def chart_view_init():
-    global start, end
+    # global start, end
+    now = int(time.time())
+    start = now - INTERVAL_INIT
+    end = now
     if start == end:
         start = end - INTERVAL_INIT
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\

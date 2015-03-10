@@ -1092,7 +1092,7 @@ def minuteData():
             # work on aggr_data records that has a timestamp more than 1 minute
             if timeStamp is None:
                 timeStamp = int(time.time()) - 60*60*24    # TODO: change Aggr_data to link_data, 'site' to 'link', 'connId' to 'linkname'
-            firstRecord = Aggr_data.objects(site = device.connId, time__gt = timeStamp).first()
+            firstRecord = Aggr_data.objects(site = device.connId, time__gt = timeStamp).order_by('time').first()
             lastRecord = Aggr_data.objects(site = device.connId).order_by('-time').first()
             if lastRecord:
                 lastTime = lastRecord.time
@@ -1140,7 +1140,7 @@ def hourData():
             # work on aggr_data records that has a timestamp if it is more than 1 hour
             if timeStamp is None:
                 timeStamp = int(time.time()) - 60*60*24
-            firstRecord = Minute.objects(site = device.connId, time__gt = timeStamp).first()
+            firstRecord = Minute.objects(site = device.connId, time__gt = timeStamp).order_by('time').first()
             lastRecord = Minute.objects(site = device.connId).order_by('-time').first()
             if lastRecord:
                 lastTime = lastRecord.time
@@ -1188,7 +1188,7 @@ def dayData():
             # work on aggr_data records that has a timestamp if it is more than 1 hour
             if timeStamp is None:
                 timeStamp = int(time.time()) - 60*60*24*31
-            firstRecord = Hour.objects(site = device.connId, time__gt = timeStamp).first()
+            firstRecord = Hour.objects(site = device.connId, time__gt = timeStamp).order_by('time').first()
             lastRecord = Hour.objects(site = device.connId).order_by('-time').first()
             if lastRecord:
                 lastTime = lastRecord.time
@@ -1236,7 +1236,7 @@ def monthData():
             # work on aggr_data records that has a timestamp if it is more than 1 hour
             if timeStamp is None:
                 timeStamp = int(time.time()) - 60*60*24*31*12
-            firstRecord = Day.objects(site = device.connId, time__gt = timeStamp).first()
+            firstRecord = Day.objects(site = device.connId, time__gt = timeStamp).order_by('time').first()
             lastRecord = Day.objects(site = device.connId).order_by('-time').first()
             if lastRecord:
                 lastTime = lastRecord.time
@@ -1356,7 +1356,7 @@ def siteMinute():
             # work on aggr_data records that has a timestamp more than 1 minute
             if timeStamp is None:
                 timeStamp = int(time.time()) - 60*60*24
-            firstRecord = Site_data.objects(name = site.name, time__gt = timeStamp).first()
+            firstRecord = Site_data.objects(name = site.name, time__gt = timeStamp).order_by('time').first()
             lastRecord = Site_data.objects(name = site.name).order_by('-time').first()
             if lastRecord:
                 lastTime = lastRecord.time
@@ -1404,7 +1404,7 @@ def siteHour():
             # work on aggr_data records that has a timestamp more than 1 minute
             if timeStamp is None:
                 timeStamp = int(time.time()) - 60*60*24
-            firstRecord = Site_data_min.objects(name = site.name, time__gt = timeStamp).first()
+            firstRecord = Site_data_min.objects(name = site.name, time__gt = timeStamp).order_by('time').first()
             lastRecord = Site_data_min.objects(name = site.name).order_by('-time').first()
 
             if lastRecord:
@@ -1453,7 +1453,7 @@ def siteDay():
             # work on aggr_data records that has a timestamp more than 1 minute
             if timeStamp is None:
                 timeStamp = int(time.time()) - 60*60*24*31
-            firstRecord = Site_data_hour.objects(name = site.name, time__gt = timeStamp).first()
+            firstRecord = Site_data_hour.objects(name = site.name, time__gt = timeStamp).order_by('time').first()
             lastRecord = Site_data_hour.objects(name = site.name).order_by('-time').first()
             if lastRecord:
                 lastTime = lastRecord.time
@@ -1501,7 +1501,7 @@ def siteMonth():
             # work on aggr_data records that has a timestamp more than 1 minute
             if timeStamp is None:
                 timeStamp = int(time.time()) - 60*60*24*31*12
-            firstRecord = Site_data_day.objects(name = site.name, time__gt = timeStamp).first()
+            firstRecord = Site_data_day.objects(name = site.name, time__gt = timeStamp).order_by('time').first()
             lastRecord = Site_data_day.objects(name = site.name).order_by('-time').first()
             if lastRecord:
                 lastTime = lastRecord.time
