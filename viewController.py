@@ -438,7 +438,7 @@ def chart_view_init():
 @app.route('/stream', methods= ['POST','GET'])
 @login_required
 def stream_view():
-    global start, end
+    # global start, end
     startStream = int(time.time())-15*60  # 15 mins
     endStream = int(time.time())
     site = flask.request.args.get('site')
@@ -589,9 +589,9 @@ def generate_histogram_init():
     # toTimeStamp = datetime.datetime.now()
     # fromTimeStamp = toTimeStamp-datetime.timedelta(days=15)
     # site = 'ShipA'
-    global  start,end
-    if start == end:
-        start = end - INTERVAL_INIT
+    now = int(time.time())
+    start = now - INTERVAL_INIT
+    end = now
     data = {}
     data["avg_cap"]=[]
     data["records"]=[]
@@ -866,9 +866,9 @@ def generate_path_init():
     # toTime = datetime.datetime.now()
     # fromTime = toTime-datetime.timedelta(days=15)
     # site = 'ShipA'
-    global start,end
-    if start == end:
-        start = end - INTERVAL_INIT
+    now = int(time.time())
+    start = now - INTERVAL_INIT
+    end = now
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site )\
         .only('time',"cap","geo","distance","coverage")
     # start = 0
