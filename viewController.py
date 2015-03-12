@@ -112,7 +112,9 @@ def home():
     # yesterday = now - datetime.timedelta(days=20)
     # now_js = time.mktime(now.timetuple()) * 1000
     # yesterday_js = time.mktime(yesterday.timetuple()) * 1000
-
+    NOW = int(time.time())
+    start = NOW - INTERVAL_INIT
+    end = NOW
     ctx = {
         'chart_url':'/chart',
         'histogram_url':'/histogram',
@@ -255,10 +257,10 @@ def chart_view():
     elif (range < 30 * 24 * 3600 ):
         query_set = Day.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-        if len(query_set)< 15:
+        if len(query_set)< 12:
             query_set = Hour.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
             only('time',"data","cap","distance").order_by('time')
-            if len(query_set)< 50:
+            if len(query_set)< 12:
                 query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
                 only('time',"data","cap","distance").order_by('time')
                 if len(query_set)< 50:
@@ -268,13 +270,13 @@ def chart_view():
     else:
         query_set = Month.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-        if len(query_set)< 20:
+        if len(query_set)< 12:
             query_set = Day.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
             only('time',"data","cap","distance").order_by('time')
-            if len(query_set)< 50:
+            if len(query_set)< 12:
                 query_set = Hour.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
                 only('time',"data","cap","distance").order_by('time')
-                if len(query_set)< 50:
+                if len(query_set)< 12:
                     query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
                     only('time',"data","cap","distance").order_by('time')
                     if len(query_set)< 50:
@@ -348,10 +350,10 @@ def chart_view_site():
     elif (range < 30 * 24 * 3600 ):
         query_set = Site_data_day.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
-        if len(query_set)< 15:
+        if len(query_set)< 12:
             query_set = Site_data_hour.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
             only('time',"data","cap","distance").order_by('time')
-            if len(query_set)< 50:
+            if len(query_set)< 12:
                 query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
                 only('time',"data","cap","distance").order_by('time')
                 if len(query_set)< 50:
@@ -361,13 +363,13 @@ def chart_view_site():
     else:
         query_set = Site_data_month.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
-        if len(query_set)< 20:
+        if len(query_set)< 12:
             query_set = Site_data_day.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
             only('time',"data","cap","distance").order_by('time')
-            if len(query_set)< 50:
+            if len(query_set)< 12:
                 query_set = Site_data_hour.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
                 only('time',"data","cap","distance").order_by('time')
-                if len(query_set)< 50:
+                if len(query_set)< 12:
                     query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
                     only('time',"data","cap","distance").order_by('time')
                     if len(query_set)< 50:
@@ -409,8 +411,8 @@ def chart_view_init():
     now = int(time.time())
     start = now - INTERVAL_INIT
     end = now
-    if start == end:
-        start = end - INTERVAL_INIT
+    # if start == end:
+    #     start = end - INTERVAL_INIT
     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
         only('time',"data","cap","distance").order_by('time')
     data = {}
@@ -448,11 +450,11 @@ def stream_view():
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     query_set = Aggr_data.objects(time__gt = startStream, time__lt = endStream, site = site ).\
         only('time',"data","cap","distance").order_by('time')
-    if query_set:
-        pass
-    else:
-        query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
-            only('time',"data","cap","distance").order_by('time')
+    # if query_set:
+    #     pass
+    # else:
+    #     query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).\
+    #         only('time',"data","cap","distance").order_by('time')
     data = {}
     data["cap"]=[]
     data["data"]=[]
@@ -481,11 +483,11 @@ def stream_view_site():
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     query_set = Site_data.objects(time__gt = startStream, time__lt = endStream, name = site ).\
         only('time',"data","cap","distance").order_by('time')
-    if query_set:
-        pass
-    else:
-        query_set = Site_data.objects(time__gt = start, time__lt = end, name = site ).\
-            only('time',"data","cap","distance").order_by('time')
+    # if query_set:
+    #     pass
+    # else:
+    #     query_set = Site_data.objects(time__gt = start, time__lt = end, name = site ).\
+    #         only('time',"data","cap","distance").order_by('time')
     data = {}
     data["cap"]=[]
     data["data"]=[]
@@ -715,20 +717,20 @@ def generate_path():
     # 30 day range loads daily data
     elif (range < 30 * 24 * 3600 ):
         query_set = Day.objects(time__gt = fromTime, time__lt = toTime, site = site )
-        if len(query_set)< 15:
+        if len(query_set)< 12:
             query_set = Hour.objects(time__gt = fromTime, time__lt = toTime, site = site )
-            if len(query_set)< 50:
+            if len(query_set)< 12:
                 query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site )
                 if len(query_set)< 50:
                     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
     # greater range loads monthly data
     else:
         query_set = Month.objects(time__gt = fromTime, time__lt = toTime, site = site )
-        if len(query_set)< 20:
+        if len(query_set)< 12:
             query_set = Day.objects(time__gt = fromTime, time__lt = toTime, site = site )
-            if len(query_set)< 50:
+            if len(query_set)< 12:
                 query_set = Hour.objects(time__gt = fromTime, time__lt = toTime, site = site )
-                if len(query_set)< 50:
+                if len(query_set)< 12:
                     query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site )
                     if len(query_set)< 50:
                         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
@@ -801,20 +803,20 @@ def generate_path_site():
     # 100 day range loads daily data
     elif (range < 30 * 24 * 3600 ):
         query_set = Site_data_day.objects(time__gt = fromTime, time__lt = toTime, name = site )
-        if len(query_set)< 15:
+        if len(query_set)< 12:
             query_set = Site_data_hour.objects(time__gt = fromTime, time__lt = toTime, name = site )
-            if len(query_set)< 50:
+            if len(query_set)< 12:
                 query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, name = site )
                 if len(query_set)< 50:
                     query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )
     # greater range loads monthly data
     else:
         query_set = Site_data_month.objects(time__gt = fromTime, time__lt = toTime, name = site )
-        if len(query_set)< 20:
+        if len(query_set)< 12:
             query_set = Site_data_day.objects(time__gt = fromTime, time__lt = toTime, name = site )
-            if len(query_set)< 50:
+            if len(query_set)< 12:
                 query_set = Site_data_hour.objects(time__gt = fromTime, time__lt = toTime, name = site )
-                if len(query_set)< 50:
+                if len(query_set)< 12:
                     query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, name = site )
                     if len(query_set)< 50:
                         query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )
