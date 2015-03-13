@@ -1,6 +1,6 @@
 from requests_futures.sessions import FuturesSession
 from flask.ext.security import login_required
-import models, datetime, math, time, json, flask, requests,subprocess, spur, numpy,collections
+import models, datetime, math, time, json, flask, requests,subprocess, spur, collections
 from flask import Blueprint, Response
 from mongoengine import Q
 from flask.ext.mail import Message
@@ -1538,7 +1538,7 @@ def siteMonth():
 def get_ping(ip):
     result = [line.rpartition('=')[-1] for line in subprocess.check_output(['ping', '-c', '2', ip]).splitlines()[1:-4]]
     resultWithNoString = [findNumber(result[0]),findNumber(result[1])]
-    average = numpy.mean(resultWithNoString)
+    average = sum(resultWithNoString) / float(len(resultWithNoString))
     return average
 
 def get_ping_status(ip):

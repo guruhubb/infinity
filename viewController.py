@@ -6,10 +6,10 @@ import infinity
 import flask, time, subprocess, json,calendar
 from infinity import app, Site, Aggr_data, Device, Data, Minute, Hour, Day, Month, Site_data,Site_data_min, \
     Site_data_hour, Site_data_day, Site_data_month
-from monary import Monary
-from collections import defaultdict
-from dataController import distance_in_miles
-import numpy
+# from monary import Monary
+# from collections import defaultdict
+# from dataController import distance_in_miles
+# import numpy
 INTERVAL_INIT = 60*60
 MAX_POINTS = 100
 DISTANCE_STEP = 2
