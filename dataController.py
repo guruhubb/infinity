@@ -182,7 +182,7 @@ def get_router_():
             app.logger.error('error message from get_router is: %s, ' % msg)
 
 @app.route('/startdata')
-@login_required
+# @login_required
 @run_once
 def startdata():
     example = ThreadingExample()
