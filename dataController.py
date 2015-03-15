@@ -8,7 +8,7 @@ from infinity import mail, app, Device, Data, Event, Site, Aggr_data, Beagle, Ro
                     Site_data,Site_data_min, Site_data_hour, Site_data_day, Site_data_month
 from math import radians, cos, sin, asin, sqrt
 import eventlet
-
+import threading
 from eventlet.green import urllib2
 # from bson import Code
 # from multiprocessing import Pool
@@ -78,7 +78,48 @@ def run_once(f):
 
 # run startdata once - could not implement the forever run logic at startup of the app
 
+class ThreadingExample(object):
+    """ Threading example class
 
+    The run() method will be started and it will run in the background
+    until the application exits.
+    """
+
+    def __init__(self, interval=1):
+        """ Constructor
+
+        :type interval: int
+        :param interval: Check interval, in seconds
+        """
+        self.interval = interval
+
+        thread = threading.Thread(target=self.run, args=())
+        thread.daemon = True                            # Daemonize thread
+        thread.start()                                  # Start the execution
+
+    def run(self):
+        """ Method that runs forever """
+        while True:
+            # Do something
+            # print('Getting data in the background')
+            try:
+                # getData()
+                # processData()
+                # aggrData()
+                get_data()      # get data from all 'CPE' devices and then from all 'sites'
+                # minuteData()
+                # hourData()
+                # dayData()
+                # monthData()
+                # siteMinute()
+                # siteHour()
+                # siteDay()
+                # siteMonth()
+                # time.sleep(1)
+
+            except Exception, msg:
+                app.logger.error('error message in startdata() is: %s, ' % msg)
+            time.sleep(self.interval)
 # def getData_():
 #     try:
 #         while True:
@@ -144,25 +185,30 @@ def get_router_():
 @login_required
 @run_once
 def startdata():
-    while True:
-
-        try:
-            # getData()
-            # processData()
-            # aggrData()
-            get_data()      # get data from all 'CPE' devices and then from all 'sites'
-            # minuteData()
-            # hourData()
-            # dayData()
-            # monthData()
-            # siteMinute()
-            # siteHour()
-            # siteDay()
-            # siteMonth()
-            # time.sleep(1)
-
-        except Exception, msg:
-            app.logger.error('error message in startdata() is: %s, ' % msg)
+    example = ThreadingExample()
+    # time.sleep(3)
+    # print('Checkpoint')
+    # time.sleep(2)
+    # print('Bye')
+    # while True:
+    #
+    #     try:
+    #         # getData()
+    #         # processData()
+    #         # aggrData()
+    #         get_data()      # get data from all 'CPE' devices and then from all 'sites'
+    #         # minuteData()
+    #         # hourData()
+    #         # dayData()
+    #         # monthData()
+    #         # siteMinute()
+    #         # siteHour()
+    #         # siteDay()
+    #         # siteMonth()
+    #         # time.sleep(1)
+    #
+    #     except Exception, msg:
+    #         app.logger.error('error message in startdata() is: %s, ' % msg)
     return "Start getting data from device"
 
 
@@ -1079,7 +1125,7 @@ def beagleData():
 
 
 @app.route('/minuteData')
-@login_required
+# @login_required
 def minuteData():
     timeStamp=None
     try:
@@ -1127,7 +1173,7 @@ def minuteData():
     return "Done"
 
 @app.route('/hourData')
-@login_required
+# @login_required
 def hourData():
     timeStamp=None
     try:
@@ -1175,7 +1221,7 @@ def hourData():
     return "Done"
 
 @app.route('/dayData')
-@login_required
+# @login_required
 def dayData():
     timeStamp=None
     try:
@@ -1223,7 +1269,7 @@ def dayData():
     return "Done"
 
 @app.route('/monthData')
-@login_required
+# @login_required
 def monthData():
     try:
         timeStamp=None
@@ -1271,7 +1317,7 @@ def monthData():
     return "Done"
 
 @app.route('/site')
-@login_required
+# @login_required
 def site():
     # go through all sites, add all cpe data and all bts data for each site
     global initial_time
@@ -1343,7 +1389,7 @@ def site():
     return "Done"
 
 @app.route('/siteMinute')
-@login_required
+# @login_required
 def siteMinute():
     try:
         timeStamp=None
@@ -1391,7 +1437,7 @@ def siteMinute():
     return "Done"
 
 @app.route('/siteHour')
-@login_required
+# @login_required
 def siteHour():
     try:
         timeStamp=None
@@ -1440,7 +1486,7 @@ def siteHour():
     return "Done"
 
 @app.route('/siteDay')
-@login_required
+# @login_required
 def siteDay():
     timeStamp=None
     try:
@@ -1488,7 +1534,7 @@ def siteDay():
     return "Done"
 
 @app.route('/siteMonth')
-@login_required
+# @login_required
 def siteMonth():
     try:
         timeStamp=None
