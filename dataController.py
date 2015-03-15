@@ -45,7 +45,7 @@ linkCollection = db.aggr_data
 
 # DISTANCE_MAX = 40
 # DISTANCE_MIN = 10
-INTERVAL = 14
+INTERVAL = 10
 CUTOFF_CAPACITY = 2
 LOW_SNR = 5
 CUTOFF_SNR = 3
@@ -259,13 +259,13 @@ def get_data():
             url_list.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
         doc_=[]
-        # pool = eventlet.GreenPool()
+        pool = eventlet.GreenPool()
         # use multiple threads to get data from each device and parse it
         app.logger.info('Fetching data at %s'  % str(datetime.datetime.now()))
 
-        # for body in pool.imap(fetch, url_list):
-        for url in url_list:
-            data = urllib2.urlopen(url).read()
+        for data in pool.imap(fetch, url_list):
+        # for url in url_list:
+        #     data = urllib2.urlopen(url).read()
             if data:
                 doc_.append(xmltodict.parse(data))
         app.logger.info('Fetched data at %s'  % str(datetime.datetime.now()))
