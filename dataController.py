@@ -234,7 +234,7 @@ def get_data():
     # initial_time = 0
     # while True:
     global  initial_time
-    if ((int(time.time()) - initial_time) > INTERVAL):
+    if ((int(time.time()) - initial_time) > INTERVAL-5):
         initial_time = int(time.time())
         # get data
         # url_status = []
@@ -259,13 +259,15 @@ def get_data():
             url_list.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
         doc_=[]
-        pool = eventlet.GreenPool()
+        # pool = eventlet.GreenPool()
         # use multiple threads to get data from each device and parse it
         app.logger.info('Fetching data at %s'  % str(datetime.datetime.now()))
 
-        for body in pool.imap(fetch, url_list):
-            if body:
-                doc_.append(xmltodict.parse(body))
+        # for body in pool.imap(fetch, url_list):
+        for url in url_list:
+            data = urllib2.urlopen(url).read()
+            if data:
+                doc_.append(xmltodict.parse(data))
         app.logger.info('Fetched data at %s'  % str(datetime.datetime.now()))
 
         for i in xrange (0,len(doc_),3):
