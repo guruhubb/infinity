@@ -85,7 +85,7 @@ class ThreadingExample(object):
     until the application exits.
     """
 
-    def __init__(self, interval=1):
+    def __init__(self, interval=INTERVAL):
         """ Constructor
 
         :type interval: int
