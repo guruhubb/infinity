@@ -8,6 +8,8 @@ from infinity import mail, app, Device, Data, Event, Site, Aggr_data, Beagle, Ro
                     Site_data,Site_data_min, Site_data_hour, Site_data_day, Site_data_month
 from math import radians, cos, sin, asin, sqrt
 import eventlet
+import multiprocessing
+from threading import Thread
 import threading
 from eventlet.green import urllib2
 # from bson import Code
@@ -93,9 +95,18 @@ class ThreadingExample(object):
         """
         self.interval = interval
 
-        thread = threading.Thread(target=self.run, args=())
-        thread.daemon = True                            # Daemonize thread
-        thread.start()                                  # Start the execution
+        p0 = multiprocessing.Process(target=self.run, args=())
+        # p0.daemon = True                            # Daemonize thread
+        p0.start()                                  # Start the execution
+        p1 = multiprocessing.Process(target=self.sixtyData_(), args=())
+        # thread.daemon = True                            # Daemonize thread
+        p1.start()
+        p2 = multiprocessing.Process(target=self.hourData_(), args=())
+        # thread.daemon = True                            # Daemonize thread
+        p2.start()
+        p3 = multiprocessing.Process(target=self.dayData_(), args=())
+        # thread.daemon = True                            # Daemonize thread
+        p3.start()
 
     def run(self):
         """ Method that runs forever """
@@ -120,6 +131,10 @@ class ThreadingExample(object):
             except Exception, msg:
                 app.logger.error('error message in startdata() is: %s, ' % msg)
             time.sleep(self.interval)
+
+
+
+
 # def getData_():
 #     try:
 #         while True:
@@ -140,30 +155,94 @@ class ThreadingExample(object):
 #             aggrData()
 #     except Exception, msg:
 #             app.logger.error('error message from aggrData is: %s, ' % msg)
+def getData_():
+    while True:
+        try:
+            get_data()
+        except Exception, msg:
+            app.logger.error('error message from getData is: %s, ' % msg)
+        time.sleep(1)
 
-def sixtyData_():
-    try:
-        while True:
+def minuteData_():
+    while True:
+        try:
             minuteData()
-            time.sleep(60)
-    except Exception, msg:
+        except Exception, msg:
             app.logger.error('error message from sixtyData is: %s, ' % msg)
+        time.sleep(30)
 
 def hourData_():
-    try:
-        while True:
+    while True:
+        try:
             hourData()
-            time.sleep(60*60)
-    except Exception, msg:
+        except Exception, msg:
             app.logger.error('error message from hourData is: %s, ' % msg)
+        time.sleep(60*30)
 
 def dayData_():
-    try:
-        while True:
+    while True:
+        try:
             dayData()
-            time.sleep(60*60*24)
-    except Exception, msg:
+        except Exception, msg:
             app.logger.error('error message from dayData is: %s, ' % msg)
+        time.sleep(60*60*12)
+
+def monthData_():
+    while True:
+        try:
+            monthData()
+        except Exception, msg:
+            app.logger.error('error message from monthData is: %s, ' % msg)
+        time.sleep(60*60*24*15)
+
+def siteMinuteData_():
+    while True:
+        try:
+            siteMinute()
+        except Exception, msg:
+            app.logger.error('error message from sixtyData is: %s, ' % msg)
+        time.sleep(30)
+
+def siteHourData_():
+    while True:
+        try:
+            siteHour()
+        except Exception, msg:
+            app.logger.error('error message from hourData is: %s, ' % msg)
+        time.sleep(60*30)
+
+def siteDayData_():
+    while True:
+        try:
+            siteDay()
+        except Exception, msg:
+            app.logger.error('error message from dayData is: %s, ' % msg)
+        time.sleep(60*60*12)
+
+def siteMonthData_():
+    while True:
+        try:
+            siteMonth()
+        except Exception, msg:
+            app.logger.error('error message from monthData is: %s, ' % msg)
+        time.sleep(60*60*24*15)
+
+
+# def hourData_(self):
+#     try:
+#         while True:
+#             hourData()
+#             time.sleep(60*60)
+#     except Exception, msg:
+#             app.logger.error('error message from hourData is: %s, ' % msg)
+#
+#     def dayData_(self):
+#         try:
+#             while True:
+#                 dayData()
+#                 time.sleep(60*60*24)
+#         except Exception, msg:
+#                 app.logger.error('error message from dayData is: %s, ' % msg)
 
 def get_beagle_():
     try:
@@ -185,7 +264,7 @@ def get_router_():
 # @login_required
 @run_once
 def startdata():
-    example = ThreadingExample()
+    # example = ThreadingExample()
     # time.sleep(3)
     # print('Checkpoint')
     # time.sleep(2)
@@ -196,15 +275,44 @@ def startdata():
     #         # getData()
     #         # processData()
     #         # aggrData()
-    #         get_data()      # get data from all 'CPE' devices and then from all 'sites'
-    #         # minuteData()
-    #         # hourData()
-    #         # dayData()
-    #         # monthData()
-    #         # siteMinute()
-    #         # siteHour()
-    #         # siteDay()
-    #         # siteMonth()
+    t1 = Thread(target = getData_)
+    t2 = Thread(target = minuteData_)
+    t3 = Thread(target = hourData_)
+    t4 = Thread(target = dayData_)
+    t5 = Thread(target = monthData_)
+    t6 = Thread(target = siteMinuteData_)
+    t7 = Thread(target = siteHourData_)
+    t8 = Thread(target = siteDayData_)
+    t9 = Thread(target = siteMonthData_)
+    t1.setDaemon(True)
+    t2.setDaemon(True)
+    t3.setDaemon(True)
+    t4.setDaemon(True)
+    t5.setDaemon(True)
+    t6.setDaemon(True)
+    t7.setDaemon(True)
+    t8.setDaemon(True)
+    t9.setDaemon(True)
+    t1.start()
+    t2.start()
+    t3.start()
+    t4.start()
+    t5.start()
+    t6.start()
+    t7.start()
+    t8.start()
+    t9.start()
+    # while True:
+    #     pass
+            # getData_()      # get data from all 'CPE' devices and then from all 'sites'
+            # minuteData_()
+            # hourData_()
+            # dayData_()
+            # monthData_()
+            # siteMinuteData_()
+            # siteHourData_()
+            # siteDayData_()
+            # siteMonthData_()
     #         # time.sleep(1)
     #
     #     except Exception, msg:
@@ -234,142 +342,142 @@ def get_data():
     # initial_time = 0
     # while True:
     global  initial_time
-    if ((int(time.time()) - initial_time) > INTERVAL-5):
-        initial_time = int(time.time())
-        # get data
-        # url_status = []
-        # url_device = []
-        # url_link = []
-        url_list =[]
-        # url_full_list = []
-        for object in Device.objects(active = True, type = 'CPE'):
+    # if ((int(time.time()) - initial_time) > INTERVAL-5):
+    initial_time = int(time.time())
+    # get data
+    # url_status = []
+    # url_device = []
+    # url_link = []
+    url_list =[]
+    # url_full_list = []
+    for object in Device.objects(active = True, type = 'CPE'):
 
-            # use this for real radio - it needs https calls
-            # url_list.append('https://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
-            # url_list.append('https://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
-            # url_list.append('https://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
+        # use this for real radio - it needs https calls
+        # url_list.append('https://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
+        # url_list.append('https://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
+        # url_list.append('https://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
-            # use this for real radio - it needs https calls
-            # url_list.append('https://'+object.url+'/core/api/service/status.php?username=gigaknot&password=123')
-            # url_list.append('https://'+object.url + '/core/api/service/device-info.php?username=gigaknot&password=123')
-            # url_list.append('https://'+object.url + '/core/api/service/link-info.php?username=gigaknot&password=123')
+        # use this for real radio - it needs https calls
+        # url_list.append('https://'+object.url+'/core/api/service/status.php?username=gigaknot&password=123')
+        # url_list.append('https://'+object.url + '/core/api/service/device-info.php?username=gigaknot&password=123')
+        # url_list.append('https://'+object.url + '/core/api/service/link-info.php?username=gigaknot&password=123')
 
-            url_list.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
-            url_list.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
-            url_list.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
+        url_list.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
+        url_list.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
+        url_list.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
-        doc_=[]
-        pool = eventlet.GreenPool()
-        # use multiple threads to get data from each device and parse it
-        app.logger.info('Fetching data at %s'  % str(datetime.datetime.now()))
+    doc_=[]
+    pool = eventlet.GreenPool()
+    # use multiple threads to get data from each device and parse it
+    app.logger.info('Fetching data at %s'  % str(datetime.datetime.now()))
 
-        for data in pool.imap(fetch, url_list):
-        # for url in url_list:
-        #     data = urllib2.urlopen(url).read()
-            if data:
-                doc_.append(xmltodict.parse(data))
-        app.logger.info('Fetched data at %s'  % str(datetime.datetime.now()))
+    for data in pool.imap(fetch, url_list):
+    # for url in url_list:
+    #     data = urllib2.urlopen(url).read()
+        if data:
+            doc_.append(xmltodict.parse(data))
+    app.logger.info('Fetched data at %s'  % str(datetime.datetime.now()))
 
-        for i in xrange (0,len(doc_),3):
-            try:
-                status = doc_[i]['response']['mimosaContent']['values']
-                device = doc_[i+1]['response']['mimosaContent']['values']
-                link = doc_[i+2]['response']['mimosaContent']['values']
-                for k,v in device.items():
-                    if k in ['DeviceName','Location','Temperature']:
-                        if device[k]:
-                            status[k] = device[k]
-                # add only LinkName, MaxCapacity, and Distance from link-info API
-                for k,v in link.items():
-                    if k in ['LinkName','MaxCapacity','Distance']:
-                        if link[k]:
-                            status[k] = link[k]
-                        else:
-                            status[k] = 0.0
-                for k,v in status.items():
-                    if k not in ['Chains_1_2', 'Chains_3_4','Details','Rx_MCS','Location','DeviceName','LinkName']:
-                        if status[k]:
-                            status[k] = float(status[k])
-                        else: status[k] = 0.0
-                    elif k == 'Rx_MCS':
-                        if status[k]:
-                            status [k]=int(status[k])
-                        else: status[k] = 0.0
-                    elif k == 'Location':
-                        if status[k]:
-                            status [k] = tuple([float(x) for x in re.split(' -- ',status [k])])
-                        else: status[k] = (0.,0.)
+    for i in xrange (0,len(doc_),3):
+        try:
+            status = doc_[i]['response']['mimosaContent']['values']
+            device = doc_[i+1]['response']['mimosaContent']['values']
+            link = doc_[i+2]['response']['mimosaContent']['values']
+            for k,v in device.items():
+                if k in ['DeviceName','Location','Temperature']:
+                    if device[k]:
+                        status[k] = device[k]
+            # add only LinkName, MaxCapacity, and Distance from link-info API
+            for k,v in link.items():
+                if k in ['LinkName','MaxCapacity','Distance']:
+                    if link[k]:
+                        status[k] = link[k]
                     else:
-                        if status[k]:
-                            status[k] = status[k]
-                        else: status[k] = 0.
-                if str(status['SignalStrength']) == '-inf':
-                    status['SignalStrength'] = -100.0
-
-                # status.update(device)
-                # status.update(link)
-
-                # convert string to float, mcs/encoding to int, lat-long to geo
-                # add checks for Null data, convert Details to flat dict, remove Details
-
-                details = status['Details']['_ELEMENT']
-                for x in range(len(details)):
-                    if details[x]['Tx']:
-                        status['Tx'+str(x)] = float(details[x]['Tx'])
-                    else:
-                        status['Tx'+str(x)] = 0.0
-                    if details[x]['Rx']:
-                        status['Rx'+str(x)] = float(details[x]['Rx'])
-                    else:
-                        status['Rx'+str(x)] = 0.0
-                    if details[x]['Noise']:
-                        status['Noise'+str(x)] = float(details[x]['Noise'])
-                    else:
-                        status['Noise'+str(x)] = 0.0
-                    if details[x]['Encoding']:
-                        status['Encoding'+str(x)] = int(details[x]['Encoding'])
-                    else:
-                        status['Encoding'+str(x)] = 0.0
-
-                del status['Details']
-                # status ['Time'] = initial_time
-                # status ['Process'] = False
-                # status ['Aggregate'] = False
-
-                status_=collections.OrderedDict()
-                status_['Time']=initial_time
-                status_['Data']=status['TxRate']+status['RxRate']
-                if status['MaxCapacity'] > CUTOFF_CAPACITY:
-                    coverage = True
+                        status[k] = 0.0
+            for k,v in status.items():
+                if k not in ['Chains_1_2', 'Chains_3_4','Details','Rx_MCS','Location','DeviceName','LinkName']:
+                    if status[k]:
+                        status[k] = float(status[k])
+                    else: status[k] = 0.0
+                elif k == 'Rx_MCS':
+                    if status[k]:
+                        status [k]=int(status[k])
+                    else: status[k] = 0.0
+                elif k == 'Location':
+                    if status[k]:
+                        status [k] = tuple([float(x) for x in re.split(' -- ',status [k])])
+                    else: status[k] = (0.,0.)
                 else:
-                    coverage = False
-                status_['Coverage']=coverage
-                for k,v in status.items():
-                    status_[k]=status[k]
-                # copy subset of data table to link table
-                link_ = collections.OrderedDict()
-                link_['site'] = status['LinkName']
-                link_['time'] = initial_time
-                link_['tx'] = status['TxRate']
-                link_['rx'] = status ['RxRate']
-                link_['cap'] = status['MaxCapacity']
-                link_['data']=status_['Data']
-                link_['coverage']=status_['Coverage']
-                link_['distance']=status['Distance']
-                link_['geo']=status['Location']
+                    if status[k]:
+                        status[k] = status[k]
+                    else: status[k] = 0.
+            if str(status['SignalStrength']) == '-inf':
+                status['SignalStrength'] = -100.0
 
-                app.logger.info('Data from %s at %s'  % (url_list[i],str(datetime.datetime.now())))
-                dataCollection.insert(status_)
-                linkCollection.insert(link_)
-                # i=i+3
+            # status.update(device)
+            # status.update(link)
 
-                # status ['statusSize'] = sys.getsizeof(response_status.content)
-                # from pymongo import Connection
-                # app.logger.info('data from %s - status_ is %s and dumps is %s' % (url, status_,json.dumps(status_)))
-                # return Response(json.dumps(status),  mimetype='application/json')
+            # convert string to float, mcs/encoding to int, lat-long to geo
+            # add checks for Null data, convert Details to flat dict, remove Details
 
-            except :
-                app.logger.info("Bad Access API")
+            details = status['Details']['_ELEMENT']
+            for x in range(len(details)):
+                if details[x]['Tx']:
+                    status['Tx'+str(x)] = float(details[x]['Tx'])
+                else:
+                    status['Tx'+str(x)] = 0.0
+                if details[x]['Rx']:
+                    status['Rx'+str(x)] = float(details[x]['Rx'])
+                else:
+                    status['Rx'+str(x)] = 0.0
+                if details[x]['Noise']:
+                    status['Noise'+str(x)] = float(details[x]['Noise'])
+                else:
+                    status['Noise'+str(x)] = 0.0
+                if details[x]['Encoding']:
+                    status['Encoding'+str(x)] = int(details[x]['Encoding'])
+                else:
+                    status['Encoding'+str(x)] = 0.0
+
+            del status['Details']
+            # status ['Time'] = initial_time
+            # status ['Process'] = False
+            # status ['Aggregate'] = False
+
+            status_=collections.OrderedDict()
+            status_['Time']=initial_time
+            status_['Data']=status['TxRate']+status['RxRate']
+            if status['MaxCapacity'] > CUTOFF_CAPACITY:
+                coverage = True
+            else:
+                coverage = False
+            status_['Coverage']=coverage
+            for k,v in status.items():
+                status_[k]=status[k]
+            # copy subset of data table to link table
+            link_ = collections.OrderedDict()
+            link_['site'] = status['LinkName']
+            link_['time'] = initial_time
+            link_['tx'] = status['TxRate']
+            link_['rx'] = status ['RxRate']
+            link_['cap'] = status['MaxCapacity']
+            link_['data']=status_['Data']
+            link_['coverage']=status_['Coverage']
+            link_['distance']=status['Distance']
+            link_['geo']=status['Location']
+
+            app.logger.info('Data from %s at %s'  % (url_list[i],str(datetime.datetime.now())))
+            dataCollection.insert(status_)
+            linkCollection.insert(link_)
+            # i=i+3
+
+            # status ['statusSize'] = sys.getsizeof(response_status.content)
+            # from pymongo import Connection
+            # app.logger.info('data from %s - status_ is %s and dumps is %s' % (url, status_,json.dumps(status_)))
+            # return Response(json.dumps(status),  mimetype='application/json')
+
+        except :
+            app.logger.info("Bad Access API")
         # time.sleep(1)
         site()
             # url_status = 'https://192.168.1.20:5001/core/api/service/status.php?management-id=mimosa&management-password=pass123'
@@ -1171,7 +1279,7 @@ def minuteData():
     except Exception, msg:
         app.logger.error('error message in minuteData() is: %s, ' % msg)
     # time.sleep(61)
-    hourData()
+    # hourData()
     return "Done"
 
 @app.route('/hourData')
@@ -1219,7 +1327,7 @@ def hourData():
         # time.sleep(60*60+1)
     except Exception, msg:
         app.logger.error('error message in hourData(): %s, ' % msg)
-    dayData()
+    # dayData()
     return "Done"
 
 @app.route('/dayData')
@@ -1267,7 +1375,7 @@ def dayData():
         # time.sleep(60*60*24+1)
     except Exception, msg:
         app.logger.error('error message in dayData(): %s, ' % msg)
-    monthData()
+    # monthData()
     return "Done"
 
 @app.route('/monthData')
@@ -1387,7 +1495,7 @@ def site():
                     siteCollection.insert(site_data_bts)
     except Exception, msg:
         app.logger.error('error message in site(): %s, ' % msg)
-    siteMinute()
+    # siteMinute()
     return "Done"
 
 @app.route('/siteMinute')
@@ -1435,7 +1543,7 @@ def siteMinute():
         # time.sleep(61)
     except Exception, msg:
             app.logger.error('error message in siteMinute(): %s, ' % msg)
-    siteHour()
+    # siteHour()
     return "Done"
 
 @app.route('/siteHour')
@@ -1484,7 +1592,7 @@ def siteHour():
         # time.sleep(61)
     except Exception, msg:
             app.logger.error('error message in siteHour(): %s, ' % msg)
-    siteDay()
+    # siteDay()
     return "Done"
 
 @app.route('/siteDay')
@@ -1532,7 +1640,7 @@ def siteDay():
         # time.sleep(61)
     except Exception, msg:
             app.logger.error('error message in siteDay(): %s, ' % msg)
-    siteMonth()
+    # siteMonth()
     return "Done"
 
 @app.route('/siteMonth')
@@ -1580,7 +1688,7 @@ def siteMonth():
     except Exception, msg:
         app.logger.error('error message in siteMonth(): %s, ' % msg)
     # time.sleep(61)
-    minuteData()
+    # minuteData()
     return "Done"
 
 def get_ping(ip):

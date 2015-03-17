@@ -6,7 +6,7 @@ from flask_mail import Mail
 from datetime import datetime
 import getpass, logging, memcache, time, json, pymongo, flask_security
 import mongoengine as dbmongo
-# from dataController import dataLayer
+# from dataController import startdata
 
 
 TYPE = ('BTS', 'CPE', 'BEAGLE', 'ROUTER')
@@ -595,5 +595,5 @@ def register_blueprints(app):
     app.register_blueprint(dataController)
 register_blueprints(app)
 
-# dataLayer()
+# startdata()
 
