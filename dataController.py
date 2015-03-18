@@ -161,7 +161,7 @@ def getData_():
             get_data()
         except Exception, msg:
             app.logger.error('error message from getData is: %s, ' % msg)
-        time.sleep(15)
+        time.sleep(5)
 
 def minuteData_():
     while True:

@@ -235,6 +235,9 @@ def chart_view():
     if (range < 35 * 60 ):
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
         only('time',"data","cap","distance").order_by('time')
+        if len(query_set)> 100:
+            query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+            only('time',"data","cap","distance").order_by('time')
     # 100 min range loads minute data - 100 mins = 1hr 40 mins
     elif (range < 100 * 60 ):
         query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
@@ -328,6 +331,9 @@ def chart_view_site():
     if (range < 35 * 60 ):
         query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
         only('time',"data","cap","distance").order_by('time')
+        if len(query_set)> 100:
+            query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, site = site ).\
+            only('time',"data","cap","distance").order_by('time')
     # 100 min range loads minute data
     elif (range < 100 * 60 ):
         query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, name = site ).\
@@ -701,6 +707,8 @@ def generate_path():
     # 25 min range loads second data - 15s x 4 x 25 = 100 pts
     if (range < 35 * 60 ):
         query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
+        if len(query_set)> 100:
+            query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site )
     # 100 min range loads minute data - 100 mins = 1hr 40 mins
     elif (range < 100 * 60 ):
         query_set = Minute.objects(time__gt = fromTime, time__lt = toTime, site = site )
@@ -787,6 +795,8 @@ def generate_path_site():
     # 25 min range loads second data - 25 x 4
     if (range < 35 * 60 ):
         query_set = Site_data.objects(time__gt = fromTime, time__lt = toTime, name = site )
+        if len(query_set)> 100:
+            query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, site = site )
     # 100 min range loads minute data
     elif (range < 100 * 60 ):
         query_set = Site_data_min.objects(time__gt = fromTime, time__lt = toTime, name = site )
