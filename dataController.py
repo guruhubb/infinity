@@ -47,7 +47,7 @@ linkCollection = db.aggr_data
 
 # DISTANCE_MAX = 40
 # DISTANCE_MIN = 10
-INTERVAL = 10
+INTERVAL = 15
 CUTOFF_CAPACITY = 2
 LOW_SNR = 5
 CUTOFF_SNR = 3
@@ -161,7 +161,7 @@ def getData_():
             get_data()
         except Exception, msg:
             app.logger.error('error message from getData is: %s, ' % msg)
-        time.sleep(1)
+        time.sleep(15)
 
 def minuteData_():
     while True:
@@ -342,142 +342,142 @@ def get_data():
     # initial_time = 0
     # while True:
     global  initial_time
-    # if ((int(time.time()) - initial_time) > INTERVAL-5):
-    initial_time = int(time.time())
-    # get data
-    # url_status = []
-    # url_device = []
-    # url_link = []
-    url_list =[]
-    # url_full_list = []
-    for object in Device.objects(active = True, type = 'CPE'):
+    if ((int(time.time()) - initial_time) > INTERVAL):
+        initial_time = int(time.time())
+        # get data
+        # url_status = []
+        # url_device = []
+        # url_link = []
+        url_list =[]
+        # url_full_list = []
+        for object in Device.objects(active = True, type = 'CPE'):
 
-        # use this for real radio - it needs https calls
-        # url_list.append('https://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
-        # url_list.append('https://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
-        # url_list.append('https://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
+            # use this for real radio - it needs https calls
+            # url_list.append('https://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
+            # url_list.append('https://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
+            # url_list.append('https://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
-        # use this for real radio - it needs https calls
-        # url_list.append('https://'+object.url+'/core/api/service/status.php?username=gigaknot&password=123')
-        # url_list.append('https://'+object.url + '/core/api/service/device-info.php?username=gigaknot&password=123')
-        # url_list.append('https://'+object.url + '/core/api/service/link-info.php?username=gigaknot&password=123')
+            # use this for real radio - it needs https calls
+            # url_list.append('https://'+object.url+'/core/api/service/status.php?username=gigaknot&password=123')
+            # url_list.append('https://'+object.url + '/core/api/service/device-info.php?username=gigaknot&password=123')
+            # url_list.append('https://'+object.url + '/core/api/service/link-info.php?username=gigaknot&password=123')
 
-        url_list.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
-        url_list.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
-        url_list.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
+            url_list.append('http://'+object.url+'/core/api/service/status.php?username=infinity&password=123')
+            url_list.append('http://'+object.url + '/core/api/service/device-info.php?username=infinity&password=123')
+            url_list.append('http://'+object.url + '/core/api/service/link-info.php?username=infinity&password=123')
 
-    doc_=[]
-    pool = eventlet.GreenPool()
-    # use multiple threads to get data from each device and parse it
-    app.logger.info('Fetching data at %s'  % str(datetime.datetime.now()))
+        doc_=[]
+        pool = eventlet.GreenPool()
+        # use multiple threads to get data from each device and parse it
+        app.logger.info('Fetching data at %s'  % str(datetime.datetime.now()))
 
-    for data in pool.imap(fetch, url_list):
-    # for url in url_list:
-    #     data = urllib2.urlopen(url).read()
-        if data:
-            doc_.append(xmltodict.parse(data))
-    app.logger.info('Fetched data at %s'  % str(datetime.datetime.now()))
+        for data in pool.imap(fetch, url_list):
+        # for url in url_list:
+        #     data = urllib2.urlopen(url).read()
+            if data:
+                doc_.append(xmltodict.parse(data))
+        app.logger.info('Fetched data at %s'  % str(datetime.datetime.now()))
 
-    for i in xrange (0,len(doc_),3):
-        try:
-            status = doc_[i]['response']['mimosaContent']['values']
-            device = doc_[i+1]['response']['mimosaContent']['values']
-            link = doc_[i+2]['response']['mimosaContent']['values']
-            for k,v in device.items():
-                if k in ['DeviceName','Location','Temperature']:
-                    if device[k]:
-                        status[k] = device[k]
-            # add only LinkName, MaxCapacity, and Distance from link-info API
-            for k,v in link.items():
-                if k in ['LinkName','MaxCapacity','Distance']:
-                    if link[k]:
-                        status[k] = link[k]
+        for i in xrange (0,len(doc_),3):
+            try:
+                status = doc_[i]['response']['mimosaContent']['values']
+                device = doc_[i+1]['response']['mimosaContent']['values']
+                link = doc_[i+2]['response']['mimosaContent']['values']
+                for k,v in device.items():
+                    if k in ['DeviceName','Location','Temperature']:
+                        if device[k]:
+                            status[k] = device[k]
+                # add only LinkName, MaxCapacity, and Distance from link-info API
+                for k,v in link.items():
+                    if k in ['LinkName','MaxCapacity','Distance']:
+                        if link[k]:
+                            status[k] = link[k]
+                        else:
+                            status[k] = 0.0
+                for k,v in status.items():
+                    if k not in ['Chains_1_2', 'Chains_3_4','Details','Rx_MCS','Location','DeviceName','LinkName']:
+                        if status[k]:
+                            status[k] = float(status[k])
+                        else: status[k] = 0.0
+                    elif k == 'Rx_MCS':
+                        if status[k]:
+                            status [k]=int(status[k])
+                        else: status[k] = 0.0
+                    elif k == 'Location':
+                        if status[k]:
+                            status [k] = tuple([float(x) for x in re.split(' -- ',status [k])])
+                        else: status[k] = (0.,0.)
                     else:
-                        status[k] = 0.0
-            for k,v in status.items():
-                if k not in ['Chains_1_2', 'Chains_3_4','Details','Rx_MCS','Location','DeviceName','LinkName']:
-                    if status[k]:
-                        status[k] = float(status[k])
-                    else: status[k] = 0.0
-                elif k == 'Rx_MCS':
-                    if status[k]:
-                        status [k]=int(status[k])
-                    else: status[k] = 0.0
-                elif k == 'Location':
-                    if status[k]:
-                        status [k] = tuple([float(x) for x in re.split(' -- ',status [k])])
-                    else: status[k] = (0.,0.)
+                        if status[k]:
+                            status[k] = status[k]
+                        else: status[k] = 0.
+                if str(status['SignalStrength']) == '-inf':
+                    status['SignalStrength'] = -100.0
+
+                # status.update(device)
+                # status.update(link)
+
+                # convert string to float, mcs/encoding to int, lat-long to geo
+                # add checks for Null data, convert Details to flat dict, remove Details
+
+                details = status['Details']['_ELEMENT']
+                for x in range(len(details)):
+                    if details[x]['Tx']:
+                        status['Tx'+str(x)] = float(details[x]['Tx'])
+                    else:
+                        status['Tx'+str(x)] = 0.0
+                    if details[x]['Rx']:
+                        status['Rx'+str(x)] = float(details[x]['Rx'])
+                    else:
+                        status['Rx'+str(x)] = 0.0
+                    if details[x]['Noise']:
+                        status['Noise'+str(x)] = float(details[x]['Noise'])
+                    else:
+                        status['Noise'+str(x)] = 0.0
+                    if details[x]['Encoding']:
+                        status['Encoding'+str(x)] = int(details[x]['Encoding'])
+                    else:
+                        status['Encoding'+str(x)] = 0.0
+
+                del status['Details']
+                # status ['Time'] = initial_time
+                # status ['Process'] = False
+                # status ['Aggregate'] = False
+
+                status_=collections.OrderedDict()
+                status_['Time']=initial_time
+                status_['Data']=status['TxRate']+status['RxRate']
+                if status['MaxCapacity'] > CUTOFF_CAPACITY:
+                    coverage = True
                 else:
-                    if status[k]:
-                        status[k] = status[k]
-                    else: status[k] = 0.
-            if str(status['SignalStrength']) == '-inf':
-                status['SignalStrength'] = -100.0
+                    coverage = False
+                status_['Coverage']=coverage
+                for k,v in status.items():
+                    status_[k]=status[k]
+                # copy subset of data table to link table
+                link_ = collections.OrderedDict()
+                link_['site'] = status['LinkName']
+                link_['time'] = initial_time
+                link_['tx'] = status['TxRate']
+                link_['rx'] = status ['RxRate']
+                link_['cap'] = status['MaxCapacity']
+                link_['data']=status_['Data']
+                link_['coverage']=status_['Coverage']
+                link_['distance']=status['Distance']
+                link_['geo']=status['Location']
 
-            # status.update(device)
-            # status.update(link)
+                app.logger.info('Data from %s at %s'  % (url_list[i],str(datetime.datetime.now())))
+                dataCollection.insert(status_)
+                linkCollection.insert(link_)
+                # i=i+3
 
-            # convert string to float, mcs/encoding to int, lat-long to geo
-            # add checks for Null data, convert Details to flat dict, remove Details
+                # status ['statusSize'] = sys.getsizeof(response_status.content)
+                # from pymongo import Connection
+                # app.logger.info('data from %s - status_ is %s and dumps is %s' % (url, status_,json.dumps(status_)))
+                # return Response(json.dumps(status),  mimetype='application/json')
 
-            details = status['Details']['_ELEMENT']
-            for x in range(len(details)):
-                if details[x]['Tx']:
-                    status['Tx'+str(x)] = float(details[x]['Tx'])
-                else:
-                    status['Tx'+str(x)] = 0.0
-                if details[x]['Rx']:
-                    status['Rx'+str(x)] = float(details[x]['Rx'])
-                else:
-                    status['Rx'+str(x)] = 0.0
-                if details[x]['Noise']:
-                    status['Noise'+str(x)] = float(details[x]['Noise'])
-                else:
-                    status['Noise'+str(x)] = 0.0
-                if details[x]['Encoding']:
-                    status['Encoding'+str(x)] = int(details[x]['Encoding'])
-                else:
-                    status['Encoding'+str(x)] = 0.0
-
-            del status['Details']
-            # status ['Time'] = initial_time
-            # status ['Process'] = False
-            # status ['Aggregate'] = False
-
-            status_=collections.OrderedDict()
-            status_['Time']=initial_time
-            status_['Data']=status['TxRate']+status['RxRate']
-            if status['MaxCapacity'] > CUTOFF_CAPACITY:
-                coverage = True
-            else:
-                coverage = False
-            status_['Coverage']=coverage
-            for k,v in status.items():
-                status_[k]=status[k]
-            # copy subset of data table to link table
-            link_ = collections.OrderedDict()
-            link_['site'] = status['LinkName']
-            link_['time'] = initial_time
-            link_['tx'] = status['TxRate']
-            link_['rx'] = status ['RxRate']
-            link_['cap'] = status['MaxCapacity']
-            link_['data']=status_['Data']
-            link_['coverage']=status_['Coverage']
-            link_['distance']=status['Distance']
-            link_['geo']=status['Location']
-
-            app.logger.info('Data from %s at %s'  % (url_list[i],str(datetime.datetime.now())))
-            dataCollection.insert(status_)
-            linkCollection.insert(link_)
-            # i=i+3
-
-            # status ['statusSize'] = sys.getsizeof(response_status.content)
-            # from pymongo import Connection
-            # app.logger.info('data from %s - status_ is %s and dumps is %s' % (url, status_,json.dumps(status_)))
-            # return Response(json.dumps(status),  mimetype='application/json')
-
-        except :
-            app.logger.info("Bad Access API")
+            except :
+                app.logger.info("Bad Access API")
         # time.sleep(1)
         site()
             # url_status = 'https://192.168.1.20:5001/core/api/service/status.php?management-id=mimosa&management-password=pass123'
