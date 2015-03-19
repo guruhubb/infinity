@@ -10,6 +10,7 @@ from infinity import app, Site, Aggr_data, Device, Data, Minute, Hour, Day, Mont
 # from collections import defaultdict
 # import numpy
 INTERVAL_INIT = 60*60
+STREAM_INTERVAL = 5*60
 MAX_POINTS = 100
 DISTANCE_STEP = 2
 DISTANCE_MAX = 10
@@ -21,8 +22,8 @@ end = NOW
 site = 'Catalina_LongBeach'
 link = 'Catalina_LongBeach'
 deviceType = 'CPE'
-streamInterval = 15000
-updateInterval = 15000
+streamInterval = 1000
+updateInterval = 10000
 # import plotly.plotly as py
 # from plotly.graph_objs import *
 # py.sign_in("saswata", "mret9csgsi")
@@ -446,7 +447,7 @@ def chart_view_init():
 @login_required
 def stream_view():
     # global start, end
-    startStream = int(time.time())-15*60  # 15 mins
+    startStream = int(time.time())-STREAM_INTERVAL
     endStream = int(time.time())
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
@@ -479,7 +480,7 @@ def stream_view():
 @login_required
 def stream_view_site():
     global start, end
-    startStream = int(time.time())-15*60  # 15 mins
+    startStream = int(time.time())-STREAM_INTERVAL
     endStream = int(time.time())
     site = flask.request.args.get('site')
     type = flask.request.args.get('type')
@@ -510,7 +511,7 @@ def stream_view_site():
 
 def stream_view_init():
     global start, end
-    startStream = int(time.time())-15*60  # 15 mins
+    startStream = int(time.time())-STREAM_INTERVAL
     endStream = int(time.time())
     # global start, end
 
