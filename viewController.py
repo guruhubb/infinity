@@ -10,7 +10,7 @@ from infinity import app, Site, Aggr_data, Device, Data, Minute, Hour, Day, Mont
 # from collections import defaultdict
 # import numpy
 INTERVAL_INIT = 60*60
-STREAM_INTERVAL = 5*60
+STREAM_INTERVAL = 1*60
 MAX_POINTS = 100
 DISTANCE_STEP = 2
 DISTANCE_MAX = 10
@@ -569,6 +569,8 @@ def get_links():
         if device.type == 'CPE':
             record = Data.objects(DeviceName = device.name, Time=timeStamp).first()
             record = Aggr_data.objects(site = record.LinkName, time = timeStamp).first()
+            site = Site.objects(deviceList__icontains = device.name).first()
+            siteRecord = Site_data.objects(name = site.name, time = timeStamp).first()
             if record:
                 btsDevice = Device.objects(connId = record.site, type = 'BTS').order_by('-time').first()
             #     btsRecord = Aggr_data.objects(site = btsDevice.site).order_by('-time').first()
@@ -579,7 +581,7 @@ def get_links():
                     response_data.append({"connId":record.site,"tx":"{:.2f}".format(record.tx),
                  "rx":"{:.2f}".format(record.rx),"cap":"{:.2f}".format(record.cap),
                  "data":"{:.2f}".format(record.data),
-                 "lat":record.geo[0], "lng":record.geo[1], "lat1":btsDevice.lat, "lng1":btsDevice.lng,
+                 "lat":siteRecord.geo[0], "lng":siteRecord.geo[1], "lat1":btsDevice.lat, "lng1":btsDevice.lng,
                  "time":record.time * 1000, "distance":"{:.2f}".format(record.distance)})
             else:
                 app.logger.error("There is NO data corresponding to cpe %s " % device.name)
