@@ -544,7 +544,7 @@ def get_devices_and_data():
         for site in Site.objects:
             # recordObjects = Site_data.objects(name=site.name).order_by('-time').limit(5)   # todo: limit # of records to 5
             record = Site_data.objects(name=site.name).order_by('-time').first()   # todo: limit # of records to 5
-
+            
             # cpeDevice = Device.objects(type = 'CPE',site = site.name).first()
             # if len(recordObjects) > 3:
                 # record = recordObjects [2]  # don't take the latest timestamp data, but a few seconds earlier

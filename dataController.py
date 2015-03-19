@@ -47,7 +47,7 @@ linkCollection = db.aggr_data
 
 # DISTANCE_MAX = 40
 # DISTANCE_MIN = 10
-INTERVAL = 1
+INTERVAL = 0.95
 CUTOFF_CAPACITY = 2
 LOW_SNR = 5
 CUTOFF_SNR = 3
@@ -161,7 +161,7 @@ def getData_():
             get_data()
         except Exception, msg:
             app.logger.error('error message from getData is: %s, ' % msg)
-        time.sleep(1)
+        # time.sleep(1)
 
 def minuteData_():
     while True:
