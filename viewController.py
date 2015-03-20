@@ -479,7 +479,7 @@ def stream_view():
 @app.route('/stream_site', methods= ['POST','GET'])
 @login_required
 def stream_view_site():
-    global start, end
+    # global start, end
     startStream = int(time.time())-STREAM_INTERVAL
     endStream = int(time.time())
     site = flask.request.args.get('site')
@@ -510,7 +510,7 @@ def stream_view_site():
     return data_dumps
 
 def stream_view_init():
-    global start, end
+    # global start, end
     startStream = int(time.time())-STREAM_INTERVAL
     endStream = int(time.time())
     # global start, end
