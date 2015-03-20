@@ -134,7 +134,7 @@ def home():
         'stream'   :stream_view_init(),
 
         'links_url':'/links',
-        'onSite'   :'false',
+        # 'onSite'   :'false',
         'site'     :site,
         'link'     :site,
         'fromTime' :start*1000,
