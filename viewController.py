@@ -22,7 +22,7 @@ end = NOW
 site = 'Catalina_LongBeach'
 link = 'Catalina_LongBeach'
 deviceType = 'CPE'
-streamInterval = 1000
+streamInterval = 5000
 updateInterval = 10000
 # import plotly.plotly as py
 # from plotly.graph_objs import *
