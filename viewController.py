@@ -22,7 +22,7 @@ end = NOW
 site = 'Catalina_LongBeach'
 link = 'Catalina_LongBeach'
 deviceType = 'CPE'
-streamInterval = 5000
+streamInterval = 1000
 updateInterval = 10000
 # import plotly.plotly as py
 # from plotly.graph_objs import *
@@ -159,30 +159,32 @@ def home():
 def lastPoint():
     lastTime = int(flask.request.args.get('lastTime'))/1000
     site = flask.request.args.get('site')
-    type = flask.request.args.get('type')
+    # type = flask.request.args.get('type')
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
-    nowtime = int(time.time())
-    start = nowtime-15*60  # 15 mins
-    if lastTime > start and lastTime != nowtime:   # if lastTime is less than 15 mins, use it for start time
-        start = lastTime
-    end = nowtime  # end time = current time
-    query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).order_by('time')\
-        .only('time',"data","cap","distance")
+    # nowtime = int(time.time())
+    # start = nowtime-15*60  # 15 mins
+    # if lastTime > start and lastTime != nowtime:   # if lastTime is less than 15 mins, use it for start time
+    #     start = lastTime
+    # end = nowtime  # end time = current time
+    # query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).order_by('time')\
+    #     .only('time',"data","cap","distance")
+    # ob = Aggr_data.objects(time__gte = lastTime, site = site ).first()
     # ob = Aggr_data.objects(site = site ).order_by("-time").first()
     # data = defaultdict(lambda :defaultdict)  # one-liner to initialize dictionary containing lists
     # data = defaultdict(list)
+    query_set = Aggr_data.objects(time__gte = lastTime, site = site ).order_by('time')
     data = {}
     data["cap"]=[]
     data["data"]=[]
     data["distance"]=[]
     for ob in query_set:
     # if ob:
-            t = ob.time*1000
-            data["cap"].append([t,float("{0:.2f}".format(ob.cap))])
-            data["data"].append([t,float("{0:.2f}".format(ob.data))])
-            data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
+        t = ob.time*1000
+        data["cap"].append([t,float("{0:.2f}".format(ob.cap))])
+        data["data"].append([t,float("{0:.2f}".format(ob.data))])
+        data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
     data_dumps = Response(json.dumps(data),  mimetype='application/json')
     return data_dumps       # if there is no data it will return zero
 
@@ -191,30 +193,33 @@ def lastPoint():
 def lastPoint_site():
     lastTime = int(flask.request.args.get('lastTime'))/1000
     site = flask.request.args.get('site')
-    type = flask.request.args.get('type')
+    # type = flask.request.args.get('type')
     # if type == 'BTS':
     #     site = Device.objects(site = site).first()
     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
-    nowtime = int(time.time())
-    start = nowtime-15*60  # 15 mins
-    if lastTime > start and lastTime != nowtime:   # if lastTime is less than 15 mins, use it for start time
-        start = lastTime
-    end = nowtime  # end time = current time
-    query_set = Site_data.objects(time__gt = start, time__lt = end, name = site ).order_by('time')\
-        .only('time',"data","cap","distance")
+    # nowtime = int(time.time())
+    # start = nowtime-15*60  # 15 mins
+    # if lastTime > start and lastTime != nowtime:   # if lastTime is less than 15 mins, use it for start time
+    #     start = lastTime
+    # end = nowtime  # end time = current time
+    # query_set = Site_data.objects(time__gt = start, time__lt = end, name = site ).order_by('time')\
+    #     .only('time',"data","cap","distance")
     # ob = Aggr_data.objects(site = site ).order_by("-time").first()
     # data = defaultdict(lambda :defaultdict)  # one-liner to initialize dictionary containing lists
     # data = defaultdict(list)
+
+    query_set = Site_data.objects(time__gte = lastTime, name = site ).order_by('time')
+
     data = {}
     data["cap"]=[]
     data["data"]=[]
     data["distance"]=[]
     for ob in query_set:
     # if ob:
-            t = ob.time*1000
-            data["cap"].append([t,float("{0:.2f}".format(ob.cap))])
-            data["data"].append([t,float("{0:.2f}".format(ob.data))])
-            data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
+        t = ob.time*1000
+        data["cap"].append([t,float("{0:.2f}".format(ob.cap))])
+        data["data"].append([t,float("{0:.2f}".format(ob.data))])
+        data["distance"].append([t,float("{0:.2f}".format(ob.distance))])
     data_dumps = Response(json.dumps(data),  mimetype='application/json')
     return data_dumps       # if there is no data it will return zero
 
