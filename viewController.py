@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, Response
+from htmlmin.minify import html_minify
 from flask.ext.security import login_required, current_user
 from flask.ext.admin import Admin
 from flask.ext.admin.contrib.mongoengine import ModelView
@@ -152,7 +153,7 @@ def home():
     # toTime = calendar.timegm(end.timetuple()) * 1000
     # ctx['fromTime']= fromTime
     # ctx['toTime']= toTime
-    return render_template('index.html',**ctx)
+    return html_minify(render_template('index.html',**ctx))
 
 @app.route('/lastpoint', methods= ['POST','GET'])
 @login_required
