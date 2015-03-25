@@ -6,9 +6,12 @@ flask-script
 WTForms==1.0.5
 flask_mongoengine
 flask-security
+flask-compress
+flask-assets
 flup
 flask-admin
 flask-bcrypt
+jsmin
 python-dateutil
 python-memcached
 pytz
