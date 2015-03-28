@@ -23,7 +23,7 @@ site = 'Catalina_LongBeach'
 link = 'Catalina_LongBeach'
 deviceType = 'CPE'
 streamInterval = 1000
-updateInterval = 10000
+updateInterval = 20000
 # import plotly.plotly as py
 # from plotly.graph_objs import *
 # py.sign_in("saswata", "mret9csgsi")
@@ -162,10 +162,13 @@ def home():
         'streamInterval':streamInterval,
         'updateInterval':updateInterval
     }
-    if current_user.has_role('Root'):
-        ctx['devices_url'] = '/devices'
-    else:
-        ctx['devices_url'] = '/devices?type=CPE'
+    # if current_user.has_role('Root'):
+    #     ctx['devices_url'] = '/devices'
+    # else:
+    #     ctx['devices_url'] = '/devices?type=CPE'
+
+    ctx['devices_url'] = '/devices'
+
     # fromTime = calendar.timegm(start.timetuple()) * 1000
     # toTime = calendar.timegm(end.timetuple()) * 1000
     # ctx['fromTime']= fromTime
@@ -861,6 +864,7 @@ def histogramSiteMonth(fromTimeStamp, toTimeStamp, site, total_records,data):
         data["distance"].append(x)
 
     return data
+
 def histogramLinkMin(fromTimeStamp, toTimeStamp, site, total_records,data):
     if total_records == 0:
         total_records=1
