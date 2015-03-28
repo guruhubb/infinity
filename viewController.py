@@ -1,5 +1,4 @@
 from flask import Blueprint, render_template, Response
-from htmlmin.minify import html_minify
 from flask.ext.security import login_required, current_user
 from flask.ext.admin import Admin
 from flask.ext.admin.contrib.mongoengine import ModelView
@@ -29,6 +28,24 @@ updateInterval = 10000
 # from plotly.graph_objs import *
 # py.sign_in("saswata", "mret9csgsi")
 
+# from htmlmin.minify import html_minify
+# from flask.ext.assets import Environment, Bundle
+# assets.register('app_css', app_css)
+# assets.register('app_js', app_js)
+# assets.register('app_js_exts', app_js_exts)
+#
+# assets = Environment(app)
+# assets.versions = 'timestamp'
+# app_js_exts = Bundle('js/jquery.colorchange.js', 'js/jquery.iframe-transport.js',
+#                    filters='jsmin', output='nadzweb.ext.min.js')
+# app_js = Bundle('js/home.js', filters='jsmin', output='home.min.js')
+# app_css = Bundle('style.css', 'jquery.tableless.css',filters='cssmin', output='nadzweb.min.css')
+#
+#
+# js = Bundle('jquery.js', 'base.js', 'widgets.js',
+#             filters='jsmin', output='gen/packed.js')
+# assets.register('js_all', js)
+# app.config['ASSETS_DEBUG'] = True
 
 # Route calls from app to viewController
 viewController = Blueprint('viewController', __name__, template_folder='templates')
@@ -153,7 +170,8 @@ def home():
     # toTime = calendar.timegm(end.timetuple()) * 1000
     # ctx['fromTime']= fromTime
     # ctx['toTime']= toTime
-    return html_minify(render_template('index.html',**ctx))
+    # return html_minify(render_template('index.html',**ctx))
+    return render_template('index.html',**ctx)
 
 @app.route('/lastpoint', methods= ['POST','GET'])
 @login_required
@@ -550,14 +568,14 @@ def get_devices_and_data():
         for site in Site.objects:
             # recordObjects = Site_data.objects(name=site.name).order_by('-time').limit(5)   # todo: limit # of records to 5
             record = Site_data.objects(name=site.name).order_by('-time').first()   # todo: limit # of records to 5
-
+            if record:
             # cpeDevice = Device.objects(type = 'CPE',site = site.name).first()
             # if len(recordObjects) > 3:
                 # record = recordObjects [2]  # don't take the latest timestamp data, but a few seconds earlier
-            response_data.append({"site":record.name,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
-                 "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
-                 # "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
-                 "lat":record.geo[0], "lng":record.geo[1], "time":record.time * 1000,"type":record.type})
+                response_data.append({"site":record.name,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
+                     "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
+                     # "coverage":record.coverage,"distance":"{:.2f}".format(record.distance),
+                     "lat":record.geo[0], "lng":record.geo[1], "time":record.time * 1000,"type":record.type})
                 # btsDevice = Device.objects(type = 'BTS',connId = cpeDevice.connId).first()
                 # response_data.append({"site":btsDevice.site,"tx":"{:.2f}".format(record.tx), "rx":"{:.2f}".format(record.rx),
                 #  "cap":"{:.2f}".format(record.cap), "data":"{:.2f}".format(record.data),
@@ -626,6 +644,37 @@ def generate_histogram_init():
     return data
 
 
+# @app.route('/histogram')
+# @login_required
+# def generate_histogram():
+#
+#     toTimeStamp = int(flask.request.args.get('toTime'))/1000
+#     fromTimeStamp = int(flask.request.args.get('fromTime'))/1000
+#     site = flask.request.args.get('site')
+#     type = flask.request.args.get('type')
+#     if fromTimeStamp == toTimeStamp:
+#         fromTimeStamp = toTimeStamp - INTERVAL_INIT
+#     # if type == 'BTS':
+#     #     site = Device.objects(site = site).first()
+#     #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
+#     data = {}
+#     data["avg_cap"]=[]
+#     data["records"]=[]
+#     data["distance"]=[]
+#
+#     total_records = len(Minute.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+#     if total_records == 0:
+#         total_records=1
+#     step=DISTANCE_STEP
+#     for x in range(step,DISTANCE_MAX,step):
+#         data["records"].append( len( Minute.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+#                                      site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
+#         data["avg_cap"].append(float("{0:.2f}".format(Minute.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
+#                                      , distance__lt = x, distance__gte = x-step).average('cap'))))
+#         data["distance"].append(x)
+
+    # data_dumps= Response(json.dumps(data),  mimetype='application/json')
+    # return data_dumps
 @app.route('/histogram')
 @login_required
 def generate_histogram():
@@ -633,27 +682,51 @@ def generate_histogram():
     toTimeStamp = int(flask.request.args.get('toTime'))/1000
     fromTimeStamp = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
-    type = flask.request.args.get('type')
     if fromTimeStamp == toTimeStamp:
         fromTimeStamp = toTimeStamp - INTERVAL_INIT
-    # if type == 'BTS':
-    #     site = Device.objects(site = site).first()
-    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
     data = {}
     data["avg_cap"]=[]
     data["records"]=[]
     data["distance"]=[]
+    range = toTimeStamp - fromTimeStamp
+    if (range < 24 * 3600 ):
+        total_records = len(Minute.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+        histogramLinkMin(fromTimeStamp,toTimeStamp,site,total_records,data)
 
-    total_records = len(Minute.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
-    if total_records == 0:
-        total_records=1
-    step=DISTANCE_STEP
-    for x in range(step,DISTANCE_MAX,step):
-        data["records"].append( len( Minute.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
-                                     site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
-        data["avg_cap"].append(float("{0:.2f}".format(Minute.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
-                                     , distance__lt = x, distance__gte = x-step).average('cap'))))
-        data["distance"].append(x)
+    elif (range < 30 * 24 * 3600 ):
+        total_records = len(Hour.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+        if total_records < 12:
+            total_records = len(Minute.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+            histogramLinkMin(fromTimeStamp,toTimeStamp,site,total_records,data)
+        else :
+            histogramLinkHour(fromTimeStamp,toTimeStamp,site,total_records,data)
+
+    elif (range < 365 * 24 * 3600 ):
+        total_records = len(Day.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+        if total_records < 12:
+            total_records = len(Hour.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+            if total_records < 12:
+                total_records = len(Minute.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+                histogramLinkMin(fromTimeStamp,toTimeStamp,site,total_records,data)
+            else :
+                histogramLinkHour(fromTimeStamp,toTimeStamp,site,total_records,data)
+        else :
+            histogramLinkDay(fromTimeStamp,toTimeStamp,site,total_records,data)
+    else:
+        total_records = len(Month.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+        if total_records < 12:
+            total_records = len(Day.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+            if total_records < 12:
+                total_records = len(Hour.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+                if total_records < 12:
+                    total_records = len(Minute.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site ))
+                    histogramLinkMin(fromTimeStamp,toTimeStamp,site,total_records,data)
+                else :
+                    histogramLinkHour(fromTimeStamp,toTimeStamp,site,total_records,data)
+            else :
+                histogramLinkDay(fromTimeStamp,toTimeStamp,site,total_records,data)
+        else :
+            histogramLinkMonth(fromTimeStamp,toTimeStamp,site,total_records,data)
 
     data_dumps= Response(json.dumps(data),  mimetype='application/json')
     return data_dumps
@@ -665,7 +738,7 @@ def generate_histogram_site():
     toTimeStamp = int(flask.request.args.get('toTime'))/1000
     fromTimeStamp = int(flask.request.args.get('fromTime'))/1000
     site = flask.request.args.get('site')
-    type = flask.request.args.get('type')
+    # type = flask.request.args.get('type')
     if fromTimeStamp == toTimeStamp:
         fromTimeStamp = toTimeStamp - INTERVAL_INIT
     # if type == 'BTS':
@@ -675,25 +748,170 @@ def generate_histogram_site():
     data["avg_cap"]=[]
     data["records"]=[]
     data["distance"]=[]
+    range = toTimeStamp - fromTimeStamp
+    if (range < 24 * 3600 ):
+        total_records = len(Site_data_min.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+        histogramSiteMin(fromTimeStamp,toTimeStamp,site,total_records,data)
 
-    total_records = len(Site_data_min.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+    elif (range < 30 * 24 * 3600 ):
+        total_records = len(Site_data_hour.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+        if total_records < 12:
+            total_records = len(Site_data_min.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+            histogramSiteMin(fromTimeStamp,toTimeStamp,site,total_records,data)
+        else :
+            histogramSiteHour(fromTimeStamp,toTimeStamp,site,total_records,data)
+
+    elif (range < 365 * 24 * 3600 ):
+        total_records = len(Site_data_day.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+        if total_records < 12:
+            total_records = len(Site_data_hour.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+            if total_records < 12:
+                total_records = len(Site_data_min.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+                histogramSiteMin(fromTimeStamp,toTimeStamp,site,total_records,data)
+            else :
+                histogramSiteHour(fromTimeStamp,toTimeStamp,site,total_records,data)
+        else :
+            histogramSiteDay(fromTimeStamp,toTimeStamp,site,total_records,data)
+    else:
+        total_records = len(Site_data_month.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+        if total_records < 12:
+            total_records = len(Site_data_day.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+            if total_records < 12:
+                total_records = len(Site_data_hour.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+                if total_records < 12:
+                    total_records = len(Site_data_min.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+                    histogramSiteMin(fromTimeStamp,toTimeStamp,site,total_records,data)
+                else :
+                    histogramSiteHour(fromTimeStamp,toTimeStamp,site,total_records,data)
+            else :
+                histogramSiteDay(fromTimeStamp,toTimeStamp,site,total_records,data)
+        else :
+            histogramSiteMonth(fromTimeStamp,toTimeStamp,site,total_records,data)
+
+    # total_records = len(Site_data_min.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site ))
+    # doc = Site_data_min()
+    # histSiteMin(fromTimeStamp,toTimeStamp,site,total_records,data,doc)
+
+    # if total_records == 0:
+    #     total_records=1
+    # step=DISTANCE_STEP
+    # for x in range(step,DISTANCE_MAX,step):
+    #     # data["records"].append( len( Site_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+    #     #                              name = site , cap__lt = x, cap__gte = x-step) )*100/total_records )
+    #     # # data["avg_cap"].append(float("{0:.2f}".format(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
+    #     # #                              , distance__lt = x, distance__gte = x-step).average('cap'))))
+    #     # data["avg_cap"].append(x)
+    #     data["records"].append( len( Site_data_min.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+    #                                  name = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
+    #     data["avg_cap"].append(float("{0:.2f}".format(Site_data_min.objects(time__gt = fromTimeStamp,
+    #                     time__lt = toTimeStamp,name = site, distance__lt = x, distance__gte = x-step).average('cap'))))
+    #     data["distance"].append(x)
+    #
+    data_dumps= Response(json.dumps(data),  mimetype='application/json')
+    return data_dumps
+
+def histogramSiteMin(fromTimeStamp, toTimeStamp, site, total_records,data):
     if total_records == 0:
         total_records=1
     step=DISTANCE_STEP
     for x in range(step,DISTANCE_MAX,step):
-        # data["records"].append( len( Site_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
-        #                              name = site , cap__lt = x, cap__gte = x-step) )*100/total_records )
-        # # data["avg_cap"].append(float("{0:.2f}".format(Aggr_data.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, site = site
-        # #                              , distance__lt = x, distance__gte = x-step).average('cap'))))
-        # data["avg_cap"].append(x)
         data["records"].append( len( Site_data_min.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
                                      name = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
-        data["avg_cap"].append(float("{0:.2f}".format(Site_data_min.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp, name = site
-                                     , distance__lt = x, distance__gte = x-step).average('cap'))))
+        data["avg_cap"].append(float("{0:.2f}".format(Site_data_min.objects(time__gt = fromTimeStamp,
+                        time__lt = toTimeStamp,name = site, distance__lt = x, distance__gte = x-step).average('cap'))))
         data["distance"].append(x)
 
-    data_dumps= Response(json.dumps(data),  mimetype='application/json')
-    return data_dumps
+    return data
+
+def histogramSiteHour(fromTimeStamp, toTimeStamp, site, total_records,data):
+    if total_records == 0:
+        total_records=1
+    step=DISTANCE_STEP
+    for x in range(step,DISTANCE_MAX,step):
+        data["records"].append( len( Site_data_hour.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+                                     name = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
+        data["avg_cap"].append(float("{0:.2f}".format(Site_data_hour.objects(time__gt = fromTimeStamp,
+                        time__lt = toTimeStamp,name = site, distance__lt = x, distance__gte = x-step).average('cap'))))
+        data["distance"].append(x)
+
+    return data
+
+def histogramSiteDay(fromTimeStamp, toTimeStamp, site, total_records,data):
+    if total_records == 0:
+        total_records=1
+    step=DISTANCE_STEP
+    for x in range(step,DISTANCE_MAX,step):
+        data["records"].append( len( Site_data_day.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+                                     name = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
+        data["avg_cap"].append(float("{0:.2f}".format(Site_data_day.objects(time__gt = fromTimeStamp,
+                        time__lt = toTimeStamp,name = site, distance__lt = x, distance__gte = x-step).average('cap'))))
+        data["distance"].append(x)
+
+    return data
+
+def histogramSiteMonth(fromTimeStamp, toTimeStamp, site, total_records,data):
+    if total_records == 0:
+        total_records=1
+    step=DISTANCE_STEP
+    for x in range(step,DISTANCE_MAX,step):
+        data["records"].append( len( Site_data_month.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+                                     name = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
+        data["avg_cap"].append(float("{0:.2f}".format(Site_data_month.objects(time__gt = fromTimeStamp,
+                        time__lt = toTimeStamp,name = site, distance__lt = x, distance__gte = x-step).average('cap'))))
+        data["distance"].append(x)
+
+    return data
+def histogramLinkMin(fromTimeStamp, toTimeStamp, site, total_records,data):
+    if total_records == 0:
+        total_records=1
+    step=DISTANCE_STEP
+    for x in range(step,DISTANCE_MAX,step):
+        data["records"].append( len( Minute.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+                                     site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
+        data["avg_cap"].append(float("{0:.2f}".format(Minute.objects(time__gt = fromTimeStamp,
+                        time__lt = toTimeStamp,site = site, distance__lt = x, distance__gte = x-step).average('cap'))))
+        data["distance"].append(x)
+
+    return data
+
+def histogramLinkHour(fromTimeStamp, toTimeStamp, site, total_records,data):
+    if total_records == 0:
+        total_records=1
+    step=DISTANCE_STEP
+    for x in range(step,DISTANCE_MAX,step):
+        data["records"].append( len( Hour.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+                                     site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
+        data["avg_cap"].append(float("{0:.2f}".format(Hour.objects(time__gt = fromTimeStamp,
+                        time__lt = toTimeStamp,site = site, distance__lt = x, distance__gte = x-step).average('cap'))))
+        data["distance"].append(x)
+
+    return data
+
+def histogramLinkDay(fromTimeStamp, toTimeStamp, site, total_records,data):
+    if total_records == 0:
+        total_records=1
+    step=DISTANCE_STEP
+    for x in range(step,DISTANCE_MAX,step):
+        data["records"].append( len( Day.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+                                     site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
+        data["avg_cap"].append(float("{0:.2f}".format(Day.objects(time__gt = fromTimeStamp,
+                        time__lt = toTimeStamp,site = site, distance__lt = x, distance__gte = x-step).average('cap'))))
+        data["distance"].append(x)
+
+    return data
+
+def histogramLinkMonth(fromTimeStamp, toTimeStamp, site, total_records,data):
+    if total_records == 0:
+        total_records=1
+    step=DISTANCE_STEP
+    for x in range(step,DISTANCE_MAX,step):
+        data["records"].append( len( Month.objects(time__gt = fromTimeStamp, time__lt = toTimeStamp,
+                                     site = site , distance__lt = x, distance__gte = x-step) )*100/total_records )
+        data["avg_cap"].append(float("{0:.2f}".format(Month.objects(time__gt = fromTimeStamp,
+                        time__lt = toTimeStamp,site = site, distance__lt = x, distance__gte = x-step).average('cap'))))
+        data["distance"].append(x)
+
+    return data
 
 @app.route('/path')
 @login_required

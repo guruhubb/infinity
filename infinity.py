@@ -7,7 +7,7 @@ from datetime import datetime
 import getpass, logging, memcache, time, json, pymongo, flask_security
 import mongoengine as dbmongo
 # from dataController import startdata
-
+from flask import got_request_exception
 
 TYPE = ('BTS', 'CPE', 'BEAGLE', 'ROUTER')
 session = FuturesSession(max_workers=10)
@@ -103,7 +103,7 @@ app.logger.addHandler(file_handler)
 def log_exception(sender, exception, **extra):
     sender.logger.debug('Got exception during processing: %s', exception)
 
-from flask import got_request_exception
+
 got_request_exception.connect(log_exception, app)
 
 class Audit(db.Document):
@@ -112,7 +112,7 @@ class Audit(db.Document):
     description = db.StringField(max_length=255)
 
     def __unicode__(self):
-        return self.name
+        return self.user
 
 def audit(modelClass):
     dbmongo.signals.post_save.connect(recordChanged, sender=modelClass)
