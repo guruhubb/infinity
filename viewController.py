@@ -6,6 +6,12 @@ import infinity
 import flask, time, subprocess, json,calendar
 from infinity import app, Site, Aggr_data, Device, Data, Minute, Hour, Day, Month, Site_data,Site_data_min, \
     Site_data_hour, Site_data_day, Site_data_month
+from wtforms.fields import TextField
+
+class ReadonlyTextField(TextField):
+  def __call__(self, *args, **kwargs):
+    kwargs.setdefault('readonly', True)
+    return super(ReadonlyTextField, self).__call__(*args, **kwargs)
 # from monary import Monary
 # from collections import defaultdict
 # import numpy
@@ -53,15 +59,33 @@ viewController = Blueprint('viewController', __name__, template_folder='template
 #Create Custom Admin views
 
 class UserView(ModelView):
-    column_filters = ['name']
-    column_searchable_list = ['name']
-    column_exclude_list = ('password')
-    form_excluded_columns = ('password')
+    # column_filters = ['name']
+    # column_searchable_list = ['name']
+    # column_exclude_list = ('password')
+    # form_excluded_columns = ('password')
     # form_ajax_refs = {
     #     'roles': {
     #         'fields': ['name']
     #     }
     # }
+    # form_widget_args = {
+    #     'name':{
+    #         'disabled':True
+    #     },
+    #     'email':{
+    #         'disabled':True
+    #     },
+    #     'active':{
+    #         'disabled':True
+    #     },
+    #     'confirmed_at':{
+    #         'disabled':True
+    #     },
+    #     'roles':{
+    #         'disabled':True
+    #     }
+    # }
+
     def is_accessible(self):
         return current_user.is_authenticated() and current_user.has_role('Root')
 
@@ -80,6 +104,73 @@ class RoleView(ModelView):
     def is_accessible(self):
         return current_user.is_authenticated() and current_user.has_role('Root')
 
+class Aggr_dataView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated() and current_user.has_role('Root')
+class MinuteView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated() and current_user.has_role('Root')
+class HourView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated() and current_user.has_role('Root')
+class DayView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated() and current_user.has_role('Root')
+class MonthView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated() and current_user.has_role('Root')
+class Site_data_minView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated() and current_user.has_role('Root')
+class Site_data_hourView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated() and current_user.has_role('Root')
+class Site_data_dayView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated() and current_user.has_role('Root')
+class Site_data_monthView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated() and current_user.has_role('Root')
+class AuditView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated() and current_user.has_role('Root')
+class CompanyView(ModelView):
+    column_exclude_list = ('users')
+    form_excluded_columns = ('users')
+class DeviceView(ModelView):
+    # if current_user.has_role('Root'):
+    form_widget_args = {
+        'name':{
+            'disabled':True
+        },
+        'url':{
+            'disabled':True
+        },
+        'type':{
+            'disabled':True
+        },
+        'site':{
+            'disabled':True
+        },
+        'connId':{
+            'disabled':True
+        }
+    }
+    def is_accessible(self):
+        return current_user.is_authenticated()
+
+class SiteView(ModelView):
+    # if current_user.has_role('Root'):
+    form_widget_args = {
+        'name':{
+            'disabled':True
+        },
+        'deviceList':{
+            'disabled':True
+        }
+    }
+    def is_accessible(self):
+        return current_user.is_authenticated()
 # Add Admin Views
 def adminViews(app):
     # Create admin
@@ -89,31 +180,37 @@ def adminViews(app):
         # Add admin views
     admin.add_view(UserView(infinity.User))
     admin.add_view(RoleView(infinity.Role))
-    admin.add_view(ModelView(infinity.Company))
+    admin.add_view(CompanyView(infinity.Company))
+
     admin.add_view(ModelView(infinity.Tag))
-    admin.add_view(ModelView(infinity.Device))
-    admin.add_view(ModelView(infinity.Site))
+    admin.add_view(DeviceView(infinity.Device))
+    admin.add_view(SiteView(infinity.Site))
+
     admin.add_view(ModelView(infinity.Data))
-    admin.add_view(ModelView(infinity.Aggr_data))
-    admin.add_view(ModelView(infinity.Minute))
-    admin.add_view(ModelView(infinity.Hour))
-    admin.add_view(ModelView(infinity.Day))
-    admin.add_view(ModelView(infinity.Month))
     admin.add_view(ModelView(infinity.Site_data))
-    admin.add_view(ModelView(infinity.Site_data_min))
-    admin.add_view(ModelView(infinity.Site_data_hour))
-    admin.add_view(ModelView(infinity.Site_data_day))
-    admin.add_view(ModelView(infinity.Site_data_month))
+    
+    admin.add_view(Aggr_dataView(infinity.Aggr_data))
+    admin.add_view(MinuteView(infinity.Minute))
+    admin.add_view(HourView(infinity.Hour))
+    admin.add_view(DayView(infinity.Day))
+    admin.add_view(MonthView(infinity.Month))
+    admin.add_view(Site_data_minView(infinity.Site_data_min))
+    admin.add_view(Site_data_hourView(infinity.Site_data_hour))
+    admin.add_view(Site_data_dayView(infinity.Site_data_day))
+    admin.add_view(Site_data_monthView(infinity.Site_data_month))
+
     # admin.add_view(ModelView(infinity.Config))
     # admin.add_view(ModelView(infinity.Firmware))
     # admin.add_view(ModelView(infinity.Freq))
     # admin.add_view(ModelView(infinity.Power))
     # admin.add_view(ModelView(infinity.Ssid))
     # admin.add_view(ModelView(infinity.Job))
+
     admin.add_view(ModelView(infinity.Beagle))
     admin.add_view(ModelView(infinity.Router))
     admin.add_view(ModelView(infinity.Event))
-    admin.add_view(ModelView(infinity.Audit))
+    admin.add_view(AuditView(infinity.Audit))
+
 
 # Setup Admin Views
 # @login_required  # if not logged in, login.html will be the default page
@@ -121,6 +218,12 @@ adminViews(app)
 
 
 # Route main page
+
+
+class ReadonlyTextField(TextField):
+  def __call__(self, *args, **kwargs):
+    kwargs.setdefault('readonly', True)
+    return super(ReadonlyTextField, self).__call__(*args, **kwargs)
 
 @app.route('/')
 @login_required  # if not logged in, login.html will be the default page
