@@ -46,7 +46,7 @@ app.config['MAIL_PORT'] = 465
 app.config['MAIL_USE_SSL'] = True
 app.config['MAIL_USERNAME'] = 'infinitynms@gmail.com'
 app.config['MAIL_PASSWORD'] = 'infinity1234'
-
+# app.config['HTML_MINIFY'] = True
 
 # Create mail connection object
 mail = Mail(app)

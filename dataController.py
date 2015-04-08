@@ -1691,6 +1691,22 @@ def siteMonth():
     # minuteData()
     return "Done"
 
+@app.route('/deleteOld')
+def deleteOld():
+    try:
+        now = time.time()
+        oldTime = now - 15*24*60*60
+        oldTimeMinute = now - 365*24*60*60
+        Data.objects(Time__lte = oldTime).delete()
+        Aggr_data.objects(time__lte = oldTime).delete()
+        Site_data.objects(time__lte = oldTime).delete()
+        Minute.objects(time__lte = oldTimeMinute).delete()
+        Site_data_min.objects(time__lte = oldTimeMinute).delete()
+    except Exception, msg:
+            app.logger.error('error message in deleteOld(): %s, ' % msg)
+
+    return "Done"
+
 def get_ping(ip):
     result = [line.rpartition('=')[-1] for line in subprocess.check_output(['ping', '-c', '2', ip]).splitlines()[1:-4]]
     resultWithNoString = [findNumber(result[0]),findNumber(result[1])]

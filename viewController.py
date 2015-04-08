@@ -188,7 +188,7 @@ def adminViews(app):
 
     admin.add_view(ModelView(infinity.Data))
     admin.add_view(ModelView(infinity.Site_data))
-    
+
     admin.add_view(Aggr_dataView(infinity.Aggr_data))
     admin.add_view(MinuteView(infinity.Minute))
     admin.add_view(HourView(infinity.Hour))
