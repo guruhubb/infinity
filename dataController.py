@@ -1695,7 +1695,7 @@ def siteMonth():
 def deleteOld():
     try:
         now = time.time()
-        oldTime = now - 15*24*60*60
+        oldTime = now - 7*24*60*60
         oldTimeMinute = now - 365*24*60*60
         Data.objects(Time__lte = oldTime).delete()
         Aggr_data.objects(time__lte = oldTime).delete()
