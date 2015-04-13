@@ -7,6 +7,22 @@ import flask, time, subprocess, json,calendar
 from infinity import app, Site, Aggr_data, Device, Data, Minute, Hour, Day, Month, Site_data,Site_data_min, \
     Site_data_hour, Site_data_day, Site_data_month
 from wtforms.fields import TextField
+# from flask import Flask
+from htmlmin.main import minify
+from htmlmin.minify import html_minify
+
+
+# @app.after_request
+def response_minify(response):
+    """
+    minify html response to decrease site traffic
+    """
+    if response.content_type == u'text/html; charset=utf-8':
+        response.set_data(
+            minify(response.get_data(as_text=True))
+        )
+        return response
+    return response
 
 class ReadonlyTextField(TextField):
   def __call__(self, *args, **kwargs):
@@ -52,6 +68,28 @@ updateInterval = 20000
 #             filters='jsmin', output='gen/packed.js')
 # assets.register('js_all', js)
 # app.config['ASSETS_DEBUG'] = True
+
+from flask.ext.assets import Environment, Bundle
+assets = Environment(app)
+
+# css_all = Bundle(
+#     'agency.css','base.css','bootstrap.css','jquery.datetimepicker.css',
+#     'login.css',
+#     filters='cssmin',
+#     output='gen/min.css',
+# )
+
+# js_all = Bundle(
+#     'infinity.js',
+#     filters='uglify',
+#
+#     # filters='jsmin',
+#     output='gen/min.js',
+# )
+
+# These assets get passed templates to be rendered
+# assets.register('css_all', css_all)
+# assets.register('js_all', js_all)
 
 # Route calls from app to viewController
 viewController = Blueprint('viewController', __name__, template_folder='templates')
@@ -276,8 +314,8 @@ def home():
     # toTime = calendar.timegm(end.timetuple()) * 1000
     # ctx['fromTime']= fromTime
     # ctx['toTime']= toTime
-    # return html_minify(render_template('index.html',**ctx))
-    return render_template('index.html',**ctx)
+    return html_minify(render_template('index.html',**ctx))
+    # return render_template('index.html',**ctx)
 
 @app.route('/lastpoint', methods= ['POST','GET'])
 @login_required
@@ -698,10 +736,12 @@ def get_links():
     for device in Device.objects:
         if device.type == 'CPE':
             record = Data.objects(DeviceName = device.name, Time=timeStamp).first()
-            record = Aggr_data.objects(site = record.LinkName, time = timeStamp).first()
-            site = Site.objects(deviceList__icontains = device.name).first()
-            siteRecord = Site_data.objects(name = site.name, time = timeStamp).first()
             if record:
+                record = Aggr_data.objects(site = record.LinkName, time = timeStamp).first()
+            site = Site.objects(deviceList__icontains = device.name).first()
+            if site:
+                siteRecord = Site_data.objects(name = site.name, time = timeStamp).first()
+            if record and siteRecord:
                 btsDevice = Device.objects(connId = record.site, type = 'BTS').order_by('-time').first()
             #     btsRecord = Aggr_data.objects(site = btsDevice.site).order_by('-time').first()
             #     # distance = distance_in_miles(record.geo,btsRecord.geo)

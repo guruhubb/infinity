@@ -10,6 +10,8 @@ from math import radians, cos, sin, asin, sqrt
 import eventlet
 import multiprocessing
 from threading import Thread
+from flask import json
+from flask import request
 import threading
 from eventlet.green import urllib2
 # from bson import Code
@@ -1707,6 +1709,9 @@ def deleteOld():
 
     return "Done"
 
+@app.route('/deviceData', methods = ['POST'])
+def deviceData():
+    return "JSON Message: " + json.dumps(request.json)
 def get_ping(ip):
     result = [line.rpartition('=')[-1] for line in subprocess.check_output(['ping', '-c', '2', ip]).splitlines()[1:-4]]
     resultWithNoString = [findNumber(result[0]),findNumber(result[1])]
