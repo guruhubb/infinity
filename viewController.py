@@ -13,16 +13,16 @@ from htmlmin.minify import html_minify
 
 
 # @app.after_request
-def response_minify(response):
-    """
-    minify html response to decrease site traffic
-    """
-    if response.content_type == u'text/html; charset=utf-8':
-        response.set_data(
-            minify(response.get_data(as_text=True))
-        )
-        return response
-    return response
+# def response_minify(response):
+#     """
+#     minify html response to decrease site traffic
+#     """
+#     if response.content_type == u'text/html; charset=utf-8':
+#         response.set_data(
+#             minify(response.get_data(as_text=True))
+#         )
+#         return response
+#     return response
 
 class ReadonlyTextField(TextField):
   def __call__(self, *args, **kwargs):
