@@ -11,7 +11,7 @@ from flask import got_request_exception
 
 TYPE = ('BTS', 'CPE', 'BEAGLE', 'ROUTER')
 session = FuturesSession(max_workers=10)
-dbpy = pymongo.MongoClient().infinity
+# dbpy = pymongo.MongoClient().infinity
 headers = {'Content-Type': 'application/json'}
 
 def bg_cb(sess, resp):
