@@ -8,7 +8,7 @@ from infinity import app, Site, Aggr_data, Device, Data, Minute, Hour, Day, Mont
     Site_data_hour, Site_data_day, Site_data_month
 from wtforms.fields import TextField
 # from flask import Flask
-from htmlmin.main import minify
+# from htmlmin.main import minify
 from htmlmin.minify import html_minify
 
 
