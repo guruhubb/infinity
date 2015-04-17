@@ -229,6 +229,13 @@ def siteMonthData_():
             app.logger.error('error message from monthData is: %s, ' % msg)
         time.sleep(60*60*24*15)
 
+def deleteOld_():
+    while True:
+        try:
+            deleteOld()
+        except Exception, msg:
+            app.logger.error('error message from deleteOld is: %s, ' % msg)
+        time.sleep(60*60*24)
 
 # def hourData_(self):
 #     try:
@@ -286,6 +293,7 @@ def startdata():
     t7 = Thread(target = siteHourData_)
     t8 = Thread(target = siteDayData_)
     t9 = Thread(target = siteMonthData_)
+    t10 = Thread(target = deleteOld_)
     t1.setDaemon(True)
     t2.setDaemon(True)
     t3.setDaemon(True)
@@ -295,6 +303,7 @@ def startdata():
     t7.setDaemon(True)
     t8.setDaemon(True)
     t9.setDaemon(True)
+    t10.setDaemon(True)
     t1.start()
     t2.start()
     t3.start()
@@ -304,6 +313,7 @@ def startdata():
     t7.start()
     t8.start()
     t9.start()
+    t10.start()
     # while True:
     #     pass
             # getData_()      # get data from all 'CPE' devices and then from all 'sites'
