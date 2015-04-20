@@ -14,6 +14,7 @@ from flask import json
 from flask import request
 import threading
 from eventlet.green import urllib2
+import requests
 # from bson import Code
 # from multiprocessing import Pool
 # from collections import defaultdict
@@ -1709,19 +1710,44 @@ def deleteOld():
         now = time.time()
         oldTime = now - 7*24*60*60
         oldTimeMinute = now - 365*24*60*60
+        a = Data.objects.count()
+        app.logger.info('Data, Aggr_data, Site_data, Minute, Site_data_min counts BEFORE are %s, %s, %s, %s, %s'
+                        % (Data.objects.count(), Aggr_data.objects.count(), Site_data.objects.count(),
+                        Minute.objects.count(), Site_data_min.objects.count()))
         Data.objects(Time__lte = oldTime).delete()
         Aggr_data.objects(time__lte = oldTime).delete()
         Site_data.objects(time__lte = oldTime).delete()
         Minute.objects(time__lte = oldTimeMinute).delete()
         Site_data_min.objects(time__lte = oldTimeMinute).delete()
+        app.logger.info('executed deleteOld()')
+        app.logger.info('Data, Aggr_data, Site_data, Minute, Site_data_min counts AFTER are %s, %s, %s, %s, %s'
+                        % (Data.objects.count(), Aggr_data.objects.count(), Site_data.objects.count(),
+                        Minute.objects.count(), Site_data_min.objects.count()))
+
     except Exception, msg:
             app.logger.error('error message in deleteOld(): %s, ' % msg)
 
     return "Done"
 
-@app.route('/deviceData', methods = ['POST'])
+@app.route('/deviceData', methods = ['GET','POST'])
 def deviceData():
-    return "JSON Message: " + json.dumps(request.json)
+    # try:
+    a = request.data
+    b = request.get_data(parse_form_data=True)
+    c = request.get_data()
+    d = request.values
+    e = request.args
+    f = request.host_url
+    g = request.host
+    data_dumps = Response(json.dumps(json.loads(a)),  mimetype='application/json')
+    return a
+    # return json.dumps({'request data': request.data})
+    #     # a = "JSON Message: " + json.dumps(request.json)
+    #     # print a
+    # except Exception, msg:
+    #         app.logger.error('error message in deviceData(): %s, ' % msg)
+
+    # return a
 def get_ping(ip):
     result = [line.rpartition('=')[-1] for line in subprocess.check_output(['ping', '-c', '2', ip]).splitlines()[1:-4]]
     resultWithNoString = [findNumber(result[0]),findNumber(result[1])]
