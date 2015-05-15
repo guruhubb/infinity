@@ -294,7 +294,7 @@ def startdata():
     t7 = Thread(target = siteHourData_)
     t8 = Thread(target = siteDayData_)
     t9 = Thread(target = siteMonthData_)
-    # t10 = Thread(target = deleteOld_)
+    t10 = Thread(target = deleteOld_)
     t1.setDaemon(True)
     t2.setDaemon(True)
     t3.setDaemon(True)
@@ -304,7 +304,7 @@ def startdata():
     t7.setDaemon(True)
     t8.setDaemon(True)
     t9.setDaemon(True)
-    # t10.setDaemon(True)
+    t10.setDaemon(True)
     t1.start()
     t2.start()
     t3.start()
@@ -314,7 +314,7 @@ def startdata():
     t7.start()
     t8.start()
     t9.start()
-    # t10.start()
+    t10.start()
     # while True:
     #     pass
             # getData_()      # get data from all 'CPE' devices and then from all 'sites'
@@ -1733,13 +1733,13 @@ def deleteOld():
 def deviceData():
     # try:
     a = request.data
-    b = request.get_data(parse_form_data=True)
-    c = request.get_data()
-    d = request.values
-    e = request.args
-    f = request.host_url
-    g = request.host
-    data_dumps = Response(json.dumps(json.loads(a)),  mimetype='application/json')
+    # b = request.get_data(parse_form_data=True)
+    # c = request.get_data()
+    # d = request.values
+    # e = request.args
+    # f = request.host_url
+    # g = request.host
+    # data_dumps = Response(json.dumps(json.loads(a)),  mimetype='application/json')
     return a
     # return json.dumps({'request data': request.data})
     #     # a = "JSON Message: " + json.dumps(request.json)
