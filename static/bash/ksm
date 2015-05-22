@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+pkill -f /Users/saswata_basu/code/gigaknot/nms/connect/connect.py

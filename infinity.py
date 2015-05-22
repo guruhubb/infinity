@@ -6,6 +6,7 @@ from flask_mail import Mail
 from datetime import datetime
 import getpass,logging, memcache, time, json, pymongo, flask_security
 import mongoengine as dbmongo
+# import dataController
 # from dataController import startdata
 from flask import got_request_exception
 
@@ -308,48 +309,73 @@ class Device(db.Document):
 # Device.objects(name="BTS04").update(set__geo=[33.680001, -117.723440])
 # Device.objects(name="BTS05").update(set__geo=[33.659000, -117.967886])
 
+# class Data0(db.Document):
+#     Time = db.IntField(default=int(time.time()))
+#     SignalStrength = db.FloatField()
+#     TxRate = db.FloatField()
+#     RxRate = db.FloatField()
+#     Noise = db.FloatField()
+#     Chains_1_2 = db.StringField()
+#     Chains_3_4 = db.StringField()
+#     Tx_Power = db.FloatField()
+#     Tx_Phys_Rate = db.FloatField()
+#     Rx_Phys_Rate = db.FloatField()
+#     Rx_MCS = db.IntField()
+#     DeviceName = db.StringField()
+#     Location = db.GeoPointField()
+#     Temperature = db.FloatField()
+#     LinkName = db.StringField()
+#     MaxCapacity = db.FloatField()
+#     Data = db.FloatField()
+#     Coverage = db.BooleanField(default=True)
+#     # total_cap = db.FloatField()
+#     Distance = db.FloatField()
+#     # freqList = db.StringField()
+#     # ssidList = db.StringField()
+#     Tx0 = db.FloatField()
+#     Rx0 = db.FloatField()
+#     Noise0 = db.FloatField()
+#     Encoding0 = db.IntField()
+#     Tx1 = db.FloatField()
+#     Rx1 = db.FloatField()
+#     Noise1 = db.FloatField()
+#     Encoding1 = db.IntField()
+#     Tx2 = db.FloatField()
+#     Rx2 = db.FloatField()
+#     Noise2 = db.FloatField()
+#     Encoding2 = db.IntField()
+#     Tx3 = db.FloatField()
+#     Rx3 = db.FloatField()
+#     Noise3 = db.FloatField()
+#     Encoding3 = db.IntField()
+#     # Process = db.BooleanField(default=False)
+#     # Aggregate = db.BooleanField(default=False)
+#     meta = {'indexes': ['Location', 'LinkName','DeviceName','Time','Distance']}
+
+
 class Data(db.Document):
-    Time = db.IntField(default=int(time.time()))
-    SignalStrength = db.FloatField()
-    TxRate = db.FloatField()
-    RxRate = db.FloatField()
-    Noise = db.FloatField()
-    Chains_1_2 = db.StringField()
-    Chains_3_4 = db.StringField()
-    Tx_Power = db.FloatField()
-    Tx_Phys_Rate = db.FloatField()
-    Rx_Phys_Rate = db.FloatField()
-    Rx_MCS = db.IntField()
-    DeviceName = db.StringField()
-    Location = db.GeoPointField()
-    Temperature = db.FloatField()
-    LinkName = db.StringField()
-    MaxCapacity = db.FloatField()
-    Data = db.FloatField()
-    Coverage = db.BooleanField(default=True)
-    # total_cap = db.FloatField()
-    Distance = db.FloatField()
-    # freqList = db.StringField()
-    # ssidList = db.StringField()
-    Tx0 = db.FloatField()
-    Rx0 = db.FloatField()
-    Noise0 = db.FloatField()
-    Encoding0 = db.IntField()
-    Tx1 = db.FloatField()
-    Rx1 = db.FloatField()
-    Noise1 = db.FloatField()
-    Encoding1 = db.IntField()
-    Tx2 = db.FloatField()
-    Rx2 = db.FloatField()
-    Noise2 = db.FloatField()
-    Encoding2 = db.IntField()
-    Tx3 = db.FloatField()
-    Rx3 = db.FloatField()
-    Noise3 = db.FloatField()
-    Encoding3 = db.IntField()
-    # Process = db.BooleanField(default=False)
-    # Aggregate = db.BooleanField(default=False)
-    meta = {'indexes': ['Location', 'LinkName','DeviceName','Time','Distance']}
+    time = db.IntField(default=int(time.time()))
+    signalStrength = db.FloatField()
+    tx = db.FloatField()
+    rx = db.FloatField()
+    noiseA = db.FloatField()
+    noiseB = db.FloatField()
+    freqA = db.StringField()
+    freqB = db.StringField()
+    txPower = db.FloatField()
+    txPhy = db.FloatField()
+    rxPhy = db.FloatField()
+    mac = db.StringField()
+    lat = db.FloatField()
+    long = db.FloatField()
+    temp = db.FloatField()
+    connId = db.StringField()
+    cap = db.FloatField()
+    data = db.FloatField()
+    coverage = db.BooleanField(default=True)
+    distance = db.FloatField()
+
+    meta = {'indexes': [ 'connId','mac','time','distance']}
 
 #derived data from Data
 class Aggr_data(db.Document):
@@ -594,6 +620,8 @@ def register_blueprints(app):
     from dataController import dataController
     app.register_blueprint(dataController)
 register_blueprints(app)
+
+# dataController.startdata()
 
 # startdata()
 

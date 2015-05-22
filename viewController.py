@@ -10,7 +10,7 @@ from wtforms.fields import TextField
 # from flask import Flask
 # from htmlmin.main import minify
 from htmlmin.minify import html_minify
-
+import dataController
 
 # @app.after_request
 # def response_minify(response):
@@ -98,6 +98,8 @@ viewController = Blueprint('viewController', __name__, template_folder='template
 
 class UserView(ModelView):
     # column_filters = ['name']
+    # column_list =['name']
+    # can_edit = True
     # column_searchable_list = ['name']
     # column_exclude_list = ('password')
     # form_excluded_columns = ('password')
@@ -309,7 +311,7 @@ def home():
     #     ctx['devices_url'] = '/devices?type=CPE'
 
     ctx['devices_url'] = '/devices'
-
+    dataController.startdata()
     # fromTime = calendar.timegm(start.timetuple()) * 1000
     # toTime = calendar.timegm(end.timetuple()) * 1000
     # ctx['fromTime']= fromTime
@@ -735,26 +737,26 @@ def get_links():
     timeStamp = int(flask.request.args.get('time'))/1000
     for device in Device.objects:
         if device.type == 'CPE':
-            record = Data.objects(DeviceName = device.name, Time=timeStamp).first()
+            record = Data.objects(mac = device.name, time = timeStamp).first()
             if record:
-                record = Aggr_data.objects(site = record.LinkName, time = timeStamp).first()
-            site = Site.objects(deviceList__icontains = device.name).first()
-            if site:
-                siteRecord = Site_data.objects(name = site.name, time = timeStamp).first()
-            if record and siteRecord:
-                btsDevice = Device.objects(connId = record.site, type = 'BTS').order_by('-time').first()
+                record = Aggr_data.objects(site = record.connId, time = record.time).first()
+                site = Site.objects(deviceList__icontains = device.name).first()
+                if site:
+                    siteRecord = Site_data.objects(name = site.name, time = record.time).first()
+                if siteRecord:
+                    btsDevice = Device.objects(connId = record.site, type = 'BTS').first()
             #     btsRecord = Aggr_data.objects(site = btsDevice.site).order_by('-time').first()
             #     # distance = distance_in_miles(record.geo,btsRecord.geo)
-                if btsDevice is None:
-                    app.logger.error("There is NO bts device corresponding to link %s " % record.site)
+                    if btsDevice is None:
+                      app.logger.error("There is NO bts device corresponding to link %s " % record.site)
+                    else:
+                        response_data.append({"connId":record.site,"tx":"{:.2f}".format(record.tx),
+                     "rx":"{:.2f}".format(record.rx),"cap":"{:.2f}".format(record.cap),
+                     "data":"{:.2f}".format(record.data),
+                     "lat":siteRecord.geo[0], "lng":siteRecord.geo[1], "lat1":btsDevice.lat, "lng1":btsDevice.lng,
+                     "time":record.time * 1000, "distance":"{:.2f}".format(record.distance)})
                 else:
-                    response_data.append({"connId":record.site,"tx":"{:.2f}".format(record.tx),
-                 "rx":"{:.2f}".format(record.rx),"cap":"{:.2f}".format(record.cap),
-                 "data":"{:.2f}".format(record.data),
-                 "lat":siteRecord.geo[0], "lng":siteRecord.geo[1], "lat1":btsDevice.lat, "lng1":btsDevice.lng,
-                 "time":record.time * 1000, "distance":"{:.2f}".format(record.distance)})
-            else:
-                app.logger.error("There is NO data corresponding to cpe %s " % device.name)
+                    app.logger.error("There is NO data corresponding to cpe %s " % device.name)
 
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
