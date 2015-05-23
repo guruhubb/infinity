@@ -737,26 +737,28 @@ def get_links():
     timeStamp = int(flask.request.args.get('time'))/1000
     for device in Device.objects:
         if device.type == 'CPE':
-            record = Data.objects(mac = device.name, time = timeStamp).first()
+            record = Data.objects(mac = device.name).order_by('-time').first()
             if record:
-                record = Aggr_data.objects(site = record.connId, time = timeStamp).first()
+                record = Aggr_data.objects(site = record.connId, time = record.time).first()
                 site = Site.objects(deviceList__icontains = device.name).first()
-                if site:
-                    siteRecord = Site_data.objects(name = site.name, time = timeStamp).first()
-                if siteRecord:
-                    btsDevice = Device.objects(connId = record.site, type = 'BTS').first()
+                if site and record:
+                    siteRecord = Site_data.objects(name = site.name, time = record.time).first()
+                    if siteRecord:
+                        btsDevice = Device.objects(connId = record.site, type = 'BTS').first()
             #     btsRecord = Aggr_data.objects(site = btsDevice.site).order_by('-time').first()
             #     # distance = distance_in_miles(record.geo,btsRecord.geo)
-                    if btsDevice is None:
-                      app.logger.error("There is NO bts device corresponding to link %s " % record.site)
-                    else:
-                        response_data.append({"connId":record.site,"tx":"{:.2f}".format(record.tx),
-                     "rx":"{:.2f}".format(record.rx),"cap":"{:.2f}".format(record.cap),
-                     "data":"{:.2f}".format(record.data),
-                     "lat":siteRecord.geo[0], "lng":siteRecord.geo[1], "lat1":btsDevice.lat, "lng1":btsDevice.lng,
-                     "time":record.time * 1000, "distance":"{:.2f}".format(record.distance)})
+                        if btsDevice is None:
+                            app.logger.error("There is NO bts device corresponding to link %s " % record.site)
+                        else:
+                            response_data.append({"connId":record.site,"tx":"{:.2f}".format(record.tx),
+                         "rx":"{:.2f}".format(record.rx),"cap":"{:.2f}".format(record.cap),
+                         "data":"{:.2f}".format(record.data),
+                         "lat":siteRecord.geo[0], "lng":siteRecord.geo[1], "lat1":btsDevice.lat, "lng1":btsDevice.lng,
+                         "time":record.time * 1000, "distance":"{:.2f}".format(record.distance)})
                 else:
-                    app.logger.error("There is NO data corresponding to cpe %s " % device.name)
+                    app.logger.error("There is NO aggr_data corresponding to cpe %s" % device.name)
+            else:
+                app.logger.error("There is NO data corresponding to cpe %s " % device.name)
 
     data_dumps= Response(json.dumps(response_data),  mimetype='application/json')
     return data_dumps
