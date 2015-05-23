@@ -45,7 +45,7 @@ site = 'Catalina_LongBeach'
 link = 'Catalina_LongBeach'
 deviceType = 'CPE'
 streamInterval = 1000
-updateInterval = 5000
+updateInterval = 6000
 # import plotly.plotly as py
 # from plotly.graph_objs import *
 # py.sign_in("saswata", "mret9csgsi")
