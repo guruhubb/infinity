@@ -739,10 +739,10 @@ def get_links():
         if device.type == 'CPE':
             record = Data.objects(mac = device.name, time = timeStamp).first()
             if record:
-                record = Aggr_data.objects(site = record.connId, time = record.time).first()
+                record = Aggr_data.objects(site = record.connId, time = timeStamp).first()
                 site = Site.objects(deviceList__icontains = device.name).first()
                 if site:
-                    siteRecord = Site_data.objects(name = site.name, time = record.time).first()
+                    siteRecord = Site_data.objects(name = site.name, time = timeStamp).first()
                 if siteRecord:
                     btsDevice = Device.objects(connId = record.site, type = 'BTS').first()
             #     btsRecord = Aggr_data.objects(site = btsDevice.site).order_by('-time').first()
