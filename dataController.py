@@ -1474,7 +1474,7 @@ def site():
                     deviceType = deviceObject.type
                     if deviceType == 'CPE':
                         # get all device related data objects
-                        record = Data.objects(mac=device, time = initial_time).first()
+                        record = Data.objects(deviceName=device, time = initial_time).first()
                         if record:
                             site_data_cpe['geo'] = (record.lat, record.long)
                             site_data_cpe['type'] = 'CPE'
@@ -1490,7 +1490,7 @@ def site():
                         # get cpe related to the bts link
                         cpeDevice = Device.objects(name__ne = device, connId = deviceObject.connId).first()
                         if cpeDevice:
-                            record = Data.objects(mac=cpeDevice.name, time = initial_time).first()
+                            record = Data.objects(deviceName=cpeDevice.name, time = initial_time).first()
                             if record and deviceObject:
                                 site_data_bts['tx']+= record.tx                         # data from cpe connected to bts
                                 site_data_bts['rx']+= record.rx
@@ -1763,7 +1763,7 @@ def deviceData():
     dataCollection.insert(a)
     # copy subset of data table to link table
     link_ = collections.OrderedDict()
-    link_['site'] = a['connId']
+    link_['site'] = a['linkName']
     link_['time'] = initial_time
     link_['tx'] = a['tx']
     link_['rx'] = a ['rx']

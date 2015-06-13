@@ -356,26 +356,34 @@ class Device(db.Document):
 class Data(db.Document):
     time = db.IntField(default=int(time.time()))
     signalStrength = db.FloatField()
+    aimSignalStrength = db.FloatField()
     tx = db.FloatField()
     rx = db.FloatField()
-    noiseA = db.FloatField()
-    noiseB = db.FloatField()
+    rxAH = db.FloatField()
+    rxBH = db.FloatField()
+    rxAV = db.FloatField()
+    rxBV = db.FloatField()
+    noiseAH = db.FloatField()
+    noiseBH = db.FloatField()
+    noiseAV = db.FloatField()
+    noiseBV = db.FloatField()
     freqA = db.StringField()
     freqB = db.StringField()
     txPower = db.FloatField()
     txPhy = db.FloatField()
     rxPhy = db.FloatField()
-    mac = db.StringField()
-    lat = db.FloatField()
-    long = db.FloatField()
-    temp = db.FloatField()
-    connId = db.StringField()
     cap = db.FloatField()
     data = db.FloatField()
+    deviceName = db.StringField()
+    deviceSN = db.StringField()
+    linkName = db.StringField()
+    lat = db.FloatField()
+    long = db.FloatField()
+    # temp = db.FloatField()
     coverage = db.BooleanField(default=True)
     distance = db.FloatField()
 
-    meta = {'indexes': [ 'connId','mac','time','distance']}
+    meta = {'indexes': ['linkName','deviceName','deviceSN','time','distance']}
 
 #derived data from Data
 class Aggr_data(db.Document):

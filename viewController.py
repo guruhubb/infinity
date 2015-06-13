@@ -737,9 +737,9 @@ def get_links():
     timeStamp = int(flask.request.args.get('time'))/1000
     for device in Device.objects:
         if device.type == 'CPE':
-            record = Data.objects(mac = device.name).order_by('-time').first()
+            record = Data.objects(deviceName = device.name).order_by('-time').first()
             if record:
-                record = Aggr_data.objects(site = record.connId, time = record.time).first()
+                record = Aggr_data.objects(site = record.linkName, time = record.time).first()
                 site = Site.objects(deviceList__icontains = device.name).first()
                 if site and record:
                     siteRecord = Site_data.objects(name = site.name, time = record.time).first()
