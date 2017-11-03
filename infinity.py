@@ -155,124 +155,6 @@ class Tag(db.Document):
         return self.name
 
 
-# class Device(db.Document):
-#     name = db.StringField(max_length=64, unique=True)
-#     mac = db.StringField(max_length=32, unique = True)
-#     url = db.StringField(unique = True)
-#     type = db.StringField(max_length=10, choices=TYPE)
-#     operator = db.ReferenceField(Company)
-#     owner = db.ReferenceField(Company)
-#     tags = db.ListField(db.ReferenceField('Tag'), default=['all'])
-#     time = db.DateTimeField(default=datetime.now())
-#     active = db.BooleanField(default=True)
-#     geo = db.GeoPointField()
-#
-#     # geo = db.GeoPointField(default = (31.86,116.6))
-#     site = db.StringField()                 # TODO may need to reference this at some point
-#     connId = db.StringField()
-#     # ssid = db.ReferenceField(Ssid)
-#     # power = db.ReferenceField(Power)
-#     # firmware = db.ReferenceField('Firmware')
-#     # config = db.ReferenceField('Config')
-#
-#     meta = {'indexes': ['mac','operator','owner','tags','geo']}
-#
-#     def __unicode__(self):
-#         return self.name
-#
-#
-# class Data(db.Document):
-#     mac = db.StringField()
-#     connId = db.StringField()
-#     time = db.IntField(default=int(time.time()))
-#     geo = db.GeoPointField()
-#     geo1 = db.GeoPointField()
-#     freqA = db.IntField()
-#     freqB = db.IntField()
-#     snrA = db.FloatField()
-#     snrB = db.FloatField()
-#     tx = db.FloatField()
-#     rx = db.FloatField()
-#     cap = db.FloatField()
-#     total_cap = db.FloatField()
-#     distance = db.FloatField()
-#     freqList = db.StringField()
-#     ssidList = db.StringField()
-#     process = db.BooleanField(default=False)
-#     aggregate = db.BooleanField(default=False)
-#
-#     meta = {'indexes': ['geo', 'connId','mac','time','distance','process','aggregate']}
-#
-# #derived data from Data
-# class Aggr_data(db.Document):
-#     site = db.StringField()
-#     time = db.IntField()
-#     tx = db.FloatField()
-#     rx = db.FloatField()
-#     cap = db.FloatField()
-#     data = db.FloatField()
-#     coverage = db.BooleanField()
-#     distance = db.FloatField()
-#     geo = db.GeoPointField()
-#
-#     meta = {'indexes': ['site','time','distance']}
-#
-#     # meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
-#
-# #derived data from Aggr_Data
-# class Minute(db.Document):
-#     site = db.StringField()
-#     time = db.IntField()
-#     tx = db.FloatField()
-#     rx = db.FloatField()
-#     cap = db.FloatField()
-#     data = db.FloatField()
-#     coverage = db.BooleanField()
-#     distance = db.FloatField()
-#     geo = db.GeoPointField()
-#
-#     meta = {'indexes': ['site','time','distance']}
-#
-# class Hour(db.Document):
-#     site = db.StringField()
-#     time = db.IntField()
-#     tx = db.FloatField()
-#     rx = db.FloatField()
-#     cap = db.FloatField()
-#     data = db.FloatField()
-#     coverage = db.BooleanField()
-#     distance = db.FloatField()
-#     geo = db.GeoPointField()
-#
-#     meta = {'indexes': ['site','time','distance']}
-#
-# class Day(db.Document):
-#     site = db.StringField()
-#     time = db.IntField()
-#     tx = db.FloatField()
-#     rx = db.FloatField()
-#     cap = db.FloatField()
-#     data = db.FloatField()
-#     coverage = db.BooleanField()
-#     distance = db.FloatField()
-#     geo = db.GeoPointField()
-#
-#     meta = {'indexes': ['site','time','distance']}
-#
-# class Month(db.Document):
-#     site = db.StringField()
-#     time = db.IntField()
-#     tx = db.FloatField()
-#     rx = db.FloatField()
-#     cap = db.FloatField()
-#     data = db.FloatField()
-#     coverage = db.BooleanField()
-#     distance = db.FloatField()
-#     geo = db.GeoPointField()
-#
-#     meta = {'indexes': ['site','time','distance']}
-
-
 class Device(db.Document):
     name = db.StringField(max_length=64, unique=True)
     model = db.StringField(max_length=32)
@@ -303,54 +185,6 @@ class Device(db.Document):
 
     def __unicode__(self):
         return self.name
-
-# Device.objects(name="BTS02").update(set__geo=[34.099139, -117.240400])
-# Device.objects(name="BTS03").update(set__geo=[33.916995, -117.366742])
-# Device.objects(name="BTS04").update(set__geo=[33.680001, -117.723440])
-# Device.objects(name="BTS05").update(set__geo=[33.659000, -117.967886])
-
-# class Data0(db.Document):
-#     Time = db.IntField(default=int(time.time()))
-#     SignalStrength = db.FloatField()
-#     TxRate = db.FloatField()
-#     RxRate = db.FloatField()
-#     Noise = db.FloatField()
-#     Chains_1_2 = db.StringField()
-#     Chains_3_4 = db.StringField()
-#     Tx_Power = db.FloatField()
-#     Tx_Phys_Rate = db.FloatField()
-#     Rx_Phys_Rate = db.FloatField()
-#     Rx_MCS = db.IntField()
-#     DeviceName = db.StringField()
-#     Location = db.GeoPointField()
-#     Temperature = db.FloatField()
-#     LinkName = db.StringField()
-#     MaxCapacity = db.FloatField()
-#     Data = db.FloatField()
-#     Coverage = db.BooleanField(default=True)
-#     # total_cap = db.FloatField()
-#     Distance = db.FloatField()
-#     # freqList = db.StringField()
-#     # ssidList = db.StringField()
-#     Tx0 = db.FloatField()
-#     Rx0 = db.FloatField()
-#     Noise0 = db.FloatField()
-#     Encoding0 = db.IntField()
-#     Tx1 = db.FloatField()
-#     Rx1 = db.FloatField()
-#     Noise1 = db.FloatField()
-#     Encoding1 = db.IntField()
-#     Tx2 = db.FloatField()
-#     Rx2 = db.FloatField()
-#     Noise2 = db.FloatField()
-#     Encoding2 = db.IntField()
-#     Tx3 = db.FloatField()
-#     Rx3 = db.FloatField()
-#     Noise3 = db.FloatField()
-#     Encoding3 = db.IntField()
-#     # Process = db.BooleanField(default=False)
-#     # Aggregate = db.BooleanField(default=False)
-#     meta = {'indexes': ['Location', 'LinkName','DeviceName','Time','Distance']}
 
 
 class Data(db.Document):
@@ -476,23 +310,6 @@ class Beagle(db.Document):
 
     meta = {'indexes': ['site','time','latency','download','upload']}
 
-# class Freq(db.Document):
-#     channel = db.StringField()
-#
-#     def __unicode__(self):
-#         return self.channel
-#
-# class Ssid(db.Document):
-#     name = db.StringField()
-#
-#     def __unicode__(self):
-#         return self.name
-#
-# class Power(db.Document):
-#     power = db.StringField(default='2')
-#
-#     def __unicode__(self):
-#         return self.power
 
 class Site(db.Document):
     name = db.StringField(max_length=32)
@@ -572,36 +389,7 @@ class Site_data_month(db.Document):
     distance = db.FloatField()
 
     meta = {'indexes': ['name','time','geo']}
-    # meta = {'indexes': ['site','time','distance'],  'auto_create_index':False, 'force_insert':False}  #TODO check this
-# class Config(db.Document):
-#     name = db.StringField(max_length=64)
-#     description = db.StringField(max_length=512)
-#     time = db.DateTimeField(default=datetime.now)
-#     ssid = db.ListField(db.StringField())
-#     power = db.ListField(db.StringField())
-#     freq = db.ListField(db.StringField())
-#
-#     def __unicode__(self):
-#         return self.name
-
-
-# class Firmware (db.Document):
-#     name = db.StringField()
-#     description = db.StringField()
-#     timestamp = db.DateTimeField(default=datetime.now)
-#     file = db.FileField()
-#
-#     def __unicode__(self):
-#         return self.name
-#
-#
-# class Job(db.Document):
-#     tag = db.ReferenceField('Tag')
-#     config = db.ReferenceField(Config)
-#     firmware = db.ReferenceField(Firmware)
-#     completed = db.BooleanField()
-#     timestamp = db.DateTimeField(default=datetime.now)
-
+ 
 
 class Event(db.Document):
     device = db.StringField()
@@ -629,7 +417,5 @@ def register_blueprints(app):
     app.register_blueprint(dataController)
 register_blueprints(app)
 
-# dataController.startdata()
 
-# startdata()
 
