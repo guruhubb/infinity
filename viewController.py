@@ -12,17 +12,6 @@ from wtforms.fields import TextField
 from htmlmin.minify import html_minify
 import dataController
 
-# @app.after_request
-# def response_minify(response):
-#     """
-#     minify html response to decrease site traffic
-#     """
-#     if response.content_type == u'text/html; charset=utf-8':
-#         response.set_data(
-#             minify(response.get_data(as_text=True))
-#         )
-#         return response
-#     return response
 
 class ReadonlyTextField(TextField):
   def __call__(self, *args, **kwargs):
@@ -46,50 +35,10 @@ link = 'Catalina_LongBeach'
 deviceType = 'CPE'
 streamInterval = 1000
 updateInterval = 6000
-# import plotly.plotly as py
-# from plotly.graph_objs import *
-# py.sign_in("saswata", "mret9csgsi")
-
-# from htmlmin.minify import html_minify
-# from flask.ext.assets import Environment, Bundle
-# assets.register('app_css', app_css)
-# assets.register('app_js', app_js)
-# assets.register('app_js_exts', app_js_exts)
-#
-# assets = Environment(app)
-# assets.versions = 'timestamp'
-# app_js_exts = Bundle('js/jquery.colorchange.js', 'js/jquery.iframe-transport.js',
-#                    filters='jsmin', output='nadzweb.ext.min.js')
-# app_js = Bundle('js/home.js', filters='jsmin', output='home.min.js')
-# app_css = Bundle('style.css', 'jquery.tableless.css',filters='cssmin', output='nadzweb.min.css')
-#
-#
-# js = Bundle('jquery.js', 'base.js', 'widgets.js',
-#             filters='jsmin', output='gen/packed.js')
-# assets.register('js_all', js)
-# app.config['ASSETS_DEBUG'] = True
 
 from flask.ext.assets import Environment, Bundle
 assets = Environment(app)
 
-# css_all = Bundle(
-#     'agency.css','base.css','bootstrap.css','jquery.datetimepicker.css',
-#     'login.css',
-#     filters='cssmin',
-#     output='gen/min.css',
-# )
-
-# js_all = Bundle(
-#     'infinity.js',
-#     filters='uglify',
-#
-#     # filters='jsmin',
-#     output='gen/min.js',
-# )
-
-# These assets get passed templates to be rendered
-# assets.register('css_all', css_all)
-# assets.register('js_all', js_all)
 
 # Route calls from app to viewController
 viewController = Blueprint('viewController', __name__, template_folder='templates')
@@ -97,50 +46,10 @@ viewController = Blueprint('viewController', __name__, template_folder='template
 #Create Custom Admin views
 
 class UserView(ModelView):
-    # column_filters = ['name']
-    # column_list =['name']
-    # can_edit = True
-    # column_searchable_list = ['name']
-    # column_exclude_list = ('password')
-    # form_excluded_columns = ('password')
-    # form_ajax_refs = {
-    #     'roles': {
-    #         'fields': ['name']
-    #     }
-    # }
-    # form_widget_args = {
-    #     'name':{
-    #         'disabled':True
-    #     },
-    #     'email':{
-    #         'disabled':True
-    #     },
-    #     'active':{
-    #         'disabled':True
-    #     },
-    #     'confirmed_at':{
-    #         'disabled':True
-    #     },
-    #     'roles':{
-    #         'disabled':True
-    #     }
-    # }
-
     def is_accessible(self):
         return current_user.is_authenticated() and current_user.has_role('Root')
 
-
 class RoleView(ModelView):
-    # column_filters = ['name']
-    # column_searchable_list = ['name']
-    # column_searchable_list = ('name')
-    # column_exclude_list = ('password')
-    # form_excluded_columns = ('password')
-    # form_ajax_refs = {
-    #     'roles': {
-    #         'fields': ['name']
-    #     }
-    # }
     def is_accessible(self):
         return current_user.is_authenticated() and current_user.has_role('Root')
 
@@ -324,21 +233,6 @@ def home():
 def lastPoint():
     lastTime = int(flask.request.args.get('lastTime'))/1000
     site = flask.request.args.get('site')
-    # type = flask.request.args.get('type')
-    # if type == 'BTS':
-    #     site = Device.objects(site = site).first()
-    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
-    # nowtime = int(time.time())
-    # start = nowtime-15*60  # 15 mins
-    # if lastTime > start and lastTime != nowtime:   # if lastTime is less than 15 mins, use it for start time
-    #     start = lastTime
-    # end = nowtime  # end time = current time
-    # query_set = Aggr_data.objects(time__gt = start, time__lt = end, site = site ).order_by('time')\
-    #     .only('time',"data","cap","distance")
-    # ob = Aggr_data.objects(time__gte = lastTime, site = site ).first()
-    # ob = Aggr_data.objects(site = site ).order_by("-time").first()
-    # data = defaultdict(lambda :defaultdict)  # one-liner to initialize dictionary containing lists
-    # data = defaultdict(list)
     query_set = Aggr_data.objects(time__gte = lastTime, site = site ).order_by('time')
     data = {}
     data["cap"]=[]
@@ -358,21 +252,6 @@ def lastPoint():
 def lastPoint_site():
     lastTime = int(flask.request.args.get('lastTime'))/1000
     site = flask.request.args.get('site')
-    # type = flask.request.args.get('type')
-    # if type == 'BTS':
-    #     site = Device.objects(site = site).first()
-    #     site = Device.objects(connId = site.connId, type = 'CPE').first().site
-    # nowtime = int(time.time())
-    # start = nowtime-15*60  # 15 mins
-    # if lastTime > start and lastTime != nowtime:   # if lastTime is less than 15 mins, use it for start time
-    #     start = lastTime
-    # end = nowtime  # end time = current time
-    # query_set = Site_data.objects(time__gt = start, time__lt = end, name = site ).order_by('time')\
-    #     .only('time',"data","cap","distance")
-    # ob = Aggr_data.objects(site = site ).order_by("-time").first()
-    # data = defaultdict(lambda :defaultdict)  # one-liner to initialize dictionary containing lists
-    # data = defaultdict(list)
-
     query_set = Site_data.objects(time__gte = lastTime, name = site ).order_by('time')
 
     data = {}
@@ -1288,229 +1167,3 @@ def generate_path_init():
 
     return data
 
-
-
-# @app.route("/ping/<ip>", methods=['GET','POST'])
-# def get_ping_status(ip):
-#     value = get_status(ip)
-#     if value != 0:
-#         return get_status(ip)
-#     else:
-#         return value
-#
-#
-#
-# def get_status(ip):
-#     res = subprocess.call(['ping', '-c', '1', '-W', '1', ip])
-#     if res == 0:
-#         app.logger.info('successfully pinged to ip: %s, ' % ip)
-#     elif res == 2:
-#         app.logger.info('no response for the pinged to ip: %s, ' % ip)
-#     else:
-#         res = -1
-#         app.logger.info('failed to ping the ip: %s, ' % ip)
-#     return  res
-
-
-# @app.route('/chart/<mac>')
-# @login_required
-# def chart_view1(site,fromTime,toTime):
-#
-#     total_records = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site ).only("time","data","cap","distance")
-#
-#     timeStamp = time.strftime("%Y-%m-%d %H:%M:%S")
-#     time.sleep(1)
-#     timeStamp1 = time.strftime("%Y-%m-%d %H:%M:%S")
-#     time.sleep(1)
-#     timeStamp2 = time.strftime("%Y-%m-%d %H:%M:%S")
-#
-#     trace1 = Scatter(
-#         x=[
-#                 timeStamp,
-#                 timeStamp1,
-#                 timeStamp2,],
-#         y=[40, 50, 60],
-#         name='Capacity'
-#     )
-#     trace2 = Scatter(
-#         x=[
-#                 timeStamp2,
-#                 timeStamp1,
-#                 timeStamp,],
-#         y=[4, 5, 6],
-#         name='Traffic',
-#         yaxis='y2'
-#     )
-#     data = Data([trace1, trace2])
-#     layout = Layout(
-#         title='Capacity and Traffic',
-#         yaxis=YAxis(
-#             title='Capacity'
-#         ),
-#         yaxis2=YAxis(
-#             title='Traffic',
-#             titlefont=Font(
-#                 color='rgb(148, 103, 189)'
-#             ),
-#             tickfont=Font(
-#                 color='rgb(148, 103, 189)'
-#             ),
-#             overlaying='y',
-#             side='right'
-#         ),
-#         xaxis=XAxis(
-#             title='AXIS TITLE',
-#             titlefont=Font(
-#                 family='Arial, sans-serif',
-#                 size=18,
-#                 color='grey'
-#             )
-#         )
-#     )
-#     fig = Figure(data=data, layout=layout)
-#     plot_url = py.plot(fig, filename='multiple-axes-double', auto_open=False)
-#
-#     ctx={}
-#     ctx['plot']=plot_url
-#     return plot_url
-
-
-
-    # trace1 = Bar(
-    #     x=distance,
-    #     y=avg_cap,
-    #     name='Avg Capacity'
-    # )
-    # trace2 = Bar(
-    #     x=distance,
-    #     y=records,
-    #     name='% Time'
-    #     # ,
-    #     # yaxis='y2'
-    # )
-    # data = Data([trace1, trace2])
-    #
-    # layout = Layout(
-    #     barmode='group',
-    #
-    #     title='Capacity,Time vs Distance',
-    #     yaxis=YAxis(
-    #         title='Capacity, %Time'
-    #     ),
-    #     # yaxis2=YAxis(
-    #     #     title='% Time',
-    #     #     titlefont=Font(
-    #     #         color='rgb(148, 103, 189)'
-    #     #     ),
-    #     #     tickfont=Font(
-    #     #         color='rgb(148, 103, 189)'
-    #     #     ),
-    #     #     overlaying='y',
-    #     #     side='right'
-    #     # ),
-    #     xaxis=XAxis(
-    #         title='Distance',
-    #         titlefont=Font(
-    #             family='Arial, sans-serif',
-    #             size=18,
-    #             color='grey'
-    #         )
-    #     )
-    # )
-    # fig = Figure(data=data, layout=layout)
-    # plot_url = py.plot(fig, filename='grouped-bar', auto_open=False)
-    # return plot_url
-
-            # x = ob.time.strftime("%Y-%m-%d %H:%M:%S")
-        # data["time"].append(time.mktime(ob.time.timetuple()) * 1000)
-
-        # x = time.mktime(ob.time.timetuple()) * 1000
-        # data["cap"].append([x,ob.cap])
-        # data["data"].append([x,ob.data])
-        # data["distance"].append([x,ob.distance])
-
-
-# app.route('/path')
-# @login_required
-# def generate_path():
-#
-#     toTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('toTime'))/1000)
-#     fromTime = datetime.datetime.fromtimestamp(int(flask.request.args.get('fromTime'))/1000)
-#     site = flask.request.args.get('site')
-#     tic = time.time()
-#     query_set = Aggr_data.objects(time__gt = fromTime, time__lt = toTime, site = site )
-#     toc = time.time()
-#     delta = toc-tic
-    # skip = len(query_set)/MAX_POINTS
-    # data = {}
-    # data["cap"]=[]
-    # data["lat"]=[]
-    # data["lng"]=[]
-    # start = 0
-    # for ob in query_set:
-    #     if start == 0:
-    #         data["cap"].append(float("{0:.2f}".format(ob.cap)))
-    #         data["lat"].append(float("{0:.2f}".format(ob.geo[0])))
-    #         data["lng"].append(float("{0:.2f}".format(ob.geo[1])))
-    #
-    #         # data["cap"].append(ob.cap)
-    #         # data["lat"].append(ob.geo[0])
-    #         # data["lng"].append(ob.geo[1])
-    #         start +=1
-    #     else:
-    #         if start > skip:
-    #             start = 0
-    #         else:
-    #             start+=1
-    #
-    # toc2 = time.time()
-    # delta2 = toc2-tic
-    # app.logger.info("delta = %s, delta2 = %s"% (delta,delta2))
-    # num = query_set.count()
-    # data = []
-    # for doc in query_set:
-    #     data.append((
-    #        doc['data'],
-    #        doc['tx'],
-    #        doc['cap']
-    #     ))
-    #
-    # toc3 = time.time()
-    # delta3 = toc3-toc
-    #
-    # # data1 = zip(*data)
-    # arrays = numpy.array(data)
-    # data1={}
-    # data1['lat']=[]
-    # data1['lng']=[]
-    # data1['cap']=[]
-    # data1['lat']=arrays[: ,0].tolist()
-    # data1['lng']=arrays[: ,1].tolist()
-    # data1['cap']=arrays[: ,2].tolist()
-    # toc4 = time.time()
-    # delta4 = toc4-toc3
-    #
-    #
-    #
-    # with Monary("127.0.0.1") as monary:
-    #     arrays = monary.query(
-    #         "infinity",                         # database name
-    #         "aggr_data",                   # collection name
-    #         {"time":{'$gt':fromTime, '$lt':toTime},'site':site},                             # query spec
-    #         ["cap", "data","tx"], # field names (in Mongo record)
-    #         ["float64"] * 3                # Monary field types (see below)
-    #     )
-    # data1={}
-    # data1['lat']=arrays[0]
-    # data1['lng']=arrays[1]
-    # data1['cap']=arrays[2]
-    # # data1['lat']=arrays[: ,0].tolist()
-    # # data1['lng']=arrays[: ,1].tolist()
-    # # data1['cap']=arrays[: ,2].tolist()
-    # toc5 = time.time()
-    # delta5 = toc5-toc4
-    #
-    # app.logger.info(" delta = %s, delta3 = %s, delta4 = %s, delta5 = %s"% (delta, delta3, delta4, delta5))
-    #
-    # data_dumps= Response(json.dumps(data1),  mimetype='application/json')
-    # return data_dumps
